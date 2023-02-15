@@ -32,6 +32,7 @@ endif
 ifeq ($(CONFIG_MACH_MT6779), y)
   ccflags-y += -I$(srctree)/drivers/misc/mediatek/timer/timesync/
 endif
+subdir-ccflags-y += -Wframe-larger-than=20624
 
 obj-$(CONFIG_MTK_LENS)    += mainaf.o
 
