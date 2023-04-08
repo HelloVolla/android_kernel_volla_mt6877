@@ -205,13 +205,8 @@ static int gsx_gesture_init(struct goodix_ts_core *cd,
 	}
 
 	gsx->ts_core = cd;
-	gsx->ts_core->gesture_type = 0;
-	
-/*prize add by xuejian for gesture start*/
-	gsx->ts_core->wakeup_click_enabled = 0;
-	gsx->ts_core->finger_fod_enabled = 0;
-/*prize add by xuejian for gesture end*/	
-	
+	gsx->ts_core->gesture_type = GESTURE_FOD_PRESS;
+
 	atomic_set(&gsx->registered, 1);
 
 	return 0;
@@ -232,57 +227,6 @@ static int gsx_gesture_exit(struct goodix_ts_core *cd,
 	return 0;
 }
 
-/*prize add by xuejian for gesture start*/
-extern void prize_common_node_register(char* name,void(*set)(unsigned char on_off));
-static void goodix_double_type_func(unsigned char on)
-{
-	
-	if(1 == on){
-		g_ts_core->wakeup_click_enabled = 1;
-		g_ts_core->gesture_type = 1;
-		printk("%s enter DOUBLE-TAP gesture\n", __func__);
-	}else if(0 == on){
-		g_ts_core->wakeup_click_enabled = 0;
-		if (g_ts_core->finger_fod_enabled == 0) {
-			g_ts_core->gesture_type = 0;
-			ts_info("close g_ts_core->gesture_type\n");	
-		}
-		printk("%s close DOUBLE-TAP gesture\n", __func__);
-	}
-	
-}
-static void goodix_finger_fod_func(unsigned char on)
-{
-	
-	if(1 == on){
-		g_ts_core->finger_fod_enabled = 1;
-		g_ts_core->gesture_type = 1;
-		printk("%s enter finger fod\n", __func__);
-	}else if(0 == on){
-		g_ts_core->finger_fod_enabled = 0;
-		if (g_ts_core->wakeup_click_enabled == 0) {
-			g_ts_core->gesture_type = 0;
-			ts_info("close g_ts_core->gesture_type\n");	
-		}
-		printk("%s close finger fod\n", __func__);
-	}
-	
-}
-/*prize add by xuejian for gesture end*/
-static void goodix_finger_screenstate_func(unsigned char on)
-{
-	if (1 == on) {
-		g_ts_core->hw_ops->receive_cmd(g_ts_core, 0x17, 1); //zuo
-		printk("%s usb left\n", __func__);
-	} else if (2 == on) {
-		g_ts_core->hw_ops->receive_cmd(g_ts_core, 0x17, 2); //you
-		printk("%s usb right\n", __func__);
-	} else if (0 == on) {
-		g_ts_core->hw_ops->receive_cmd(g_ts_core, 0x17, 0); //normal
-		printk("%s usb normal\n", __func__);
-	}
-}
-
 /**
  * gsx_gesture_ist - Gesture Irq handle
  * This functions is excuted when interrupt happended and
@@ -292,7 +236,6 @@ static void goodix_finger_screenstate_func(unsigned char on)
  * @module: pointer to goodix_ext_module struct
  * return: 0 goon execute, EVT_CANCEL_IRQEVT  stop execute
  */
-extern int tp_mode_notifier_call_chain(unsigned long val, void *v);
 static int gsx_gesture_ist(struct goodix_ts_core *cd,
 	struct goodix_ext_module *module)
 {
@@ -318,7 +261,7 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 
 	switch (gs_event.gesture_type) {
 	case GOODIX_GESTURE_SINGLE_TAP:
-		if (cd->gesture_type && cd->wakeup_click_enabled && GESTURE_SINGLE_TAP) {
+		if (cd->gesture_type & GESTURE_SINGLE_TAP) {
 			ts_info("get SINGLE-TAP gesture");
 			input_report_key(cd->input_dev, KEY_WAKEUP, 1);
 			// input_report_key(cd->input_dev, KEY_GOTO, 1);
@@ -331,7 +274,7 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 		}
 		break;
 	case GOODIX_GESTURE_DOUBLE_TAP:
-		if (cd->gesture_type && cd->wakeup_click_enabled && GESTURE_DOUBLE_TAP) {
+		if (cd->gesture_type & GESTURE_DOUBLE_TAP) {
 			ts_info("get DOUBLE-TAP gesture");
 			input_report_key(cd->input_dev, KEY_WAKEUP, 1);
 			input_sync(cd->input_dev);
@@ -342,72 +285,40 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 		}
 		break;
 	case GOODIX_GESTURE_FOD_DOWN:
-		if (cd->gesture_type && cd->finger_fod_enabled && GESTURE_FOD_PRESS) {
-			atomic_set(&cd->fod_figer_state, 1);
+		if (cd->gesture_type & GESTURE_FOD_PRESS) {
 			ts_info("get FOD-DOWN gesture");
-			//fodx = le16_to_cpup((__le16 *)gs_event.gesture_data);
-			//fody = le16_to_cpup((__le16 *)(gs_event.gesture_data + 2));
-			//overlay_area = gs_event.gesture_data[4];
-			//ts_debug("fodx:%d fody:%d overlay_area:%d", fodx, fody, overlay_area);
+			fodx = le16_to_cpup((__le16 *)gs_event.gesture_data);
+			fody = le16_to_cpup((__le16 *)(gs_event.gesture_data + 2));
+			overlay_area = gs_event.gesture_data[4];
+			ts_debug("fodx:%d fody:%d overlay_area:%d", fodx, fody, overlay_area);
 			input_report_key(cd->input_dev, KEY_GESTURE, 1);
-			input_sync(cd->input_dev);
-			input_report_key(cd->input_dev, KEY_GESTURE, 0);
-			input_sync(cd->input_dev);
-			/*prize add fod function 20230218 start*/
-			ts_info("FOD-DOWN: %d\n", KEY_GESTURE);
-			/*prize add fod function 20230218 end*/
-			/*input_report_key(cd->input_dev, BTN_TOUCH, 1);
 			input_mt_slot(cd->input_dev, 0);
 			input_mt_report_slot_state(cd->input_dev, MT_TOOL_FINGER, 1);
 			input_report_abs(cd->input_dev, ABS_MT_POSITION_X, fodx);
 			input_report_abs(cd->input_dev, ABS_MT_POSITION_Y, fody);
 			input_report_abs(cd->input_dev, ABS_MT_WIDTH_MAJOR, overlay_area);
-			input_sync(cd->input_dev);*/
+			input_sync(cd->input_dev);
 		} else {
 			ts_debug("not enable FOD-DOWN");
 		}
 		break;
 	case GOODIX_GESTURE_FOD_UP:
-		if (cd->gesture_type && cd->finger_fod_enabled && GESTURE_FOD_PRESS) {
+		if (cd->gesture_type & GESTURE_FOD_PRESS) {
 			ts_info("get FOD-UP gesture");
-			// fodx = le16_to_cpup((__le16 *)gs_event.gesture_data);
-			// fody = le16_to_cpup((__le16 *)(gs_event.gesture_data + 2));
-			// overlay_area = gs_event.gesture_data[4];
-			//input_report_key(cd->input_dev, BTN_TOUCH, 0);
-			//input_mt_slot(cd->input_dev, 0);
-			//input_mt_report_slot_state(cd->input_dev,
-				//	MT_TOOL_FINGER, 0);
-		//	input_sync(cd->input_dev);
-			/*prize add fod function 20230218 start*/
-			if (atomic_read(&cd->now_system_status)) {
-				//走了resume 上报k2 设置fod_figer_state
-				atomic_set(&cd->fod_figer_state, 0);
-				atomic_set(&cd->suspended, 0);
-				input_report_key(cd->input_dev, KEY_GESTURE_UP, 1);
-				input_sync(cd->input_dev);
-				input_report_key(cd->input_dev, KEY_GESTURE_UP, 0);
-				input_sync(cd->input_dev);
-				hw_ops->reset(cd, GOODIX_NORMAL_RESET_DELAY_MS);
-				if (atomic_read(&cd->chg_state)) {
-					tp_mode_notifier_call_chain(atomic_read(&cd->chg_state), "charging");
-				}
-			} else if (!atomic_read(&cd->now_system_status)) {
-				//手指还未抬起  又重新进入了手势模式
-				atomic_set(&cd->fod_figer_state, 0);
-				input_report_key(cd->input_dev, KEY_GESTURE_UP, 1);
-				input_sync(cd->input_dev);
-				input_report_key(cd->input_dev, KEY_GESTURE_UP, 0);
-				input_sync(cd->input_dev);				
-			}
-
-			/*prize add fod function 20230218 end*/
+			fodx = le16_to_cpup((__le16 *)gs_event.gesture_data);
+			fody = le16_to_cpup((__le16 *)(gs_event.gesture_data + 2));
+			overlay_area = gs_event.gesture_data[4];
+			input_report_key(cd->input_dev, KEY_GESTURE, 0);
+			input_mt_slot(cd->input_dev, 0);
+			input_mt_report_slot_state(cd->input_dev,
+					MT_TOOL_FINGER, 0);
+			input_sync(cd->input_dev);
 		} else {
 			ts_debug("not enable FOD-UP");
 		}
 		break;
 	default:
 		ts_err("not support gesture type[%02X]", gs_event.gesture_type);
-		atomic_set(&cd->fod_figer_state, 0);
 		break;
 	}
 
@@ -455,18 +366,8 @@ static int gsx_gesture_before_resume(struct goodix_ts_core *cd,
 		return EVT_CONTINUE;
 
 	disable_irq_wake(cd->irq);
-	if (cd->finger_fod_enabled == 0) {
-		hw_ops->reset(cd, GOODIX_NORMAL_RESET_DELAY_MS);
-		goto disable_fod;
-	}
+	hw_ops->reset(cd, GOODIX_NORMAL_RESET_DELAY_MS);
 
-	//手指按下 跳过reset   
-	if (!atomic_read(&cd->fod_figer_state)) {
-		ts_info("%s fod_figer_state:%d\n",__func__, cd->fod_figer_state);
-		hw_ops->reset(cd, GOODIX_NORMAL_RESET_DELAY_MS);
-	}
-
-disable_fod:
 	return EVT_CANCEL_RESUME;
 }
 
@@ -519,12 +420,6 @@ int gesture_module_init(void)
 
 	module_initialized = true;
 	goodix_register_ext_module_no_wait(&gsx_gesture->module);
-	
-/*prize add by xuejian for gesture start*/	
-	prize_common_node_register("GESTURE", &goodix_double_type_func);
-	prize_common_node_register("FINGER", &goodix_finger_fod_func);
-	prize_common_node_register("SCREENSTATE", &goodix_finger_screenstate_func);
-/*prize add by xuejian for gesture end*/	
 
 	ts_info("gesture module init success");
 

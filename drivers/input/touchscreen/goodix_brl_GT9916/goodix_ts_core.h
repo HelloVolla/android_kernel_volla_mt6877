@@ -65,7 +65,6 @@
 
 /*prize add fod function 20230218 start*/
 #define KEY_GESTURE KEY_F24
-#define KEY_GESTURE_UP KEY_F23
 /*prize add fod function 20230218 end*/
 
 enum GOODIX_GESTURE_TYP {
@@ -516,16 +515,6 @@ struct goodix_ts_core {
 	struct regulator *avdd;
 	struct regulator *iovdd;
 	unsigned char gesture_type;
-	
-/*prize add by xuejian for gesture start*/
-	unsigned char wakeup_click_enabled;
-	unsigned char finger_fod_enabled;
-/*prize add by xuejian for gesture end*/
-	/*prize add fod function 20230218 start*/
-	atomic_t fod_figer_state;     //1-down   0-up
-	wait_queue_head_t figer_wait_queue;
-	atomic_t now_system_status;  //0-suspend  1-resume
-	/*prize add fod function 20230218 end*/
 	int power_on;
 	int irq;
 	size_t irq_trig_cnt;

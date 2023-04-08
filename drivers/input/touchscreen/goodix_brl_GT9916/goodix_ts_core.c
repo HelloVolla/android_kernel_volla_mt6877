@@ -1579,7 +1579,6 @@ static int goodix_ts_input_dev_config(struct goodix_ts_core *core_data)
 	set_bit(BTN_TOUCH, input_dev->keybit);
 	set_bit(BTN_TOOL_FINGER, input_dev->keybit);
 	set_bit(KEY_GESTURE, input_dev->keybit);
-	set_bit(KEY_GESTURE_UP, input_dev->keybit);
 	set_bit(INPUT_PROP_DIRECT, input_dev->propbit);
 
 	/* set input parameters */
@@ -1601,7 +1600,6 @@ static int goodix_ts_input_dev_config(struct goodix_ts_core *core_data)
 	input_set_capability(input_dev, EV_KEY, KEY_POWER);
 	input_set_capability(input_dev, EV_KEY, KEY_WAKEUP);
 	input_set_capability(input_dev, EV_KEY, KEY_GESTURE);
-	input_set_capability(input_dev, EV_KEY, KEY_GESTURE_UP);
 	input_set_capability(input_dev, EV_KEY, KEY_GOTO);
 	input_set_capability(input_dev, EV_KEY, BTN_TOOL_FINGER);
 
@@ -1852,7 +1850,6 @@ static int goodix_ts_suspend(struct goodix_ts_core *core_data)
 	struct goodix_ts_hw_ops *hw_ops = core_data->hw_ops;
 	int ret;
 
-	atomic_set(&core_data->now_system_status, 0); //走了suspend
 	if (core_data->init_stage < CORE_INIT_STAGE2 ||
 			atomic_read(&core_data->suspended))
 		return 0;
@@ -1930,27 +1927,12 @@ static int goodix_ts_resume(struct goodix_ts_core *core_data)
 	struct goodix_ts_hw_ops *hw_ops = core_data->hw_ops;
 	int ret;
 
-	atomic_set(&core_data->now_system_status, 1); //走了resume
 	if (core_data->init_stage < CORE_INIT_STAGE2 ||
 			!atomic_read(&core_data->suspended))
 		return 0;
 
 	ts_info("Resume start");
-	
-	/*prize add fod function 20230218 start*/
-	//wait_event_interruptible(core_data->figer_wait_queue, atomic_read(&core_data->fod_figer_state) == 0);
-	if (core_data->finger_fod_enabled == 0) {
-		goto normal_resume;
-	}
-	
-	if (atomic_read(&core_data->fod_figer_state) == 1) {
-		/* 手指按下状态 跳过 设置suspended状态 等待手指抬起信号*/
-		goto skip_suspend;
-	}
-	/*prize add fod function 20230218 end*/
-normal_resume:
 	atomic_set(&core_data->suspended, 0);
-skip_suspend:
 	hw_ops->irq_enable(core_data, false);
 
 	mutex_lock(&goodix_modules.mutex);
@@ -2002,22 +1984,9 @@ out:
 	hw_ops->irq_enable(core_data, true);
 	/* open esd */
 	goodix_ts_blocking_notify(NOTIFY_RESUME, NULL);
-	
-	if (core_data->finger_fod_enabled == 0) {
-		goto normal_call_chain;
-	}
-	
-	if (atomic_read(&core_data->fod_figer_state) == 1) {
-		/* 手指按下状态 跳过 设置suspended状态 等待手指抬起信号*/
-		goto skip_call_chain;
-	}
-	
-normal_call_chain:	
 	if (atomic_read(&core_data->chg_state)) {
 		tp_mode_notifier_call_chain(atomic_read(&core_data->chg_state), "charging");
 	}
-
-skip_call_chain:
 	ts_info("Resume end");
 	return 0;
 }
@@ -2407,11 +2376,6 @@ static int goodix_ts_probe(struct platform_device *pdev)
 
 	/* Try start a thread to get config-bin info */
 	goodix_start_later_init(core_data);
-	/*prize add fod function 20230218 start*/
-	init_waitqueue_head(&core_data->figer_wait_queue);
-	atomic_set(&core_data->fod_figer_state, 0);
-	atomic_set(&core_data->now_system_status, 1);
-	/*prize add fod function 20230218 end*/
 //prize added by xuejian tp info, 20221026-start
 #if defined(CONFIG_PRIZE_HARDWARE_INFO)
   //  sprintf(current_tp_info.chip,"FW:0x%x", tp_info_chip_ver.version.config_id);
