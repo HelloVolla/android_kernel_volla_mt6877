@@ -142,7 +142,7 @@ void get_pix_rgb(int16_t *R, int16_t *G, int16_t *B)
 }
 EXPORT_SYMBOL_GPL(get_pix_rgb);
 
-void reset_pix_rgb()
+void reset_pix_rgb(void)
 {
 	memset(&g_pix_param, -1 , sizeof(g_pix_param));
 }
