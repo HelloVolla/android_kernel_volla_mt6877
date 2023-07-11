@@ -988,7 +988,7 @@ static int mtk_nanohub_send_lcm_brightness_and_rgb(void)
 	int16_t R = 0;
 	int16_t G = 0;
 	int16_t B = 0;
-	uint8_t retry_times = 0;
+//	uint8_t retry_times = 0;
 	/* prize modified by gongtaitao for X9-530 start */
 	static int16_t last_R = -1;
 	static int16_t last_G = -1;
@@ -1002,7 +1002,7 @@ static int mtk_nanohub_send_lcm_brightness_and_rgb(void)
 
 	get_pix_rgb(&R, &G, &B);
 	if (R == -1 || G == -1 || B == -1) {
-		while (retry_times < MAX_RETRY_TIMES) {
+/*		while (retry_times < MAX_RETRY_TIMES) {
 			mdelay(DELAY_MSECONDS);
 			get_pix_rgb(&R, &G, &B);
 			if (R != -1 && G != -1 && B != -1) {
@@ -1016,8 +1016,12 @@ static int mtk_nanohub_send_lcm_brightness_and_rgb(void)
 			G = 0;
 			B = 0;
 		}
+		*/
+		R = 0;
+		G = 0;
+		B = 0;
 	}
-
+	
 	req.set_cust_req.sensorType = ID_LIGHT;
 	req.set_cust_req.action = SENSOR_HUB_SET_CUST;
 	req.set_cust_req.setAlsData.action = CUST_ACTION_SET_ALS_PARAM;
