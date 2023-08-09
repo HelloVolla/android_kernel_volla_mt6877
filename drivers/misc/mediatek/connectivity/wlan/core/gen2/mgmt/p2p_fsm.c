@@ -113,10 +113,10 @@ VOID p2pFsmInit(IN P_ADAPTER_T prAdapter)
 
 		cnmTimerInitTimer(prAdapter,
 				  &(prAdapter->rP2pFsmTimeoutTimer),
-				  (PFN_MGMT_TIMEOUT_FUNC) p2pFsmRunEventFsmTimeout, (ULONG) prP2pFsmInfo);
+				  (PFN_MGMT_TIMEOUT_FUNC) p2pFsmRunEventFsmTimeout, (uintptr_t) prP2pFsmInfo);
 		cnmTimerInitTimer(prAdapter,
 				  &(prAdapter->rTdlsStateTimer),
-				  (PFN_MGMT_TIMEOUT_FUNC) p2pFsmRunEventTdlsTimeout, (ULONG) NULL);
+				  (PFN_MGMT_TIMEOUT_FUNC) p2pFsmRunEventTdlsTimeout, (uintptr_t) NULL);
 
 		/* 4 <2> Initiate BSS_INFO_T - common part */
 		BSS_INFO_INIT(prAdapter, NETWORK_TYPE_P2P_INDEX);
@@ -847,7 +847,7 @@ VOID p2pFsmRunEventAbort(IN P_ADAPTER_T prAdapter, IN P_P2P_FSM_INFO_T prP2pFsmI
 * \return none
 */
 /*----------------------------------------------------------------------------*/
-VOID p2pFsmRunEventFsmTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParam)
+void p2pFsmRunEventFsmTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_P2P_FSM_INFO_T prP2pFsmInfo = (P_P2P_FSM_INFO_T) ulParam;
 
@@ -943,7 +943,7 @@ VOID p2pFsmRunEventFsmTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParam)
  * teardown link if setup failed or
  * no data traffic for 4s
  */
-VOID p2pFsmRunEventTdlsTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParam)
+void p2pFsmRunEventTdlsTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_GLUE_INFO_T prGlueInfo = prAdapter->prGlueInfo;
 	struct ksta_info *prTargetSta = prGlueInfo->prStaHash[STA_HASH_SIZE];
@@ -1502,7 +1502,8 @@ VOID p2pFsmRunEventConnectionAbort(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMs
 					prTargetStaRec->aucMacAddr);
 				cnmTimerStopTimer(prAdapter, &(prTargetStaRec->rDeauthTxDoneTimer));
 				cnmTimerInitTimer(prAdapter, &(prTargetStaRec->rDeauthTxDoneTimer),
-					(PFN_MGMT_TIMEOUT_FUNC) p2pFsmRunEventDeauthTimeout, (ULONG) prTargetStaRec);
+				(PFN_MGMT_TIMEOUT_FUNC) p2pFsmRunEventDeauthTimeout,
+					(uintptr_t) prTargetStaRec);
 				cnmTimerStartTimer(prAdapter, &(prTargetStaRec->rDeauthTxDoneTimer),
 					P2P_DEAUTH_TIMEOUT_TIME_MS);
 
@@ -1553,7 +1554,7 @@ VOID p2pFsmRunEventConnectionAbort(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMs
 						cnmTimerStopTimer(prAdapter, &(prCurrStaRec->rDeauthTxDoneTimer));
 						cnmTimerInitTimer(prAdapter, &(prCurrStaRec->rDeauthTxDoneTimer),
 							(PFN_MGMT_TIMEOUT_FUNC) p2pFsmRunEventDeauthTimeout,
-							(ULONG) prCurrStaRec);
+							(uintptr_t) prCurrStaRec);
 						cnmTimerStartTimer(prAdapter, &(prCurrStaRec->rDeauthTxDoneTimer),
 							P2P_DEAUTH_TIMEOUT_TIME_MS);
 
@@ -1668,7 +1669,7 @@ static VOID p2pFsmCheckDeauthComplete(IN P_ADAPTER_T prAdapter)
 	} while (FALSE);
 }
 
-VOID p2pFsmRunEventDeauthTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParam)
+void p2pFsmRunEventDeauthTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_STA_RECORD_T prStaRec = (P_STA_RECORD_T) ulParam;
 

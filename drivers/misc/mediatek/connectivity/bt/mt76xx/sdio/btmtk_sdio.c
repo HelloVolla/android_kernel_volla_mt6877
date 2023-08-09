@@ -5278,7 +5278,12 @@ static void btmtk_sdio_remove(struct sdio_func *func)
 			btmtk_sdio_woble_free_setting();
 			btmtk_sdio_free_bt_cfg();
 			BTMTK_DBG("unregister dev");
+#if CFG_SUPPORT_CHIP_RESET_KO
 			btmtk_remove_card(card->priv);
+#else
+			if (!card->priv->btmtk_dev.reset_dongle)
+				btmtk_remove_card(card->priv);
+#endif
 			btmtk_sdio_unregister_dev(card);
 			if (card->bin_file_buffer != NULL) {
 				kfree(card->bin_file_buffer);

@@ -1019,7 +1019,6 @@ VOID nicCmdEventQueryMemDump(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo
 	P_PARAM_CUSTOM_MEM_DUMP_STRUCT_T prMemDumpInfo;
 	P_GLUE_INFO_T prGlueInfo;
 	P_EVENT_DUMP_MEM_T prEventDumpMem;
-	static UINT_8 aucPath[256];
 	static UINT_32 u4CurTimeTick;
 
 	ASSERT(prAdapter);
@@ -1055,20 +1054,6 @@ VOID nicCmdEventQueryMemDump(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo
 #endif
 		} while (FALSE);
 #endif
-
-		if (prEventDumpMem->ucFragNum == 1) {
-			/* Store memory dump into sdcard,
-			 * path /sdcard/dump_<current  system tick>_<memory address>_<memory length>.hex
-			 */
-			u4CurTimeTick = kalGetTimeTick();
-			sprintf(aucPath, "/sdcard/dump_%d_0x%08X_%d.hex",
-				u4CurTimeTick,
-				prEventDumpMem->u4Address, prEventDumpMem->u4Length + prEventDumpMem->u4RemainLength);
-			kalWriteToFile(aucPath, FALSE, &prEventDumpMem->aucBuffer[0], prEventDumpMem->u4Length);
-		} else {
-			/* Append current memory dump to the hex file */
-			kalWriteToFile(aucPath, TRUE, &prEventDumpMem->aucBuffer[0], prEventDumpMem->u4Length);
-		}
 
 		if (prEventDumpMem->u4RemainLength == 0 || prEventDumpMem->u4Address == 0xFFFFFFFF) {
 			/* The request is finished or firmware response a error */

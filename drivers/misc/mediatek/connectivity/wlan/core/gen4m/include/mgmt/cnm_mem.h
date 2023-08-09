@@ -717,6 +717,9 @@ struct STA_RECORD {
 	uint32_t u4RxVector3;
 	uint32_t u4RxVector4;
 #endif
+	uint8_t fgPRXVValid;
+	uint8_t fgCRXVValid;
+
 	uint8_t ucSmDialogToken;	/* Spectrum Mngt Dialog Token */
 	uint8_t ucSmMsmtRequestMode;	/* Measurement Request Mode */
 	uint8_t ucSmMsmtToken;		/* Measurement Request Token */

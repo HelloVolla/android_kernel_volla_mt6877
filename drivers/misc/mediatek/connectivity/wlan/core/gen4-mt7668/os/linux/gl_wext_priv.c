@@ -1712,11 +1712,10 @@ priv_get_struct(IN struct net_device *prNetDev,
 * \brief The routine handles a set operation for a single OID.
 *
 * \param[in] pDev Net device requested.
-* \param[in] ndisReq Ndis request OID information copy from user.
-* \param[out] outputLen_p If the call is successful, returns the number of
-*                         bytes written into the query buffer. If the
-*                         call failed due to invalid length of the query
-*                         buffer, returns the amount of storage needed..
+* \param[in] prIwReqInfo Pointer to iwreq structure.
+* \param[in] prIwReqData The ioctl data structure, use the field of
+*            sub-command.
+* \param[in] pcExtra The buffer with input value
 *
 * \retval 0 On success.
 * \retval -EOPNOTSUPP If cmd is not supported.

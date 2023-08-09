@@ -1379,7 +1379,6 @@ static int btmtk_sdio_load_fw_patch_using_dma(struct btmtk_dev *bdev, u8 *image,
 	s32 sent_len = 0;
 	s32 sdio_len = 0;
 	s32 next_len = 0;
-	u32 u32ReadCRValue = 0;
 	u32 block_count = 0;
 	u32 redundant = 0;
 	u32 delay_count = 0;
@@ -1395,20 +1394,12 @@ static int btmtk_sdio_load_fw_patch_using_dma(struct btmtk_dev *bdev, u8 *image,
 	}
 
 	BTMTK_INFO("%s: loading rom patch... start", __func__);
-	btmtk_sdio_enable_interrupt(0, cif_dev->func);
 	while (section_dl_size != cur_len) {
 		if (!atomic_read(&cif_dev->tx_rdy)) {
-			ret = btmtk_sdio_readl(CHISR, &u32ReadCRValue, cif_dev->func);
-			if ((TX_EMPTY & u32ReadCRValue) != 0) {
-				ret = btmtk_sdio_writel(CHISR, (TX_EMPTY | TX_COMPLETE_COUNT), cif_dev->func);
-				if (ret != 0) {
-					BTMTK_ERR("%s: btmtk_sdio_writel fail", __func__);
-					goto enable_intr;
-				}
-				atomic_set(&cif_dev->tx_rdy, 1);
-			} else if (delay_count > 1000) {
+			if (delay_count > 1000) {
 				BTMTK_ERR("%s: delay_count > 1000", __func__);
-				goto enable_intr;
+				ret = -1;
+				goto failed;
 			} else {
 				usleep_range(100, 200);
 				++delay_count;
@@ -1443,16 +1434,16 @@ static int btmtk_sdio_load_fw_patch_using_dma(struct btmtk_dev *bdev, u8 *image,
 		if (redundant)
 			sdio_len = (block_count + 1) * SDIO_BLOCK_SIZE;
 
-		ret = btmtk_sdio_writesb(CTDR, image, sdio_len, cif_dev->func);
 		atomic_set(&cif_dev->tx_rdy, 0);
+		ret = btmtk_sdio_writesb(CTDR, image, sdio_len, cif_dev->func);
 		cur_len += sent_len;
+		delay_count = 0;
 
 		if (ret < 0) {
 			BTMTK_ERR("%s: send patch failed, terminate", __func__);
-			goto enable_intr;
+			goto failed;
 		}
 	}
-	btmtk_sdio_enable_interrupt(1, cif_dev->func);
 
 	BTMTK_INFO("%s: send dl cmd", __func__);
 	ret = btmtk_main_send_cmd(bdev,
@@ -1469,8 +1460,10 @@ static int btmtk_sdio_load_fw_patch_using_dma(struct btmtk_dev *bdev, u8 *image,
 	BTMTK_INFO("%s: loading rom patch... Done", __func__);
 	return ret;
 
-enable_intr:
-	btmtk_sdio_enable_interrupt(1, cif_dev->func);
+failed:
+	BTMTK_ERR("%s: loading rom patch... Failed!!!", __func__);
+	btmtk_sdio_print_debug_sr(cif_dev);
+	btmtk_sdio_dump_debug_sop(bdev);
 	return ret;
 }
 

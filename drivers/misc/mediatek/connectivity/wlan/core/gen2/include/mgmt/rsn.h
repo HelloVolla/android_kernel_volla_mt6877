@@ -58,7 +58,9 @@
 #define WLAN_AKM_SUITE_FT_PSK           0x000FAC04
 #endif
 /* Add AKM SUITE for OWE since kernel haven't defined it. */
+#ifndef WLAN_AKM_SUITE_OWE
 #define WLAN_AKM_SUITE_OWE              0x000FAC12
+#endif
 #if CFG_SUPPORT_802_11W
 #define RSN_AKM_SUITE_802_1X_SHA256     0x05AC0F00
 #define RSN_AKM_SUITE_PSK_SHA256        0x06AC0F00
@@ -184,7 +186,7 @@ VOID rsnCheckPmkidCache(IN P_ADAPTER_T prAdapter, IN P_BSS_DESC_T prBss);
 
 VOID rsnGeneratePmkidIndication(IN P_ADAPTER_T prAdapter);
 
-VOID rsnIndicatePmkidCand(IN P_ADAPTER_T prAdapter, IN ULONG ulParm);
+void rsnIndicatePmkidCand(P_ADAPTER_T prAdapter, uintptr_t ulParm);
 #else
 P_PMKID_ENTRY_T rsnSearchPmkidEntry(IN P_ADAPTER_T prAdapter,
 					IN PUINT_8 pucBssid);
@@ -209,7 +211,8 @@ UINT_32 rsnCheckBipKeyInstalled(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSt
 
 UINT_8 rsnCheckSaQueryTimeout(IN P_ADAPTER_T prAdapter);
 
-void rsnStartSaQueryTimer(IN P_ADAPTER_T prAdapter);
+
+void rsnStartSaQueryTimer(P_ADAPTER_T prAdapter, uintptr_t ulParm);
 
 void rsnStartSaQuery(IN P_ADAPTER_T prAdapter);
 

@@ -138,8 +138,11 @@ static ssize_t macaddr_store(
 	size_t count)
 {
 	int32_t i4Ret = 0;
+	uint8_t aucMacAddrTemp[] = "FF:FF:FF:FF:FF:FF";
 
-	i4Ret = sscanf(buf, "%18s", (uint8_t *)&aucMacAddrOverride);
+	kalMemCopy(&aucMacAddrTemp, buf, sizeof(aucMacAddrTemp));
+	i4Ret = sscanf((uint8_t *)&aucMacAddrTemp, "%18s",
+		(uint8_t *)&aucMacAddrOverride);
 
 	if (!i4Ret)
 		DBGLOG(INIT, ERROR, "sscanf mac format fail u4Ret=%d\n", i4Ret);

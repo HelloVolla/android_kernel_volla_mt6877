@@ -9296,20 +9296,20 @@ WLAN_STATUS
 wlanoidSetP2pMode(IN P_ADAPTER_T prAdapter, IN PVOID pvSetBuffer, IN UINT_32 u4SetBufferLen, OUT PUINT_32 pu4SetInfoLen)
 {
 	WLAN_STATUS status = WLAN_STATUS_SUCCESS;
-	P_PARAM_CUSTOM_P2P_SET_STRUCT_T prSetP2P = (P_PARAM_CUSTOM_P2P_SET_STRUCT_T) NULL;
+	struct PARAM_CUSTOM_P2P_SET_STRUCT *prSetP2P = (struct PARAM_CUSTOM_P2P_SET_STRUCT *) NULL;
 	/* P_MSG_P2P_NETDEV_REGISTER_T prP2pNetdevRegMsg = (P_MSG_P2P_NETDEV_REGISTER_T)NULL; */
 	DEBUGFUNC("wlanoidSetP2pMode");
 
 	ASSERT(prAdapter);
 	ASSERT(pu4SetInfoLen);
 
-	*pu4SetInfoLen = sizeof(PARAM_CUSTOM_P2P_SET_STRUCT_T);
-	if (u4SetBufferLen < sizeof(PARAM_CUSTOM_P2P_SET_STRUCT_T)) {
+	*pu4SetInfoLen = sizeof(struct PARAM_CUSTOM_P2P_SET_STRUCT);
+	if (u4SetBufferLen < sizeof(struct PARAM_CUSTOM_P2P_SET_STRUCT)) {
 		DBGLOG(OID, WARN, "Invalid length %u\n", u4SetBufferLen);
 		return WLAN_STATUS_INVALID_LENGTH;
 	}
 
-	prSetP2P = (P_PARAM_CUSTOM_P2P_SET_STRUCT_T) pvSetBuffer;
+	prSetP2P = (struct PARAM_CUSTOM_P2P_SET_STRUCT *) pvSetBuffer;
 
 	DBGLOG(P2P, INFO, "Set P2P enable %p [%u] mode[%u]\n", prSetP2P, prSetP2P->u4Enable, prSetP2P->u4Mode);
 

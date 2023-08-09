@@ -140,7 +140,7 @@ extern bool fgIsTxPowerDecreased;
 	(GLUE_FLAG_HALT | GLUE_FLAG_SUB_MOD_MULTICAST | \
 	GLUE_FLAG_TX_CMD_DONE | GLUE_FLAG_TXREQ | GLUE_FLAG_TIMEOUT | \
 	GLUE_FLAG_FRAME_FILTER | GLUE_FLAG_OID | GLUE_FLAG_RX | \
-	GLUE_FLAG_SER_TIMEOUT)
+	GLUE_FLAG_SER_TIMEOUT | GLUE_FLAG_DISABLE_PERF)
 
 #define GLUE_FLAG_HIF_PROCESS \
 	(GLUE_FLAG_HALT | GLUE_FLAG_INT | GLUE_FLAG_HIF_TX | \
@@ -713,6 +713,14 @@ static inline void kalCfg80211ScanDone(struct cfg80211_scan_request *request,
 	pvAddr; \
 })
 #endif
+
+#define kalMemZAlloc(u4Size, eMemType) ({    \
+	void *pvAddr; \
+	pvAddr = kalMemAlloc(u4Size, eMemType); \
+	if (pvAddr) \
+		kalMemSet(pvAddr, 0, u4Size); \
+	pvAddr; \
+})
 
 /*----------------------------------------------------------------------------*/
 /*!

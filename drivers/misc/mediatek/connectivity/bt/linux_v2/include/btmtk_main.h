@@ -670,7 +670,7 @@ struct btmtk_main_info {
 	u8 wmt_over_hci_header[WMT_OVER_HCI_HEADER_SIZE];
 	u8 read_iso_packet_size_cmd[READ_ISO_PACKET_CMD_SIZE];
 
-#if CFG_SUPPORT_BMR_RX_CLK
+#if defined(CFG_SUPPORT_BMR_RX_CLK) && (CFG_SUPPORT_BMR_RX_CLK == 1)
 	u64 bmr_sysclk;
 	int bmr_irq;
 	int bmr_irq_cnt;

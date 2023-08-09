@@ -916,7 +916,8 @@ VOID swCrDebugInit(P_ADAPTER_T prAdapter)
 	/* debug counter */
 	g_fgSwcrDebugTimer = FALSE;
 
-	cnmTimerInitTimer(prAdapter, &g_rSwcrDebugTimer, (PFN_MGMT_TIMEOUT_FUNC) swCrDebugCheckTimeout, (ULONG) NULL);
+	cnmTimerInitTimer(prAdapter, &g_rSwcrDebugTimer,
+		(PFN_MGMT_TIMEOUT_FUNC) swCrDebugCheckTimeout, (uintptr_t) NULL);
 
 	if (g_u4SwcrDebugCheckTimeout)
 		swCrDebugCheckEnable(prAdapter, TRUE, g_ucSwcrDebugCheckType, g_u4SwcrDebugCheckTimeout);
@@ -935,7 +936,7 @@ VOID swCrDebugCheckEnable(P_ADAPTER_T prAdapter, BOOLEAN fgIsEnable, UINT_8 ucTy
 		g_ucSwcrDebugCheckType = ucType;
 		g_u4SwcrDebugCheckTimeout = u4Timeout;
 		if (g_fgSwcrDebugTimer == FALSE)
-			swCrDebugCheckTimeout(prAdapter, 0);
+			swCrDebugCheckTimeout(prAdapter, (uintptr_t) NULL);
 	} else {
 		cnmTimerStopTimer(prAdapter, &g_rSwcrDebugTimer);
 		g_u4SwcrDebugCheckTimeout = 0;
@@ -1056,7 +1057,7 @@ VOID swCrDebugCheck(P_ADAPTER_T prAdapter, P_CMD_SW_DBG_CTRL_T prCmdSwCtrl)
 		cnmTimerStartTimer(prAdapter, &g_rSwcrDebugTimer, g_u4SwcrDebugCheckTimeout * MSEC_PER_SEC);
 }
 
-VOID swCrDebugCheckTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+void swCrDebugCheckTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	CMD_SW_DBG_CTRL_T rCmdSwCtrl;
 	WLAN_STATUS rStatus;

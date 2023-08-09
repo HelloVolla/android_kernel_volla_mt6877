@@ -1220,6 +1220,7 @@ struct WIFI_VAR {
 #if CFG_SUPPORT_RX_GRO
 	uint32_t ucGROFlushTimeout; /* Flush packet timeout (ms) */
 	uint32_t ucGROEnableTput; /* Threshold of enable GRO Tput */
+	uint32_t u4UdpEnableGroTputTh; /* Threshold to enable udp GRO */
 #endif
 
 #if CFG_SUPPORT_IOT_AP_BLACKLIST

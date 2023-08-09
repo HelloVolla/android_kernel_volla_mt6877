@@ -3946,7 +3946,8 @@ void nicExtEventReCalData(IN struct ADAPTER *prAdapter, IN uint8_t *pucEventBuf)
 	prReCalInfo = &prAdapter->rReCalInfo;
 	if (prReCalInfo->prCalArray == NULL) {
 		prCalArray = (struct RECAL_DATA_T *)kalMemAlloc(
-			  2048 * sizeof(struct RECAL_DATA_T), VIR_MEM_TYPE);
+				CAL_ARRAY_SIZE * sizeof(struct RECAL_DATA_T),
+				VIR_MEM_TYPE);
 
 		if (prCalArray == NULL) {
 			DBGLOG(RFTEST, ERROR,
@@ -3956,7 +3957,7 @@ void nicExtEventReCalData(IN struct ADAPTER *prAdapter, IN uint8_t *pucEventBuf)
 		prReCalInfo->prCalArray = prCalArray;
 	}
 
-	if (prReCalInfo->u4Count >= 2048) {
+	if (prReCalInfo->u4Count >= CAL_ARRAY_SIZE) {
 		DBGLOG(RFTEST, ERROR,
 			"Too many Recal packet, maximum packets will be 2048, ignore\n");
 		return;

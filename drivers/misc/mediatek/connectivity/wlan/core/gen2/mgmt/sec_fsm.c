@@ -111,11 +111,11 @@ VOID secFsmInit(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta)
 
 		cnmTimerInitTimer(prAdapter,
 				  &prAdapter->rWifiVar.rAisSpecificBssInfo.rRsnaEAPoLReportTimeoutTimer,
-				  (PFN_MGMT_TIMEOUT_FUNC) secFsmEventEapolTxTimeout, (ULONG) prSta);
+				  (PFN_MGMT_TIMEOUT_FUNC) secFsmEventEapolTxTimeout, (uintptr_t) prSta);
 
 		cnmTimerInitTimer(prAdapter,
 				  &prAdapter->rWifiVar.rAisSpecificBssInfo.rRsnaBlockTrafficTimer,
-				  (PFN_MGMT_TIMEOUT_FUNC) secFsmEventEndOfCounterMeasure, (ULONG) prSta);
+				  (PFN_MGMT_TIMEOUT_FUNC) secFsmEventEndOfCounterMeasure, (uintptr_t)prSta);
 
 	}
 }
@@ -902,7 +902,7 @@ secFsmEventDeauthTxDone(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, I
 * \return -
 */
 /*----------------------------------------------------------------------------*/
-VOID secFsmEventEapolTxTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParm)
+void secFsmEventEapolTxTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParm)
 {
 	P_STA_RECORD_T prStaRec;
 
@@ -928,7 +928,7 @@ VOID secFsmEventEapolTxTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParm)
 * \return -
 */
 /*----------------------------------------------------------------------------*/
-VOID secFsmEventEndOfCounterMeasure(IN P_ADAPTER_T prAdapter, ULONG ulParm)
+void secFsmEventEndOfCounterMeasure(P_ADAPTER_T prAdapter, uintptr_t ulParm)
 {
 	P_STA_RECORD_T prSta;
 	P_SEC_INFO_T prSecInfo;

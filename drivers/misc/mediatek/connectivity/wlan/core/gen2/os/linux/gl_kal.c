@@ -44,7 +44,6 @@
 ********************************************************************************
 */
 
-
 #define OPEN_FIRMWARE_BY_REQUEST		1
 #define ENHANCE_AP_MODE_THROUGHPUT	1
 
@@ -2644,7 +2643,7 @@ int tx_thread(void *data)
 		kalClearSecurityFrames(prGlueInfo);
 
 	/* remove pending oid */
-	wlanReleasePendingOid(prGlueInfo->prAdapter, 0);
+	wlanReleasePendingOid(prGlueInfo->prAdapter, (uintptr_t)NULL);
 
 	/* In linux, we don't need to free sk_buff by ourself */
 
@@ -3770,99 +3769,71 @@ UINT_8 kalGetRsnIeMfpCap(IN P_GLUE_INFO_T prGlueInfo)
 
 #endif
 
-struct file *kalFileOpen(const char *path, int flags, int rights)
+
+/*----------------------------------------------------------------------------*/
+/*!
+ * \brief read request firmware file binary to pucData
+ *
+ * \param[in] pucPath  file name
+ * \param[out] pucData  Request file output buffer
+ * \param[in] u4Size  read size
+ * \param[out] pu4ReadSize  real read size
+ * \param[in] dev
+ *
+ * \return
+ *           0: success
+ *           not 0: fail
+ */
+/*----------------------------------------------------------------------------*/
+int32_t kalRequestFirmware(const uint8_t *pucPath,
+		uint8_t **ppucData, uint32_t *pu4ReadSize,
+		uint8_t ucIsZeroPadding, struct device *dev)
 {
-	struct file *filp = NULL;
-	mm_segment_t oldfs;
-	int err = 0;
+	const struct firmware *fw;
+	uint8_t *pucData = NULL;
+	uint32_t u4Size;
+	int ret = 0;
 
-	oldfs = get_fs();
-	set_fs(get_ds());
-	filp = filp_open(path, flags, rights);
-	set_fs(oldfs);
-	if (IS_ERR(filp)) {
-		err = PTR_ERR(filp);
-		return NULL;
-	}
-	return filp;
-}
+	/*
+	 * Driver support request_firmware() to get files
+	 * Android path: "/etc/firmware", "/vendor/firmware", "/firmware/image"
+	 * Linux path: "/lib/firmware", "/lib/firmware/update"
+	 */
+	ret = request_firmware(&fw, pucPath, dev);
 
-VOID kalFileClose(struct file *file)
-{
-	filp_close(file, NULL);
-}
-
-UINT_32 kalFileRead(struct file *file, UINT_64 offset, UINT_8 *data, UINT_32 size)
-{
-	mm_segment_t oldfs;
-	INT_32 ret;
-
-	oldfs = get_fs();
-	set_fs(get_ds());
-#if KERNEL_VERSION(4, 13, 0) <= CFG80211_VERSION_CODE
-	ret = kernel_read(file, data, size, &offset);
-#else
-	ret = vfs_read(file, data, size, &offset);
-#endif
-	set_fs(oldfs);
-	return ret;
-}
-
-UINT_32 kalFileWrite(struct file *file, UINT_64 offset, UINT_8 *data, UINT_32 size)
-{
-	mm_segment_t oldfs;
-	INT_32 ret;
-
-	oldfs = get_fs();
-	set_fs(get_ds());
-#if KERNEL_VERSION(4, 13, 0) <= CFG80211_VERSION_CODE
-	ret = kernel_write(file, data, size, &offset);
-#else
-	ret = vfs_write(file, data, size, &offset);
-#endif
-
-	set_fs(oldfs);
-	return ret;
-}
-
-UINT_32 kalWriteToFile(const PUINT_8 pucPath, BOOLEAN fgDoAppend, PUINT_8 pucData, UINT_32 u4Size)
-{
-	struct file *file = NULL;
-	UINT_32 ret = -1;
-	UINT_32 u4Flags = 0;
-
-	if (fgDoAppend)
-		u4Flags = O_APPEND;
-
-	file = kalFileOpen(pucPath, O_WRONLY | O_CREAT | u4Flags, S_IRWXU);
-	if (file) {
-		ret = kalFileWrite(file, 0, pucData, u4Size);
-		kalFileClose(file);
+	if (ret != 0) {
+		DBGLOG(INIT, TRACE, "kalRequestFirmware %s Fail, errno[%d]!!\n",
+		       pucPath, ret);
+		*ppucData = NULL;
+		*pu4ReadSize = 0;
+		return ret;
 	}
 
-	return ret;
-}
+	DBGLOG(INIT, INFO, "kalRequestFirmware(): %s OK\n",
+	       pucPath);
 
-INT_32 kalReadToFile(const PUINT_8 pucPath, PUINT_8 pucData, UINT_32 u4Size, PUINT_32 pu4ReadSize)
-{
-	struct file *file = NULL;
-	INT_32 ret = -1;
-	UINT_32 u4ReadSize = 0;
+	if (ucIsZeroPadding)
+		u4Size = fw->size + 1;
+	else
+		u4Size = fw->size;
 
-	DBGLOG(INIT, LOUD, "kalReadToFile() path %s\n", pucPath);
-
-	file = kalFileOpen(pucPath, O_RDONLY, 0);
-
-	if ((file != NULL) && !IS_ERR(file)) {
-		u4ReadSize = kalFileRead(file, 0, pucData, u4Size);
-		kalFileClose(file);
-		if (pu4ReadSize)
-			*pu4ReadSize = u4ReadSize;
-		ret = 0;
+	pucData = kalMemAlloc(u4Size, VIR_MEM_TYPE);
+	if (pucData == NULL) {
+		*ppucData = NULL;
+		*pu4ReadSize = 0;
+		release_firmware(fw);
+		return -1;
 	}
+	kalMemCopy(pucData, fw->data, fw->size);
+	if (ucIsZeroPadding)
+		pucData[fw->size] = 0;
+	*ppucData = pucData;
+	*pu4ReadSize = u4Size;
+
+	release_firmware(fw);
+
 	return ret;
 }
-
 /*----------------------------------------------------------------------------*/
 /*!
  * \brief    To indicate BSS-INFO to NL80211 as scanning result
@@ -4357,6 +4328,16 @@ static ssize_t kalMetPortWriteProcfs(struct file *file, const char __user *buffe
 	return count;
 }
 
+
+#if KERNEL_VERSION(5, 6, 0) <= CFG80211_VERSION_CODE
+const struct proc_ops rMetProcCtrlFops = {
+	.proc_write = kalMetCtrlWriteProcfs
+};
+
+const struct proc_ops rMetProcPortFops = {
+	.proc_write = kalMetPortWriteProcfs
+};
+#else
 const struct file_operations rMetProcCtrlFops = {
 	.write = kalMetCtrlWriteProcfs
 };
@@ -4364,6 +4345,8 @@ const struct file_operations rMetProcCtrlFops = {
 const struct file_operations rMetProcPortFops = {
 	.write = kalMetPortWriteProcfs
 };
+#endif
+
 
 int kalMetInitProcfs(IN P_GLUE_INFO_T prGlueInfo)
 {
@@ -4411,10 +4394,22 @@ int kalMetRemoveProcfs(void)
 #endif
 UINT_64 kalGetBootTime(void)
 {
-	struct timespec ts;
+#if KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE
+		struct timespec64 ts;
+#else
+		struct timespec ts;
+#endif
+
 	UINT_64 bootTime = 0;
 
-	get_monotonic_boottime(&ts);
+#if KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE
+		ktime_get_boottime_ts64(&ts);
+#elif KERNEL_VERSION(2, 6, 39) <= LINUX_VERSION_CODE
+		get_monotonic_boottime(&ts);
+#else
+		ts = ktime_to_timespec(ktime_get());
+#endif
+
 	/*
 	 * we assign ts.tv_sec to bootTime first, then multiply USEC_PER_SEC
 	 * this will prevent multiply result turn to a negative value on 32bit system
@@ -4651,7 +4646,7 @@ inline INT_32 kalPerMonInit(IN P_GLUE_INFO_T prGlueInfo)
 	prPerMonitor->u4UpdatePeriod = 1000;
 	cnmTimerInitTimer(prGlueInfo->prAdapter,
 		&prPerMonitor->rPerfMonTimer,
-		(PFN_MGMT_TIMEOUT_FUNC) kalPerMonHandler, (ULONG) NULL);
+		(PFN_MGMT_TIMEOUT_FUNC) kalPerMonHandler, (uintptr_t) NULL);
 	DBGLOG(SW4, TRACE, "exit %s\n", __func__);
 	return 0;
 }
@@ -4765,7 +4760,7 @@ inline INT_32 kalPerMonDestroy(IN P_GLUE_INFO_T prGlueInfo)
 	return 0;
 }
 
-VOID kalPerMonHandler(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+void kalPerMonHandler(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	/* Calculate current throughput */
 	struct PERF_MONITOR_T *prPerMonitor;

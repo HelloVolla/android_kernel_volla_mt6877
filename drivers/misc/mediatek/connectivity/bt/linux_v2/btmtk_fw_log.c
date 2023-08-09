@@ -416,7 +416,7 @@ ssize_t btmtk_fops_writefwlog(struct file *filp, const char __user *buf, size_t 
 		goto exit;
 	}
 
-#if CFG_SUPPORT_BMR_RX_CLK
+#if defined(CFG_SUPPORT_BMR_RX_CLK) && (CFG_SUPPORT_BMR_RX_CLK == 1)
 	if (strncmp(i_fwlog_buf, "bmr_irq=", strlen("bmr_irq=")) == 0) {
 		u8 val = *(i_fwlog_buf + strlen("bmr_irq=")) - '0';
 

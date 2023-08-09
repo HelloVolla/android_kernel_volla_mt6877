@@ -101,14 +101,16 @@ VOID secFsmEvent4ndEapolTxDone(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta
 VOID
 secFsmEventEapolTxDone(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec, IN ENUM_TX_RESULT_CODE_T rTxDoneStatus);
 
-VOID secFsmEventEapolTxTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParm);
+void secFsmEventEapolTxTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParm);
 
 VOID
 secFsmEventDeauthTxDone(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, IN ENUM_TX_RESULT_CODE_T rTxDoneStatus);
 
 VOID secFsmEventStartCounterMeasure(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSta);
 
-VOID secFsmEventEndOfCounterMeasure(IN P_ADAPTER_T prAdapter, IN ULONG ulParm);
+void secFsmEventEapolTxTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParm);
+void secFsmEventEndOfCounterMeasure(P_ADAPTER_T prAdapter, uintptr_t ulParm);
+
 
 /*******************************************************************************
 *                              F U N C T I O N S

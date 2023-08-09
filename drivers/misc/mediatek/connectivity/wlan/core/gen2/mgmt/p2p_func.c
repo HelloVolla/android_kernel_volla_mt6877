@@ -4132,7 +4132,7 @@ BOOLEAN p2pFuncRetryGcDeauth(IN P_ADAPTER_T prAdapter, IN P_P2P_FSM_INFO_T prP2p
 			DBGLOG(P2P, INFO, "re-start GC deauth timer for %pM\n", prStaRec->aucMacAddr);
 			cnmTimerStopTimer(prAdapter, &(prStaRec->rDeauthTxDoneTimer));
 			cnmTimerInitTimer(prAdapter, &(prStaRec->rDeauthTxDoneTimer),
-				(PFN_MGMT_TIMEOUT_FUNC) p2pFsmRunEventDeauthTimeout, (ULONG) prStaRec);
+				(PFN_MGMT_TIMEOUT_FUNC) p2pFsmRunEventDeauthTimeout, (uintptr_t) prStaRec);
 			cnmTimerStartTimer(prAdapter, &(prStaRec->rDeauthTxDoneTimer),
 				P2P_DEAUTH_TIMEOUT_TIME_MS);
 		}

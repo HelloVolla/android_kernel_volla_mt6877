@@ -2121,17 +2121,18 @@ schedule_next:
 			break;
 		}
 		if (prBeaconReq->u2RandomInterval == 0)
-			rlmDoBeaconMeasurement(prAdapter, 0);
+			rlmDoBeaconMeasurement(prAdapter, (uintptr_t) NULL);
 		else {
 			get_random_bytes(&u2RandomTime, 2);
 			u2RandomTime = (u2RandomTime * prBeaconReq->u2RandomInterval) / 65535;
 			u2RandomTime = TU_TO_MSEC(u2RandomTime);
 			if (u2RandomTime > 0) {
 				cnmTimerStopTimer(prAdapter, &rBeaconReqTimer);
-				cnmTimerInitTimer(prAdapter, &rBeaconReqTimer, rlmDoBeaconMeasurement, 0);
+				cnmTimerInitTimer(prAdapter, &rBeaconReqTimer,
+					rlmDoBeaconMeasurement, (uintptr_t) NULL);
 				cnmTimerStartTimer(prAdapter, &rBeaconReqTimer, u2RandomTime);
 			} else
-				rlmDoBeaconMeasurement(prAdapter, 0);
+				rlmDoBeaconMeasurement(prAdapter, (uintptr_t) NULL);
 		}
 		break;
 	}
@@ -2179,14 +2180,14 @@ schedule_next:
 			}
 		}
 		if (!prTsmReqIE->u2RandomInterval) {
-			wmmStartTsmMeasurement(prAdapter, (ULONG)prTsmReq);
+			wmmStartTsmMeasurement(prAdapter, (uintptr_t)prTsmReq);
 			break;
 		}
 		get_random_bytes(&u2RandomTime, 2);
 		u2RandomTime = (u2RandomTime * prTsmReqIE->u2RandomInterval) / 65535;
 		u2RandomTime = TU_TO_MSEC(u2RandomTime);
 		cnmTimerStopTimer(prAdapter, &rTSMReqTimer);
-		cnmTimerInitTimer(prAdapter, &rTSMReqTimer, wmmStartTsmMeasurement, (ULONG)prTsmReq);
+		cnmTimerInitTimer(prAdapter, &rTSMReqTimer, wmmStartTsmMeasurement, (uintptr_t)prTsmReq);
 		cnmTimerStartTimer(prAdapter, &rTSMReqTimer, u2RandomTime);
 		break;
 	}
@@ -2356,7 +2357,7 @@ BOOLEAN rlmFillScanMsg(P_ADAPTER_T prAdapter, P_MSG_SCN_SCAN_REQ prMsg)
 	return TRUE;
 }
 
-VOID rlmDoBeaconMeasurement(P_ADAPTER_T prAdapter, ULONG ulParam)
+void rlmDoBeaconMeasurement(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_CONNECTION_SETTINGS_T prConnSettings = &(prAdapter->rWifiVar.rConnSettings);
 	struct RADIO_MEASUREMENT_REQ_PARAMS *prRmReq = &prAdapter->rWifiVar.rRmReqParams;

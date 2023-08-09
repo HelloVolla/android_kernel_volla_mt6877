@@ -16,7 +16,7 @@
 #include "btmtk_config.h"
 #include <linux/pm_wakeup.h>
 
-#define VERSION "v0.0.1.13_2022101001"
+#define VERSION "v0.0.1.13_2023022001"
 
 #if CFG_SUPPORT_CHIP_RESET_KO
 #include "reset.h"

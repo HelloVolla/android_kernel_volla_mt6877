@@ -1168,7 +1168,8 @@ p2pFuncTxMgmtFrame(IN struct ADAPTER *prAdapter,
 			DBGLOG(P2P, TRACE, "TX Probe Resposne Frame\n");
 			prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter,
 				ucBssIndex);
-			if ((!nicTxIsMgmtResourceEnough(prAdapter))
+			if (!prBssInfo ||
+				(!nicTxIsMgmtResourceEnough(prAdapter))
 				|| (prBssInfo->fgIsNetAbsent)) {
 				DBGLOG(P2P, INFO,
 					"Drop Tx probe response due to resource issue\n");
@@ -1952,6 +1953,7 @@ void p2pFuncAcquireCh(IN struct ADAPTER *prAdapter,
 void p2pFuncSetDfsChannelAvailable(IN struct ADAPTER *prAdapter,
 		IN uint8_t ucChannel, IN uint8_t ucAvailable)
 {
+#if CFG_SUPPORT_SAP_DFS_CHANNEL
 	DBGLOG(P2P, INFO,
 		"p2pFuncSetDfsChannelAvailable: channel %d %s\n", ucChannel,
 		ucAvailable == 1 ? "available" : "unavailable");
@@ -1963,6 +1965,11 @@ void p2pFuncSetDfsChannelAvailable(IN struct ADAPTER *prAdapter,
 		0, /* sco */
 		0, /* center frequency */
 		0 /* eBand */);
+#else
+
+	DBGLOG(P2P, INFO, "SAP DFS channel not support");
+
+#endif
 }
 
 void p2pFuncStartRdd(IN struct ADAPTER *prAdapter, IN uint8_t ucBssIdx)
@@ -3163,6 +3170,7 @@ p2pFuncDisconnect(IN struct ADAPTER *prAdapter,
 
 #if (CFG_SUPPORT_DFS_MASTER == 1)
 			if (!aisGetConnectedBssInfo(prAdapter)) {
+#if CFG_SUPPORT_SAP_DFS_CHANNEL
 				/* restore DFS channels table */
 				wlanUpdateDfsChannelTable(prAdapter->prGlueInfo,
 					-1, /* p2p role index */
@@ -3171,6 +3179,7 @@ p2pFuncDisconnect(IN struct ADAPTER *prAdapter,
 					0, /* sco */
 					0, /* center frequency */
 					0 /* eBand */);
+#endif
 			}
 #endif
 		} else {
@@ -3472,6 +3481,8 @@ struct BSS_INFO *p2pFuncBSSIDFindBssInfo(IN struct ADAPTER *prAdapter,
 				continue;
 
 			prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIdx);
+			if (!prBssInfo)
+				break;
 
 			if (EQUAL_MAC_ADDR(prBssInfo->aucBSSID, pucBSSID)
 				&& IS_BSS_P2P(prBssInfo))
@@ -5224,7 +5235,8 @@ struct MSDU_INFO *p2pFuncProcessP2pProbeRsp(IN struct ADAPTER *prAdapter,
 		ASSERT_BREAK((prAdapter != NULL) && (prMgmtTxMsdu != NULL));
 
 		prP2pBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIdx);
-
+		if (!prP2pBssInfo)
+			break;
 		/* 3 Make sure this is probe response frame. */
 		prProbeRspFrame = (struct WLAN_BEACON_FRAME *)
 			((unsigned long) prMgmtTxMsdu->prPacket +
@@ -5507,6 +5519,8 @@ p2pFuncProcessP2pProbeRspAction(IN struct ADAPTER *prAdapter,
 	 * p2p bss index unexpectedly.
 	*/
 	uint8_t ucP2pStartIdx = KAL_AIS_NUM;
+	if (!prP2pBssInfo)
+		return;
 
 	switch (ucElemIdType) {
 	case ELEM_ID_SSID:
@@ -5537,6 +5551,8 @@ p2pFuncProcessP2pProbeRspAction(IN struct ADAPTER *prAdapter,
 					GET_BSS_INFO_BY_INDEX(
 						prAdapter,
 						prAdapter->ucP2PDevBssIdx);
+				if (!(*prP2pBssInfo))
+					break;
 				COPY_SSID(
 					(*prP2pBssInfo)->aucSSID,
 					(*prP2pBssInfo)->ucSSIDLen,
@@ -5774,7 +5790,8 @@ uint32_t p2pFuncCalculateWSC_IELenForBeacon(IN struct ADAPTER *prAdapter,
 
 	prP2pBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIdx);
 
-	if (prP2pBssInfo->eNetworkType != NETWORK_TYPE_P2P)
+	if (!prP2pBssInfo ||
+		prP2pBssInfo->eNetworkType != NETWORK_TYPE_P2P)
 		return 0;
 
 	return kalP2PCalWSC_IELen(prAdapter->prGlueInfo,
@@ -5793,7 +5810,8 @@ void p2pFuncGenerateWSC_IEForBeacon(IN struct ADAPTER *prAdapter,
 
 	prP2pBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, prMsduInfo->ucBssIndex);
 
-	if (prP2pBssInfo->eNetworkType != NETWORK_TYPE_P2P)
+	if (!prP2pBssInfo ||
+		prP2pBssInfo->eNetworkType != NETWORK_TYPE_P2P)
 		return;
 
 	u2IELen = (uint16_t) kalP2PCalWSC_IELen(prAdapter->prGlueInfo,
@@ -5829,7 +5847,8 @@ uint32_t p2pFuncCalculateP2p_IELenForAssocRsp(IN struct ADAPTER *prAdapter,
 
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
 
-	if (prBssInfo->eNetworkType != NETWORK_TYPE_P2P)
+	if (!prBssInfo ||
+		prBssInfo->eNetworkType != NETWORK_TYPE_P2P)
 		return 0;
 
 	return p2pFuncCalculateP2P_IELen(prAdapter,
@@ -6450,7 +6469,8 @@ uint32_t wfdFuncCalculateWfdIELenForAssocRsp(IN struct ADAPTER *prAdapter,
 
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
 
-	if (prBssInfo->eNetworkType != NETWORK_TYPE_P2P)
+	if (!prBssInfo ||
+		prBssInfo->eNetworkType != NETWORK_TYPE_P2P)
 		return 0;
 
 	if (!IS_STA_P2P_TYPE(prStaRec))

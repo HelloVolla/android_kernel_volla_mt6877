@@ -274,6 +274,9 @@
 #endif
 #include <linux/time.h>
 #include <linux/fb.h>
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+#include "mtk_disp_notify.h"
+#endif
 
 #if CFG_SUPPORT_NAN
 #include "nan_base.h"
@@ -387,6 +390,9 @@ extern void update_driver_loaded_status(uint8_t loaded);
 #define GLUE_FLAG_RX_GRO_TIMEOUT_BIT		(25)
 #define GLUE_FLAG_RX_GRO_TIMEOUT		BIT(25)
 
+#define GLUE_FLAG_DISABLE_PERF_BIT              (27)
+#define GLUE_FLAG_DISABLE_PERF                  BIT(27)
+
 #define GLUE_BOW_KFIFO_DEPTH        (1024)
 /* #define GLUE_BOW_DEVICE_NAME        "MT6620 802.11 AMP" */
 #define GLUE_BOW_DEVICE_NAME        "ampc0"
@@ -484,6 +490,7 @@ enum ENUM_PKT_FLAG {
 	ENUM_PKT_TCP_ACK,
 #endif /* CFG_SUPPORT_TPENHANCE_MODE */
 	ENUM_PKT_ICMPV6,		/* ICMPV6 */
+	ENUM_PKT_UDP,
 	ENUM_PKT_FLAG_NUM
 };
 

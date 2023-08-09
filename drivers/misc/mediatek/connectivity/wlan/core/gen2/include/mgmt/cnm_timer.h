@@ -35,7 +35,9 @@
 #define USEC_PER_TU                     1024	/* microsecond */
 
 #define MSEC_PER_MIN                    (60 * MSEC_PER_SEC)
-
+#if KERNEL_VERSION(5, 10, 0) <= CFG80211_VERSION_CODE
+#define NSEC_TO_USEC(_nsec)		((_nsec) / USEC_PER_MSEC)
+#endif
 #define MGMT_MAX_TIMEOUT_INTERVAL       ((UINT_32)0x7fffffff)
 
 #define WAKE_LOCK_MAX_TIME              5	/* Unit: sec */
@@ -51,14 +53,14 @@
 *                             D A T A   T Y P E S
 ********************************************************************************
 */
-typedef VOID(*PFN_MGMT_TIMEOUT_FUNC) (P_ADAPTER_T, ULONG);
+typedef void(*PFN_MGMT_TIMEOUT_FUNC) (P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
 typedef struct _TIMER_T {
 	LINK_ENTRY_T rLinkEntry;
 	OS_SYSTIME rExpiredSysTime;
 	UINT_16 u2Minutes;
 	UINT_16 u2Reserved;
-	ULONG ulData;
+	uintptr_t ulData;
 	PFN_MGMT_TIMEOUT_FUNC pfMgmtTimeOutFunc;
 } TIMER_T, *P_TIMER_T;
 
@@ -155,7 +157,7 @@ VOID cnmTimerInitialize(IN P_ADAPTER_T prAdapter);
 VOID cnmTimerDestroy(IN P_ADAPTER_T prAdapter);
 
 VOID
-cnmTimerInitTimer(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer, IN PFN_MGMT_TIMEOUT_FUNC pfFunc, IN ULONG ulData);
+cnmTimerInitTimer(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer, IN PFN_MGMT_TIMEOUT_FUNC pfFunc, IN uintptr_t ulData);
 
 VOID cnmTimerStopTimer(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer);
 

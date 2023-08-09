@@ -1994,6 +1994,47 @@ void mtk_cfg80211_mgmt_frame_register(IN struct wiphy *wiphy,
 
 }				/* mtk_cfg80211_mgmt_frame_register */
 
+
+#if KERNEL_VERSION(5, 8, 0) <= CFG80211_VERSION_CODE
+void mtk_cfg80211_mgmt_frame_update(struct wiphy *wiphy,
+				struct wireless_dev *wdev,
+				struct mgmt_frame_regs *upd)
+{
+	P_GLUE_INFO_T prGlueInfo = (P_GLUE_INFO_T) NULL;
+	uint32_t *pu4PacketFilter = NULL;
+
+	if ((wiphy == NULL) || (wdev == NULL) || (upd == NULL)) {
+		DBGLOG(INIT, TRACE, "Invalidate params\n");
+		return;
+	}
+
+	prGlueInfo = (P_GLUE_INFO_T) wiphy_priv(wiphy);
+
+	pu4PacketFilter = &prGlueInfo->u4OsMgmtFrameFilter;
+	*pu4PacketFilter = 0;
+	do {
+		if (upd->interface_stypes & MASK_MAC_FRAME_PROBE_REQ)
+			*pu4PacketFilter |= PARAM_PACKET_FILTER_PROBE_REQ;
+
+		if (upd->interface_stypes & MASK_MAC_FRAME_ACTION)
+			*pu4PacketFilter |= PARAM_PACKET_FILTER_ACTION_FRAME;
+
+		if (prGlueInfo->prAdapter != NULL) {
+			/* prGlueInfo->ulFlag |= GLUE_FLAG_FRAME_FILTER_AIS; */
+			set_bit(GLUE_FLAG_FRAME_FILTER_AIS_BIT, &prGlueInfo->ulFlag);
+
+			/* wake up main thread */
+			wake_up_interruptible(&prGlueInfo->waitq);
+
+			if (in_interrupt())
+				DBGLOG(REQ, TRACE, "It is in interrupt level\n");
+		}
+	} while (FALSE);
+}
+#endif
+
+
+
 /*----------------------------------------------------------------------------*/
 /*!
  * @brief This routine is responsible for requesting to stay on a

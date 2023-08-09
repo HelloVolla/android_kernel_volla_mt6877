@@ -190,8 +190,8 @@ extern UINT_8 const aucUp2ACIMap[8];
 */
 
 VOID wmmFillTsinfo(P_PARAM_QOS_TSINFO prTsInfo, P_UINT_8 pucTsInfo);
-VOID wmmSetupTspecTimeOut(P_ADAPTER_T prAdapter, ULONG ulParam);
-void wmmStartTsmMeasurement(P_ADAPTER_T prAdapter, ULONG ulParam);
+void wmmSetupTspecTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam);
+void wmmStartTsmMeasurement(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 VOID wmmRunEventTSOperate(P_ADAPTER_T prAdapter, P_MSG_HDR_T prMsgHdr);
 BOOLEAN wmmParseQosAction(P_ADAPTER_T prAdapter, P_SW_RFB_T prSwRfb);
 BOOLEAN
@@ -209,4 +209,7 @@ VOID wmmNotifyDisconnected(P_ADAPTER_T prAdapter);
 VOID wmmRemoveAllTsmMeasurement(P_ADAPTER_T prAdapter, BOOLEAN fgOnlyTriggered);
 UINT_8 wmmCalculateUapsdSetting(P_ADAPTER_T prAdapter);
 UINT_32 wmmDumpActiveTspecs(P_ADAPTER_T prAdapter, PUINT_8 pucBuffer, UINT_16 u2BufferLen);
+void wmmGetTsmRptTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
+void wmmQueryTsmResult(P_ADAPTER_T prAdapter, uintptr_t ulParam);
+
 #endif

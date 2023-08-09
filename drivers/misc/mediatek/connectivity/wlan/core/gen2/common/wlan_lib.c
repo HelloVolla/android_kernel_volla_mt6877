@@ -604,12 +604,12 @@ wlanAdapterStart(IN P_ADAPTER_T prAdapter,
 		/* OID timeout timer initialize */
 		cnmTimerInitTimer(prAdapter,
 				  &prAdapter->rOidTimeoutTimer,
-				  (PFN_MGMT_TIMEOUT_FUNC) wlanReleasePendingOid, (ULONG) NULL);
+				  (PFN_MGMT_TIMEOUT_FUNC) wlanReleasePendingOid, (uintptr_t) NULL);
 
 		/* Return Indicated Rfb list timer */
 		cnmTimerInitTimer(prAdapter,
 				  &prAdapter->rReturnIndicatedRfbListTimer,
-				  (PFN_MGMT_TIMEOUT_FUNC) wlanReturnIndicatedPacketsTimeOut, (ULONG) NULL);
+				  (PFN_MGMT_TIMEOUT_FUNC) wlanReturnIndicatedPacketsTimeOut, (uintptr_t) NULL);
 
 		/* Power state initialization */
 		prAdapter->fgWiFiInSleepyState = FALSE;
@@ -1378,7 +1378,7 @@ VOID wlanReleaseCommand(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo)
 * \return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID wlanReleasePendingOid(IN P_ADAPTER_T prAdapter, IN ULONG ulData)
+void wlanReleasePendingOid(P_ADAPTER_T prAdapter, uintptr_t ulData)
 {
 	P_QUE_T prCmdQue;
 	QUE_T rTempCmdQue;
@@ -1571,7 +1571,7 @@ VOID wlanReturnPacket(IN P_ADAPTER_T prAdapter, IN PVOID pvPacket)
 * \retval WLAN_STATUS_FAILURE: Failed
 */
 /*----------------------------------------------------------------------------*/
-VOID wlanReturnIndicatedPacketsTimeOut(IN P_ADAPTER_T prAdapter, IN ULONG ulData)
+void wlanReturnIndicatedPacketsTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulData)
 {
 	P_RX_CTRL_T prRxCtrl;
 	P_SW_RFB_T prSwRfb = NULL;
@@ -3755,7 +3755,7 @@ WLAN_STATUS wlanLoadManufactureData(IN P_ADAPTER_T prAdapter, IN P_REG_INFO_T pr
 #endif
 	CMD_BAND_SUPPORT_T rCmdBandSupport;
 
-	UINT8 uc_NVRAM[EXTEND_NVRAM_SIZE] = {0x0};
+	UINT8 *uc_NVRAM = NULL;
 	UINT16 NVRAMSize = 0;
 
 	ASSERT(prAdapter);
@@ -3783,6 +3783,13 @@ WLAN_STATUS wlanLoadManufactureData(IN P_ADAPTER_T prAdapter, IN P_REG_INFO_T pr
 		DBGLOG(INIT, INFO, "current NVRAMSize :%d and extend Size:%d\n"
 			, NVRAMSize, EXTEND_NVRAM_SIZE);
 		if (NVRAMSize >= EXTEND_NVRAM_SIZE) {
+			uc_NVRAM = (UINT8 *)kalMemAlloc(sizeof(UINT_8) * EXTEND_NVRAM_SIZE, VIR_MEM_TYPE);
+			if (!uc_NVRAM) {
+				DBGLOG(REQ, ERROR, "Can not alloc memory for uc_NVRAM info\n");
+				return -ENOMEM;
+			}
+
+			kalMemZero(uc_NVRAM, sizeof(UINT_8)*EXTEND_NVRAM_SIZE);
 			if (kalCfgDataRead(prAdapter->prGlueInfo,
 			0,
 			sizeof(UINT_8)*EXTEND_NVRAM_SIZE,
@@ -3796,7 +3803,7 @@ WLAN_STATUS wlanLoadManufactureData(IN P_ADAPTER_T prAdapter, IN P_REG_INFO_T pr
 						(PUINT_8)(&uc_NVRAM[0]), NULL, 0);
 			else
 				DBGLOG(INIT, WARN, "Nvram read fail!\n");
-
+			kalMemFree(uc_NVRAM, VIR_MEM_TYPE, sizeof(UINT_8) * EXTEND_NVRAM_SIZE);
 			/* MT6620 E1/E2 would be ignored directly */
 		}
 	} else
@@ -4258,7 +4265,7 @@ UINT_32 wlanGetTxPendingFrameCount(IN P_ADAPTER_T prAdapter)
 *         ACPI_STATE_D3 Suspend Mode
 */
 /*----------------------------------------------------------------------------*/
-ENUM_ACPI_STATE_T wlanGetAcpiState(IN P_ADAPTER_T prAdapter)
+enum ENUM_ACPI_STATE_T wlanGetAcpiState(IN P_ADAPTER_T prAdapter)
 {
 	ASSERT(prAdapter);
 
@@ -4276,7 +4283,7 @@ ENUM_ACPI_STATE_T wlanGetAcpiState(IN P_ADAPTER_T prAdapter)
 * @return none
 */
 /*----------------------------------------------------------------------------*/
-VOID wlanSetAcpiState(IN P_ADAPTER_T prAdapter, IN ENUM_ACPI_STATE_T ePowerState)
+VOID wlanSetAcpiState(IN P_ADAPTER_T prAdapter, IN enum ENUM_ACPI_STATE_T ePowerState)
 {
 	ASSERT(prAdapter);
 	ASSERT(ePowerState <= ACPI_STATE_D3);

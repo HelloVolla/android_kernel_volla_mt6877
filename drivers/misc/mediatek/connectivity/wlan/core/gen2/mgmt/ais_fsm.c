@@ -22,7 +22,7 @@
 */
 #include "precomp.h"
 #include "fwcfg.h"
-static VOID aisFsmSetOkcTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam);
+
 /*******************************************************************************
 *                              C O N S T A N T S
 ********************************************************************************
@@ -263,38 +263,38 @@ VOID aisFsmInit(IN P_ADAPTER_T prAdapter)
 	/* 4 <1.1> Initiate FSM - Timer INIT */
 	cnmTimerInitTimer(prAdapter,
 			  &prAisFsmInfo->rBGScanTimer,
-			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventBGSleepTimeOut, (ULONG) NULL);
+			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventBGSleepTimeOut, (uintptr_t) NULL);
 
 	cnmTimerInitTimer(prAdapter,
 			  &prAisFsmInfo->rIbssAloneTimer,
-			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventIbssAloneTimeOut, (ULONG) NULL);
+			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventIbssAloneTimeOut, (uintptr_t) NULL);
 
 	prAisFsmInfo->u4PostponeIndStartTime = 0;
 
 	cnmTimerInitTimer(prAdapter,
 			  &prAisFsmInfo->rJoinTimeoutTimer,
-			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventJoinTimeout, (ULONG) NULL);
+			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventJoinTimeout, (uintptr_t) NULL);
 
 	cnmTimerInitTimer(prAdapter,
 			  &prAisFsmInfo->rScanDoneTimer,
-			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventScanDoneTimeOut, (ULONG) NULL);
+			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventScanDoneTimeOut, (uintptr_t) NULL);
 
 	cnmTimerInitTimer(prAdapter,
 			  &prAisFsmInfo->rChannelTimeoutTimer,
-			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventChannelTimeout, (ULONG) NULL);
+			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventChannelTimeout, (uintptr_t) NULL);
 
 	cnmTimerInitTimer(prAdapter,
 			  &prAisFsmInfo->rDeauthDoneTimer,
-			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventDeauthTimeout, (ULONG) NULL);
+			  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventDeauthTimeout, (uintptr_t) NULL);
 #if CFG_SUPPORT_DETECT_SECURITY_MODE_CHANGE
 		cnmTimerInitTimer(prAdapter,
 				  &prAisFsmInfo->rSecModeChangeTimer,
-				  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventSecModeChangeTimeout, (ULONG) NULL);
+				  (PFN_MGMT_TIMEOUT_FUNC) aisFsmRunEventSecModeChangeTimeout, (uintptr_t) NULL);
 #endif
 
 	cnmTimerInitTimer(prAdapter,
 				  &prAisFsmInfo->rWaitOkcPMKTimer,
-				  (PFN_MGMT_TIMEOUT_FUNC)aisFsmSetOkcTimeout, (ULONG) NULL);
+				  (PFN_MGMT_TIMEOUT_FUNC)aisFsmSetOkcTimeout, (uintptr_t) NULL);
 	/* 4 <1.2> Initiate PWR STATE */
 	SET_NET_PWR_STATE_IDLE(prAdapter, NETWORK_TYPE_AIS_INDEX);
 
@@ -2277,7 +2277,7 @@ VOID aisFsmRunEventScanDone(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr)
 		return;
 	/* normal mode scan done, and beacon measurement is pending, schedule to do measurement */
 	if (prBcnRmParam->eState == RM_WAITING) {
-		rlmDoBeaconMeasurement(prAdapter, 0);
+		rlmDoBeaconMeasurement(prAdapter, (uintptr_t)NULL);
 	} else if (prBcnRmParam->rNormalScan.fgExist) {/* pending normal scan here, should schedule it on time */
 		struct NORMAL_SCAN_PARAMS *prParam = &prBcnRmParam->rNormalScan;
 
@@ -4053,7 +4053,7 @@ VOID aisFsmDisconnect(IN P_ADAPTER_T prAdapter, IN BOOLEAN fgDelayIndication)
 */
 /*----------------------------------------------------------------------------*/
 UINT_32 IsrCnt = 0, IsrPassCnt = 0, TaskIsrCnt = 0;
-VOID aisFsmRunEventScanDoneTimeOut(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+void aisFsmRunEventScanDoneTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 #define SCAN_DONE_TIMEOUT_TIMES_LIMIT		20
 
@@ -4152,7 +4152,7 @@ VOID aisFsmRunEventScanDoneTimeOut(IN P_ADAPTER_T prAdapter, ULONG ulParam)
 * @return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID aisFsmRunEventBGSleepTimeOut(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+void aisFsmRunEventBGSleepTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_AIS_FSM_INFO_T prAisFsmInfo;
 	ENUM_AIS_STATE_T eNextState;
@@ -4192,7 +4192,7 @@ VOID aisFsmRunEventBGSleepTimeOut(IN P_ADAPTER_T prAdapter, ULONG ulParam)
 * @return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID aisFsmRunEventIbssAloneTimeOut(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+void aisFsmRunEventIbssAloneTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_AIS_FSM_INFO_T prAisFsmInfo;
 	ENUM_AIS_STATE_T eNextState;
@@ -4240,7 +4240,7 @@ VOID aisFsmRunEventIbssAloneTimeOut(IN P_ADAPTER_T prAdapter, ULONG ulParam)
 * @return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID aisFsmRunEventJoinTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+void aisFsmRunEventJoinTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_BSS_INFO_T prAisBssInfo;
 	P_AIS_FSM_INFO_T prAisFsmInfo;
@@ -4343,12 +4343,12 @@ VOID aisFsmRunEventJoinTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam)
 
 }				/* end of aisFsmRunEventJoinTimeout() */
 
-VOID aisFsmRunEventDeauthTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+void aisFsmRunEventDeauthTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	aisDeauthXmitComplete(prAdapter, NULL, TX_RESULT_LIFE_TIMEOUT);
 }
 #if CFG_SUPPORT_DETECT_SECURITY_MODE_CHANGE
-VOID aisFsmRunEventSecModeChangeTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr)
+void aisFsmRunEventSecModeChangeTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParamPtr)
 {
 	DBGLOG(AIS, INFO, "Beacon security mode change timeout, trigger disconnect!\n");
 	aisBssSecurityChanged(prAdapter);
@@ -5372,7 +5372,7 @@ VOID aisFsmRunEventNchoActionFrameTx(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T pr
 }				/* aisFsmRunEventNchoActionFrameTx */
 #endif
 
-VOID aisFsmRunEventChannelTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+void aisFsmRunEventChannelTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_AIS_FSM_INFO_T prAisFsmInfo;
 	P_BSS_INFO_T prAisBssInfo;
@@ -5506,7 +5506,7 @@ VOID aisFsmRunEventSetOkcPmk(IN P_ADAPTER_T prAdapter)
 }
 #endif
 
-static VOID aisFsmSetOkcTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam)
+void aisFsmSetOkcTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_AIS_FSM_INFO_T prAisFsmInfo = &prAdapter->rWifiVar.rAisFsmInfo;
 

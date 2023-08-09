@@ -1699,8 +1699,10 @@ int mtk_cfg80211_vendor_nan(struct wiphy *wiphy,
 					    outputTlv.length);
 				break;
 			case NAN_TLV_TYPE_MAC_ADDRESS:
-				if (outputTlv.length >
-					sizeof(uint8_t)) {
+				if ((outputTlv.length >
+					NAN_MAC_ADDR_LEN) ||
+					(i >
+					NAN_MAX_SUBSCRIBE_MAX_ADDRESS - 1)) {
 					DBGLOG(NAN, ERROR,
 						"outputTlv.length is invalid!\n");
 					kfree(pNanSubscribeReq);

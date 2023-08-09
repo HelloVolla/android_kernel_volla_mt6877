@@ -2354,7 +2354,7 @@ wext_set_txpow(IN struct net_device *prNetDev,
 {
 	int ret = 0;
 	/* PARAM_DEVICE_POWER_STATE ePowerState; */
-	ENUM_ACPI_STATE_T ePowerState;
+	enum ENUM_ACPI_STATE_T ePowerState;
 
 	P_GLUE_INFO_T prGlueInfo = NULL;
 	WLAN_STATUS rStatus = WLAN_STATUS_SUCCESS;

@@ -212,6 +212,12 @@ int mtk_cfg80211_vendor_get_supported_feature_set(struct wiphy *wiphy,
 
 	if (!prGlueInfo)
 		return -EFAULT;
+
+	if (prGlueInfo->u4ReadyFlag == 0) {
+		DBGLOG(REQ, WARN, "driver is not ready\n");
+		return -EFAULT;
+	}
+
 	prRegInfo = &prGlueInfo->rRegInfo;
 	if (!prRegInfo)
 		return -EFAULT;
@@ -342,6 +348,13 @@ int mtk_cfg80211_vendor_packet_keep_alive_start(
 	prGlueInfo = (P_GLUE_INFO_T) wiphy_priv(wiphy);
 	ASSERT(prGlueInfo);
 
+	if (prGlueInfo->u4ReadyFlag == 0) {
+		DBGLOG(REQ, WARN, "driver is not ready\n");
+		kalMemFree(prPkt, VIR_MEM_TYPE,
+			   sizeof(struct PARAM_PACKET_KEEPALIVE_T));
+		return -EFAULT;
+	}
+
 	rStatus = kalIoctl(prGlueInfo,
 			   wlanoidPacketKeepAlive,
 			   prPkt, sizeof(struct PARAM_PACKET_KEEPALIVE_T),
@@ -396,6 +409,13 @@ int mtk_cfg80211_vendor_packet_keep_alive_stop(
 
 	prGlueInfo = (P_GLUE_INFO_T) wiphy_priv(wiphy);
 	ASSERT(prGlueInfo);
+
+	if (prGlueInfo->u4ReadyFlag == 0) {
+		DBGLOG(REQ, WARN, "driver is not ready\n");
+		kalMemFree(prPkt, VIR_MEM_TYPE,
+		   sizeof(struct PARAM_PACKET_KEEPALIVE_T));
+		return -EFAULT;
+	}
 
 	rStatus = kalIoctl(prGlueInfo,
 			   wlanoidPacketKeepAlive,
@@ -1151,6 +1171,11 @@ int mtk_cfg80211_vendor_get_channel_list(struct wiphy *wiphy, struct wireless_de
 		if (!prGlueInfo)
 			return -EFAULT;
 
+		if (prGlueInfo->u4ReadyFlag == 0) {
+			DBGLOG(REQ, WARN, "driver is not ready\n");
+			return -EFAULT;
+		}
+
 		if (band == 0) { /* 2.4G band */
 			rlmDomainGetChnlList(prGlueInfo->prAdapter, BAND_2G4, TRUE,
 					 MAX_CHN_NUM, &ucNumOfChannel, aucChannelList);
@@ -1235,6 +1260,11 @@ int mtk_cfg80211_vendor_set_country_code(struct wiphy *wiphy, struct wireless_de
 	if (!prGlueInfo)
 		return -EFAULT;
 
+	if (prGlueInfo->u4ReadyFlag == 0) {
+		DBGLOG(REQ, WARN, "driver is not ready\n");
+		return -EFAULT;
+	}
+
 	rStatus = kalIoctl(prGlueInfo, wlanoidSetCountryCode, country, 2, FALSE, FALSE, TRUE, &u4BufLen);
 	if (rStatus != WLAN_STATUS_SUCCESS) {
 		DBGLOG(REQ, ERROR, "Set country code error: %x\n", rStatus);
@@ -1306,6 +1336,11 @@ int mtk_cfg80211_vendor_config_roaming(struct wiphy *wiphy,
 	if (!prGlueInfo)
 		return -EINVAL;
 
+	if (prGlueInfo->u4ReadyFlag == 0) {
+		DBGLOG(REQ, WARN, "driver is not ready\n");
+		return -EFAULT;
+	}
+
 	if (prGlueInfo->u4FWRoamingEnable == 0) {
 		DBGLOG(REQ, INFO,
 			"FWRoaming is disabled (FWRoamingEnable=%d)\n",
@@ -1342,6 +1377,11 @@ int mtk_cfg80211_vendor_enable_roaming(struct wiphy *wiphy,
 
 	if (!prGlueInfo)
 		return -EFAULT;
+
+	if (prGlueInfo->u4ReadyFlag == 0) {
+		DBGLOG(REQ, WARN, "driver is not ready\n");
+		return -EFAULT;
+	}
 
 	attr = (struct nlattr *)data;
 	if (attr->nla_type == WIFI_ATTRIBUTE_ROAMING_STATE)

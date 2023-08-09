@@ -333,6 +333,21 @@
 #define MAC_FRAME_QOS_CF_POLL                   (MAC_FRAME_TYPE_DATA | 0x00E0)
 #define MAC_FRAME_QOS_CF_ACK_CF_POLL            (MAC_FRAME_TYPE_DATA | 0x00F0)
 
+#define MASK_MAC_FRAME_ASSOC_REQ                BIT(MAC_FRAME_ASSOC_REQ >> 4)
+#define MASK_MAC_FRAME_ASSOC_RSP                BIT(MAC_FRAME_ASSOC_RSP >> 4)
+#define MASK_MAC_FRAME_REASSOC_REQ              BIT(MAC_FRAME_REASSOC_REQ >> 4)
+#define MASK_MAC_FRAME_REASSOC_RSP              BIT(MAC_FRAME_REASSOC_RSP >> 4)
+#define MASK_MAC_FRAME_PROBE_REQ                BIT(MAC_FRAME_PROBE_REQ >> 4)
+#define MASK_MAC_FRAME_PROBE_RSP                BIT(MAC_FRAME_PROBE_RSP >> 4)
+#define MASK_MAC_FRAME_BEACON                   BIT(MAC_FRAME_BEACON >> 4)
+#define MASK_MAC_FRAME_ATIM                     BIT(MAC_FRAME_ATIM >> 4)
+#define MASK_MAC_FRAME_DISASSOC                 BIT(MAC_FRAME_DISASSOC >> 4)
+#define MASK_MAC_FRAME_AUTH                     BIT(MAC_FRAME_AUTH >> 4)
+#define MASK_MAC_FRAME_DEAUTH                   BIT(MAC_FRAME_DEAUTH >> 4)
+#define MASK_MAC_FRAME_ACTION                   BIT(MAC_FRAME_ACTION >> 4)
+#define MASK_MAC_FRAME_ACTION_NO_ACK            BIT(MAC_FRAME_ACTION_NO_ACK >> 4)
+
+
 /* 7.1.3.2 Mask for the AID value in the Duration/ID field */
 #define MASK_DI_DURATION                        BITS(0, 14)
 #define MASK_DI_AID                             BITS(0, 13)

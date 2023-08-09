@@ -10,6 +10,7 @@ LOCAL_MODULE := wlan_drv_gen2.ko
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE_OWNER := mtk
 LOCAL_REQUIRED_MODULES := wmt_chrdev_wifi.ko
+LOCAL_REQUIRED_MODULES += wmt_drv.ko
 include $(MTK_KERNEL_MODULE)
 
 endif

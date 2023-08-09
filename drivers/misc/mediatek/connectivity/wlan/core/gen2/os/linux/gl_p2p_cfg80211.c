@@ -1600,6 +1600,52 @@ void mtk_p2p_cfg80211_mgmt_frame_register(IN struct wiphy *wiphy,
 
 }				/* mtk_p2p_cfg80211_mgmt_frame_register */
 
+#if KERNEL_VERSION(5, 8, 0) <= CFG80211_VERSION_CODE
+void mtk_p2p_cfg80211_mgmt_frame_update(struct wiphy *wiphy,
+				struct wireless_dev *wdev,
+				struct mgmt_frame_regs *upd)
+{
+	P_GLUE_INFO_T prGlueInfo = (P_GLUE_INFO_T) NULL;
+	uint32_t *pu4PacketFilter = NULL;
+
+	if ((wiphy == NULL) || (wdev == NULL) || (upd == NULL)) {
+		DBGLOG(INIT, TRACE, "Invalidate params\n");
+		return;
+	}
+	prGlueInfo = *((P_GLUE_INFO_T *) wiphy_priv(wiphy));
+	pu4PacketFilter = &prGlueInfo->prP2PInfo->u4OsMgmtFrameFilter;
+	*pu4PacketFilter = 0;
+
+	do {
+		if (upd->interface_stypes & MASK_MAC_FRAME_PROBE_REQ)
+			*pu4PacketFilter |= PARAM_PACKET_FILTER_PROBE_REQ;
+
+		if (upd->interface_stypes & MASK_MAC_FRAME_ACTION)
+			*pu4PacketFilter |= PARAM_PACKET_FILTER_ACTION_FRAME;
+
+#if CFG_SUPPORT_SOFTAP_WPA3
+		if (upd->interface_stypes & MASK_MAC_FRAME_AUTH)
+			*pu4PacketFilter |= PARAM_PACKET_FILTER_AUTH;
+
+		if (upd->interface_stypes & MASK_MAC_FRAME_ASSOC_REQ)
+			*pu4PacketFilter |= PARAM_PACKET_FILTER_ASSOC_REQ;
+#endif
+		if ((prGlueInfo->prAdapter != NULL) && (prGlueInfo->prAdapter->fgIsP2PRegistered == TRUE)) {
+
+			/* prGlueInfo->u4Flag |= GLUE_FLAG_FRAME_FILTER; */
+			set_bit(GLUE_FLAG_FRAME_FILTER_BIT, &prGlueInfo->ulFlag);
+
+			/* wake up main thread */
+			wake_up_interruptible(&prGlueInfo->waitq);
+
+			if (in_interrupt())
+				DBGLOG(P2P, TRACE, "It is in interrupt level\n");
+		}
+	} while (FALSE);
+}
+#endif
+
+
 #if CONFIG_NL80211_TESTMODE
 int mtk_p2p_cfg80211_testmode_cmd(IN struct wiphy *wiphy, IN struct wireless_dev *wdev, IN void *data, IN int len)
 {

@@ -223,7 +223,8 @@ void aaaFsmRunEventTxReqTimeOut(IN struct ADAPTER *prAdapter,
 	struct STA_RECORD *prStaRec = (struct STA_RECORD *) plParamPtr;
 	struct BSS_INFO *prBssInfo;
 
-	if (!prStaRec)
+	if (!prStaRec ||
+		prStaRec->ucBssIndex > MAX_BSSID_NUM)
 		return;
 
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, prStaRec->ucBssIndex);

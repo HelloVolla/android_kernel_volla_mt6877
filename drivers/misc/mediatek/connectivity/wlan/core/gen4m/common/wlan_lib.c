@@ -1565,8 +1565,9 @@ void wlanIST(IN struct ADAPTER *prAdapter, bool fgEnInt)
 	if (prAdapter->fgIsFwOwn == FALSE) {
 		u4Status = nicProcessIST(prAdapter);
 		if (u4Status != WLAN_STATUS_SUCCESS) {
-			DBGLOG(REQ, INFO, "Fail: nicProcessIST! status [%x]\n",
-			       u4Status);
+			DBGLOG_LIMITED(REQ, INFO,
+				       "Fail: nicProcessIST! status [%x]\n",
+				       u4Status);
 		}
 #if defined(CONFIG_ANDROID) && (CFG_ENABLE_WAKE_LOCK)
 		if (KAL_WAKE_LOCK_ACTIVE(prAdapter,
@@ -5798,6 +5799,12 @@ uint8_t wlanGetChannelNumberByNetwork(IN struct ADAPTER
 
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
 
+	if (prBssInfo == NULL) {
+		DBGLOG(INIT, ERROR,
+		"ucBssIndex= %d prBssInfo is Null\n", ucBssIndex);
+		return 0;
+	}
+
 	return prBssInfo->ucPrimaryChannel;
 }
 
@@ -5822,6 +5829,11 @@ uint32_t wlanGetBandIndexByNetwork(IN struct ADAPTER
 
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
 
+	if (prBssInfo == NULL) {
+		DBGLOG(INIT, ERROR,
+		"ucBssIndex= %d prBssInfo is Null\n", ucBssIndex);
+		return BAND_NUM;
+	}
 	return prBssInfo->eBand;
 }
 
@@ -6234,6 +6246,12 @@ void wlanDumpAllBssStatistics(IN struct ADAPTER *prAdapter)
 
 	for (ucIdx = 0; ucIdx < prAdapter->ucHwBssIdNum; ucIdx++) {
 		prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucIdx);
+
+		if (prBssInfo == NULL) {
+			DBGLOG(INIT, ERROR,
+			"ucIdx = %d prBssInfo is Null\n", ucIdx);
+			continue;
+		}
 		if (!IS_BSS_ACTIVE(prBssInfo)) {
 			DBGLOG(SW4, TRACE,
 			       "Invalid BssInfo index[%u], skip dump!\n",
@@ -8130,6 +8148,8 @@ void wlanInitFeatureOption(IN struct ADAPTER *prAdapter)
 			prAdapter, "GROFlushTimeout", 1);
 	prWifiVar->ucGROEnableTput = (uint32_t) wlanCfgGetUint32(
 			prAdapter, "GROEnableTput", 6250000);
+	prWifiVar->u4UdpEnableGroTputTh = (uint32_t) wlanCfgGetUint32(
+			prAdapter, "UdpEnableGroTputTh", 500000000);
 #endif
 	prWifiVar->ucMsduReportTimeout =
 		(uint8_t) wlanCfgGetUint32(prAdapter,
@@ -11578,6 +11598,11 @@ wlanGetSpeIdx(IN struct ADAPTER *prAdapter,
 		return ucRetValSpeIdx;
 	}
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
+	if (prBssInfo == NULL) {
+		DBGLOG(INIT, ERROR,
+		"ucBssIndex = %d prBssInfo is Null\n", ucBssIndex);
+		return ucRetValSpeIdx;
+	}
 	/*
 	 * if DBDC enable return 0, else depend 2.4G/5G & support WF path
 	 * retrun accurate value
@@ -11675,6 +11700,13 @@ wlanGetSupportNss(IN struct ADAPTER *prAdapter,
 #endif
 	prAisFsmInfo = aisGetAisFsmInfo(prAdapter, ucBssIndex);
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
+
+	if (prBssInfo == NULL) {
+		DBGLOG(INIT, ERROR,
+		"ucBssIndex = %d prBssInfo is Null\n", ucBssIndex);
+		return ucRetValNss;
+	}
+
 	if (IS_BSS_APGO(prBssInfo)) {
 		if (p2pFuncIsAPMode(
 			prAdapter->rWifiVar.prP2PConnSettings

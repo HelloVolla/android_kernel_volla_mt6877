@@ -4179,15 +4179,16 @@ int connac2x_get_rx_rate_info(IN struct ADAPTER *prAdapter,
 
 	if (wlanGetStaIdxByWlanIdx(prAdapter, ucWlanIdx, &ucStaIdx) ==
 		WLAN_STATUS_SUCCESS) {
+
+		if ((prAdapter->arStaRec[ucStaIdx].fgPRXVValid == 0) ||
+			(prAdapter->arStaRec[ucStaIdx].fgCRXVValid == 0)) {
+			DBGLOG_LIMITED(SW4, TEMP, "CRxV or PRxV is invalid\n");
+			return -1;
+		}
+
 		u4RxVector0 = prAdapter->arStaRec[ucStaIdx].u4RxVector0;
 		u4RxVector1 = prAdapter->arStaRec[ucStaIdx].u4RxVector1;
 		u4RxVector2 = prAdapter->arStaRec[ucStaIdx].u4RxVector2;
-		if ((u4RxVector0 == 0) || (u4RxVector1 == 0) ||
-			(u4RxVector2 == 0)) {
-			DBGLOG_LIMITED(SW4, WARN,
-					"RxVector1 or RxVector2 is 0\n");
-			return -1;
-		}
 	} else {
 		DBGLOG(SW4, ERROR, "wlanGetStaIdxByWlanIdx fail\n");
 		return -1;

@@ -1621,11 +1621,11 @@ VOID p2pFsmRunEventIOReqTimeout(IN P_ADAPTER_T prAdapter, IN UINT_32 u4Param);
 
 VOID p2pFsmRunEventSearchPeriodTimeout(IN P_ADAPTER_T prAdapter, IN UINT_32 u4Param);
 
-VOID p2pFsmRunEventFsmTimeout(IN P_ADAPTER_T prAdapter, IN ULONG u4Param);
+void p2pFsmRunEventFsmTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
-VOID p2pFsmRunEventRejoinTimeout(IN P_ADAPTER_T prAdapter, IN UINT_32 u4Parm);
+void p2pFsmRunEventRejoinTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
-VOID p2pFsmRunEventDeauthTimeout(IN P_ADAPTER_T prAdapter, IN ULONG u4Param);
+void p2pFsmRunEventDeauthTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
 /*=============== P2P Function Related ================*/
 
@@ -1814,7 +1814,7 @@ p2pProcessEvent_UpdateNOAParam(IN P_ADAPTER_T prAdapter,
 WLAN_STATUS p2pUpdateBeaconEcsaIE(IN P_ADAPTER_T prAdapter, IN UINT_8 ucNetTypeIndex);
 
 VOID p2pFuncCompleteIOCTL(IN P_ADAPTER_T prAdapter, IN WLAN_STATUS rWlanStatus);
-VOID p2pFsmRunEventTdlsTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParam);
+void p2pFsmRunEventTdlsTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
 /*******************************************************************************
 *                              F U N C T I O N S

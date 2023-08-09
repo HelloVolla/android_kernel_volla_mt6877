@@ -1,3 +1,9 @@
+ccflags-y :=
+ifeq ($(CONFIG_MTK_PLATFORM),)
+ifneq ($(CONFIG_MTK_COMBO_CHIP_CONSYS_6739),)
+	CONFIG_MTK_PLATFORM := mt6739
+endif
+endif
 MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
 ###############################################################################
 # Necessary Check
@@ -5,11 +11,9 @@ MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
 ifneq ($(KERNEL_OUT),)
     ccflags-y += -imacros $(KERNEL_OUT)/include/generated/autoconf.h
 endif
-
-ifeq ($(CONFIG_MTK_COMBO_CHIP),)
-    $(error CONFIG_MTK_COMBO_CHIP not defined)
-endif
-
+#ifeq($(CONFIG_MTK_COMBO_CHIP),)
+#    $(error CONFIG_MTK_COMBO_CHIP not defined)
+#endif
 #Force to m
 export CONFIG_MTK_COMBO_WIFI=m
 

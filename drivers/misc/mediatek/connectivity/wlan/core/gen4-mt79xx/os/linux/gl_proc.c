@@ -2107,6 +2107,13 @@ static ssize_t procCountryWrite(struct file *file, const char __user *buffer,
 	kalMemZero(pucProcBuf, PROC_MAX_BUF_SIZE);
 	u4CopySize = (count < u4CopySize) ? count : (u4CopySize - 1);
 
+	if (u4CopySize < 2) {
+		DBGLOG(REQ, WARN, "Invaild country code len[%u]\n",
+			u4CopySize);
+		i4Ret = -EFAULT;
+		goto freeBuf;
+	}
+
 	if (copy_from_user(pucProcBuf, buffer, u4CopySize)) {
 		DBGLOG(INIT, ERROR, "error of copy from user\n");
 		i4Ret = -EFAULT;

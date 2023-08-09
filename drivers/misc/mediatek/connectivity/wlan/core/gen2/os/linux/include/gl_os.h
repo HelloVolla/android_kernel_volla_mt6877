@@ -114,6 +114,10 @@
 #define GLUE_INFO_WSCIE_LENGTH		500
 
 
+#ifndef IS_ENABLED
+#define IS_ENABLED(_val) defined(_val)
+#endif
+
 /*******************************************************************************
 *                    E X T E R N A L   R E F E R E N C E S
 ********************************************************************************
@@ -225,6 +229,9 @@ extern const struct ieee80211_iface_combination *p_mtk_sta_iface_combos;
 extern const INT_32 mtk_sta_iface_combos_num;
 extern UINT_8 g_aucNvram[];
 
+#if CFG_ENABLE_WIFI_DIRECT
+extern int set_p2p_mode_handler(struct net_device *netdev, struct PARAM_CUSTOM_P2P_SET_STRUCT p2pmode);
+#endif
 #ifdef CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH
 typedef void (*wifi_fwlog_event_func_cb)(int, int);
 /* adaptor ko */
@@ -983,7 +990,7 @@ INT_32 cfgCreateProcEntry(P_GLUE_INFO_T prGlueInfo);
 INT_32 cfgRemoveProcEntry(void);
 #endif
 
-typedef UINT_8 (*file_buf_handler) (PVOID ctx, const CHAR __user *buf, UINT_16 length);
+typedef uint8_t (*file_buf_handler)(void *ctx, const char __user *buf, uint16_t length);
 extern VOID register_file_buf_handler(file_buf_handler handler, PVOID ctx, UINT_8 ucType);
 extern const uint8_t *kalFindIeMatchMask(uint8_t eid,
 				const uint8_t *ies, int len,

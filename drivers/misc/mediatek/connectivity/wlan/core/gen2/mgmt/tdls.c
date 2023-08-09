@@ -94,7 +94,7 @@ static void TdlsCmdTestUpdatePeer(P_GLUE_INFO_T prGlueInfo, UINT_8 *prInBuf, UIN
 
 static void TdlsCmdTestNullRecv(P_GLUE_INFO_T prGlueInfo, UINT_8 *prInBuf, UINT_32 u4InBufLen);
 
-static VOID TdlsTimerTestDataContSend(ADAPTER_T *prAdapter, UINT_32 u4Param);
+
 
 static TDLS_STATUS
 TdlsTestChStReqRecv(ADAPTER_T *prAdapter, VOID *pvSetBuffer, UINT_32 u4SetBufferLen, UINT_32 *pu4SetInfoLen);
@@ -493,7 +493,7 @@ static void TdlsCmdTestDataContSend(GLUE_INFO_T *prGlueInfo, UINT_8 *prInBuf, UI
 
 	/* re-init test timer */
 	cnmTimerInitTimer(prAdapter,
-			  &rTdlsTimerTestDataSend, (PFN_MGMT_TIMEOUT_FUNC) TdlsTimerTestDataContSend, (ULONG) NULL);
+			  &rTdlsTimerTestDataSend, (PFN_MGMT_TIMEOUT_FUNC) TdlsTimerTestDataContSend, (uintptr_t) NULL);
 
 	cnmTimerStartTimer(prAdapter, &rTdlsTimerTestDataSend, u2TdlsTestDataSInterval);
 }
@@ -1828,7 +1828,7 @@ static void TdlsCmdTestNullRecv(P_GLUE_INFO_T prGlueInfo, UINT_8 *prInBuf, UINT_
 		iwpriv wlan0 set_str_cmd 0_15_00:11:22:33:44:01_5000_1
 */
 /*----------------------------------------------------------------------------*/
-static VOID TdlsTimerTestDataContSend(ADAPTER_T *prAdapter, UINT_32 u4Param)
+void TdlsTimerTestDataContSend(ADAPTER_T *prAdapter, uintptr_t u4Param)
 {
 	GLUE_INFO_T *prGlueInfo;
 	struct sk_buff *prMsduInfo;

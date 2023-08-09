@@ -384,6 +384,10 @@ void asicConnac2xWfdmaReInit(
 
 		DBGLOG(INIT, TRACE, "WFDMA reinit after bk/sr(deep sleep)\n");
 		prHifInfo = &prAdapter->prGlueInfo->rHifInfo;
+		if (prBusInfo->resetTxDataRingPrefetch)
+			prBusInfo->resetTxDataRingPrefetch(
+				prAdapter->prGlueInfo);
+
 		for (u4Idx = 0; u4Idx < NUM_OF_TX_RING; u4Idx++) {
 			/* Swwfdma should not reset txring */
 			if (prSwWfdmaInfo->fgIsEnSwWfdma &&

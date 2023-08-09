@@ -50,6 +50,12 @@
 
 #define WIFI_VENDOR_ATTR_FEATURE_FLAGS 7
 
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+#define VENDOR_OPS_SET_POLICY(_val) .policy = (_val),
+#else
+#define VENDOR_OPS_SET_POLICY(_val)
+#endif
+
 
 typedef enum {
 	/* Don't use 0 as a valid subcommand */
@@ -174,6 +180,7 @@ typedef enum {
 	WIFI_ATTRIBUTE_ROAMING_STATE,
 
 	WIFI_ATTRIBUTE_TX_POWER_SCENARIO,
+	WIFI_ATTRIBUTE_MAX
 
 } WIFI_ATTRIBUTE;
 
@@ -244,8 +251,8 @@ typedef enum {
 	GSCAN_ATTRIBUTE_MIN_BREACHING,
 	GSCAN_ATTRIBUTE_NUM_AP,
 	GSCAN_ATTRIBUTE_SIGNIFICANT_CHANGE_BSSIDS,
-	GSCAN_ATTRIBUTE_SIGNIFICANT_CHANGE_FLUSH
-
+	GSCAN_ATTRIBUTE_SIGNIFICANT_CHANGE_FLUSH,
+	GSCAN_ATTRIBUTE_MAX
 } GSCAN_ATTRIBUTE;
 
 typedef enum {
@@ -881,5 +888,11 @@ int mtk_cfg80211_vendor_acs(struct wiphy *wiphy,
 
 int mtk_cfg80211_vendor_get_features(struct wiphy *wiphy,
 		struct wireless_dev *wdev, const void *data, int data_len);
+
+extern const struct nla_policy nla_parse_wifi_attribute[WIFI_ATTRIBUTE_MAX + 1];
+extern const struct nla_policy nla_get_version_policy[LOGGER_ATTRIBUTE_MAX + 1];
+extern const struct nla_policy nla_parse_offloading_policy[MKEEP_ALIVE_ATTRIBUTE_PERIOD_MSEC + 1];
+extern const struct nla_policy nla_parse_wifi_rssi_monitor[WIFI_ATTRIBUTE_RSSI_MONITOR_ATTRIBUTE_MAX + 1];
+
 
 #endif /* _GL_VENDOR_H */

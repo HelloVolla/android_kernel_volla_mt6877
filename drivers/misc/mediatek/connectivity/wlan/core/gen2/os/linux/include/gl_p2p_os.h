@@ -267,7 +267,9 @@ VOID glP2pDestroyWirelessDevice(VOID);
 
 VOID p2pSetMulticastListWorkQueueWrapper(P_GLUE_INFO_T prGlueInfo);
 
-
-int p2pHardStartXmit(IN struct sk_buff *prSkb, IN struct net_device *prDev);
-
+#if KERNEL_VERSION(5, 10, 0) <= CFG80211_VERSION_CODE
+netdev_tx_t p2pHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev);
+#else
+int p2pHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev);
+#endif
 #endif

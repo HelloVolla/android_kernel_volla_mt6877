@@ -382,12 +382,19 @@ typedef enum _ENUM_PHY_TYPE_INDEX_T {
 	PHY_TYPE_INDEX_NUM	/* 5 */
 } ENUM_PHY_TYPE_INDEX_T, *P_ENUM_PHY_TYPE_INDEX_T;
 
-typedef enum _ENUM_ACPI_STATE_T {
+#if KERNEL_VERSION(5, 10, 0) <= CFG80211_VERSION_CODE
+#undef ACPI_STATE_D0
+#undef ACPI_STATE_D1
+#undef ACPI_STATE_D2
+#undef ACPI_STATE_D3
+#endif
+
+enum ENUM_ACPI_STATE_T {
 	ACPI_STATE_D0 = 0,
 	ACPI_STATE_D1,
 	ACPI_STATE_D2,
 	ACPI_STATE_D3
-} ENUM_ACPI_STATE_T;
+};
 
 /* The operation mode of a specific Network */
 typedef enum _ENUM_OP_MODE_T {

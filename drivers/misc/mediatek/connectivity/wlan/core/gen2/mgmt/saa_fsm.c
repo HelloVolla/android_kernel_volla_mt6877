@@ -191,7 +191,7 @@ saaFsmSteps(IN P_ADAPTER_T prAdapter,
 						cnmTimerInitTimer(prAdapter,
 								  &prStaRec->rTxReqDoneOrRxRespTimer,
 								  (PFN_MGMT_TIMEOUT_FUNC) saaFsmRunEventTxReqTimeOut,
-								  (ULONG) prStaRec);
+								  (uintptr_t) prStaRec);
 
 						cnmTimerStartTimer(prAdapter,
 								   &prStaRec->rTxReqDoneOrRxRespTimer,
@@ -232,7 +232,7 @@ saaFsmSteps(IN P_ADAPTER_T prAdapter,
 						cnmTimerInitTimer(prAdapter,
 								  &prStaRec->rTxReqDoneOrRxRespTimer,
 								  (PFN_MGMT_TIMEOUT_FUNC) saaFsmRunEventTxReqTimeOut,
-								  (ULONG) prStaRec);
+								  (uintptr_t) prStaRec);
 
 						cnmTimerStartTimer(prAdapter,
 								   &prStaRec->rTxReqDoneOrRxRespTimer,
@@ -268,7 +268,7 @@ saaFsmSteps(IN P_ADAPTER_T prAdapter,
 					cnmTimerInitTimer(prAdapter,
 							  &prStaRec->rTxReqDoneOrRxRespTimer,
 							  (PFN_MGMT_TIMEOUT_FUNC) saaFsmRunEventTxReqTimeOut,
-							  (ULONG) prStaRec);
+							  (uintptr_t) prStaRec);
 
 					cnmTimerStartTimer(prAdapter,
 							   &prStaRec->rTxReqDoneOrRxRespTimer,
@@ -600,7 +600,7 @@ saaFsmRunEventTxDone(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, IN E
 				cnmTimerInitTimer(prAdapter,
 						  &prStaRec->rTxReqDoneOrRxRespTimer,
 						  (PFN_MGMT_TIMEOUT_FUNC) saaFsmRunEventRxRespTimeOut,
-						  (ULONG) prStaRec);
+						  (uintptr_t) prStaRec);
 
 				cnmTimerStartTimer(prAdapter,
 						   &prStaRec->rTxReqDoneOrRxRespTimer,
@@ -628,7 +628,7 @@ saaFsmRunEventTxDone(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, IN E
 				cnmTimerInitTimer(prAdapter,
 						  &prStaRec->rTxReqDoneOrRxRespTimer,
 						  (PFN_MGMT_TIMEOUT_FUNC) saaFsmRunEventRxRespTimeOut,
-						  (ULONG) prStaRec);
+						  (uintptr_t) prStaRec);
 
 				cnmTimerStartTimer(prAdapter,
 						   &prStaRec->rTxReqDoneOrRxRespTimer,
@@ -656,7 +656,7 @@ saaFsmRunEventTxDone(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, IN E
 				cnmTimerInitTimer(prAdapter,
 						  &prStaRec->rTxReqDoneOrRxRespTimer,
 						  (PFN_MGMT_TIMEOUT_FUNC) saaFsmRunEventRxRespTimeOut,
-						  (ULONG) prStaRec);
+						  (uintptr_t) prStaRec);
 
 				cnmTimerStartTimer(prAdapter,
 						   &(prStaRec->rTxReqDoneOrRxRespTimer),
@@ -686,8 +686,9 @@ saaFsmRunEventTxDone(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, IN E
 * @return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID saaFsmRunEventTxReqTimeOut(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec)
+void saaFsmRunEventTxReqTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
+	P_STA_RECORD_T prStaRec = (P_STA_RECORD_T)ulParam;
 	ASSERT(prStaRec);
 	if (!prStaRec)
 		return;
@@ -716,10 +717,10 @@ VOID saaFsmRunEventTxReqTimeOut(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prSt
 * @return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID saaFsmRunEventRxRespTimeOut(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec)
+void saaFsmRunEventRxRespTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	ENUM_AA_STATE_T eNextState;
-
+	P_STA_RECORD_T prStaRec = (P_STA_RECORD_T)ulParam;
 	DBGLOG(SAA, LOUD, "EVENT-TIMER: RX RESP TIMEOUT, Current Time = %u\n", kalGetTimeTick());
 
 	ASSERT(prStaRec);

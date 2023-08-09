@@ -158,7 +158,7 @@ BOOLEAN cnmBss40mBwPermitted(P_ADAPTER_T prAdapter, ENUM_NETWORK_TYPE_INDEX_T eN
 #if CFG_P2P_LEGACY_COEX_REVISE
 BOOLEAN cnmAisDetectP2PChannel(P_ADAPTER_T prAdapter, P_ENUM_BAND_T prBand, PUINT_8 pucPrimaryChannel);
 #endif
-VOID cnmRunEventReqChnlUtilTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr);
+void cnmRunEventReqChnlUtilTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParamPtr);
 VOID cnmHandleChannelUtilization(P_ADAPTER_T prAdapter,
 	struct EVENT_RSP_CHNL_UTILIZATION *prChnlUtil);
 VOID cnmRequestChannelUtilization(P_ADAPTER_T prAdapter, P_MSG_HDR_T prMsgHdr);

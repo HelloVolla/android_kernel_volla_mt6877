@@ -2174,7 +2174,7 @@ scanEnvResult(P_GLUE_INFO_T prGlueInfo, OUT PVOID pvBuffer, IN UINT_32 u4MaxBuff
 	INT_32 i4Argc = 0;
 	PCHAR apcArgv[WLAN_CFG_ARGV_MAX] = { 0 };
 	UINT_8 ucTextLen = 40;
-	UCHAR text[ucTextLen];
+	UCHAR text[40];
 	INT_32 u4Ret;
 
 	prAdapter = prGlueInfo->prAdapter;
@@ -2465,7 +2465,7 @@ _priv_set_int(IN struct net_device *prNetDev,
 	case PRIV_CMD_P2P_MODE:
 		{
 			/* no use, move to set_p2p_mode_handler() */
-			PARAM_CUSTOM_P2P_SET_STRUCT_T p2pmode;
+			struct PARAM_CUSTOM_P2P_SET_STRUCT p2pmode;
 
 			p2pmode.u4Enable = pu4IntBuf[1];
 			p2pmode.u4Mode = pu4IntBuf[2];
@@ -4206,7 +4206,7 @@ priv_set_driver(IN struct net_device *prNetDev,
 
 	ASSERT(IW_IS_GET(u2Cmd));
 	if (prIwReqData->data.length != 0) {
-		if (!access_ok(VERIFY_READ, prIwReqData->data.pointer,
+		if (!kal_access_ok(VERIFY_READ, prIwReqData->data.pointer,
 			       prIwReqData->data.length)) {
 			DBGLOG(REQ, INFO,
 			       "%s access_ok Read fail written = %d\n",

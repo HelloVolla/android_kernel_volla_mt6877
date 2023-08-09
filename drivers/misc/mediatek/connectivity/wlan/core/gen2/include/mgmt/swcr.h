@@ -170,7 +170,7 @@ UINT_32 swCrGetDNSRxFilter(VOID);
 
 /* Support Debug */
 VOID swCrDebugCheck(P_ADAPTER_T prAdapter, P_CMD_SW_DBG_CTRL_T prCmdSwCtrl);
-VOID swCrDebugCheckTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam);
+void swCrDebugCheckTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 VOID swCrDebugQuery(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo, IN PUINT_8 pucEventBuf);
 VOID swCrDebugQueryTimeout(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo);
 /*******************************************************************************

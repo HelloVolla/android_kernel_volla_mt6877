@@ -2188,18 +2188,21 @@ void halWpdmaInitTxRing(IN struct GLUE_INFO *prGlueInfo, bool fgResetHif)
 			offset = idx * MT_RINGREG_DIFF;
 		}
 #endif /* CFG_SUPPORT_CONNAC2X == 1 */
-		else if (i == TX_RING_DATA1_IDX_1 &&
-				!prBusInfo->tx_ring1_data_idx)
-			continue;
-		else if (i == TX_RING_DATA2_IDX_2 &&
-				!prBusInfo->tx_ring2_data_idx)
-			continue;
+		else if (i == TX_RING_DATA1_IDX_1) {
+			if (!prBusInfo->tx_ring1_data_idx)
+				continue;
+			offset = prBusInfo->tx_ring1_data_idx * MT_RINGREG_DIFF;
+		} else if (i == TX_RING_DATA2_IDX_2) {
+			if (!prBusInfo->tx_ring2_data_idx)
+				continue;
+			offset = prBusInfo->tx_ring2_data_idx * MT_RINGREG_DIFF;
 #if CFG_TRI_TX_RING
-		else if (i == TX_RING_DATA3_IDX_3 &&
-				!prBusInfo->tx_ring3_data_idx)
-			continue;
+		} else if (i == TX_RING_DATA3_IDX_3) {
+			if (!prBusInfo->tx_ring3_data_idx)
+				continue;
+			offset = prBusInfo->tx_ring3_data_idx * MT_RINGREG_DIFF;
 #endif
-		else
+		} else
 			offset = i * MT_RINGREG_DIFF;
 
 		phy_addr = ((uint64_t)prTxCell->AllocPa) &
@@ -2600,14 +2603,20 @@ static bool halWpdmaFillTxRing(struct GLUE_INFO *prGlueInfo,
 	struct RTMP_DMACB *pTxCell;
 	struct TXD_STRUCT *pTxD;
 	uint16_t u2Port = TX_RING_DATA0_IDX_0;
+	struct BUS_INFO *prBusInfo = NULL;
 
 	ASSERT(prGlueInfo);
 
 	prHifInfo = &prGlueInfo->rHifInfo;
 	prChipInfo = prGlueInfo->prAdapter->chip_info;
+	prBusInfo = prChipInfo->bus_info;
 
 	u2Port = halTxRingDataSelect(
 		prGlueInfo->prAdapter, prToken->prMsduInfo);
+
+	if (prBusInfo->enableTxDataRingPrefetch)
+		prBusInfo->enableTxDataRingPrefetch(prGlueInfo, u2Port);
+
 	prTxRing = &prHifInfo->TxRing[u2Port];
 
 	if (prTxRing->TxCpuIdx >= TX_RING_SIZE) {

@@ -348,9 +348,9 @@ static long mt6620_ampc_ioctl(IN struct file *filp, IN unsigned int cmd, IN OUT 
 		return -EFAULT;
 	/* permission check */
 	if (_IOC_DIR(cmd) & _IOC_READ)
-		err = !access_ok(VERIFY_WRITE, (void __user *)arg, _IOC_SIZE(cmd));
+		err = !kal_access_ok(VERIFY_WRITE, (void __user *)arg, _IOC_SIZE(cmd));
 	else if (_IOC_DIR(cmd) & _IOC_WRITE)
-		err = !access_ok(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd));
+		err = !kal_access_ok(VERIFY_READ, (void __user *)arg, _IOC_SIZE(cmd));
 	if (err)
 		return -EFAULT;
 
@@ -808,7 +808,11 @@ static int bowStop(IN struct net_device *prDev)
  * \retval NETDEV_TX_BUSY - on failure, packet will be discarded by upper layer.
  */
 /*----------------------------------------------------------------------------*/
-static int bowHardStartXmit(IN struct sk_buff *prSkb, IN struct net_device *prDev)
+#if KERNEL_VERSION(5, 10, 0) <= CFG80211_VERSION_CODE
+static netdev_tx_t bowHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev)
+#else
+static int bowHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev)
+#endif
 {
 	P_GLUE_INFO_T prGlueInfo = *((P_GLUE_INFO_T *) netdev_priv(prDev));
 

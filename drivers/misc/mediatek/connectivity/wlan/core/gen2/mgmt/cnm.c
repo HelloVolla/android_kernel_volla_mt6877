@@ -72,7 +72,7 @@
 VOID cnmInit(P_ADAPTER_T prAdapter)
 {
 	cnmTimerInitTimer(prAdapter, &prAdapter->rCnmInfo.rReqChnlUtilTimer,
-				  (PFN_MGMT_TIMEOUT_FUNC)cnmRunEventReqChnlUtilTimeout, (ULONG) NULL);
+				  (PFN_MGMT_TIMEOUT_FUNC)cnmRunEventReqChnlUtilTimeout, (uintptr_t) NULL);
 }				/* end of cnmInit() */
 
 /*----------------------------------------------------------------------------*/
@@ -568,7 +568,7 @@ BOOLEAN cnmBss40mBwPermitted(P_ADAPTER_T prAdapter, ENUM_NETWORK_TYPE_INDEX_T eN
 	return TRUE;
 }
 
-VOID cnmRunEventReqChnlUtilTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr)
+void cnmRunEventReqChnlUtilTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParamPtr)
 {
 	P_CNM_INFO_T prCnmInfo = &prAdapter->rCnmInfo;
 	struct MSG_CH_UTIL_RSP *prMsgChUtil = NULL;

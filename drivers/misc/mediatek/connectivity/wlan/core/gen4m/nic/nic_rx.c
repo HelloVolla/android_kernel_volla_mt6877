@@ -3513,11 +3513,15 @@ void nicRxProcessRxReport(IN struct ADAPTER *prAdapter,
 	}
 
 	/* P-B-0[0:31] */
-	if (RX_RPT_GET_RXV_TYPE_PRXV1_VLD(prRxRpt))
+	if (RX_RPT_GET_RXV_TYPE_PRXV1_VLD(prRxRpt)) {
 		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector0 =
 			prRxRptBlkRxv->u4PRxv1[0];
-	else
-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector0 = 0;
+		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].fgPRXVValid = 1;
+	} else {
+		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].fgPRXVValid = 0;
+	}
+
+	prAdapter->arStaRec[prSwRfb->ucStaRecIdx].fgCRXVValid = 0;
 
 #if (CFG_SUPPORT_CONNAC2X == 1)
 	if (RX_RPT_GET_RXV_TYPE_CRXV1_VLD(prRxRpt)) {
@@ -3533,16 +3537,8 @@ void nicRxProcessRxReport(IN struct ADAPTER *prAdapter,
 		/* C-B-3[0:31] */
 		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector4 =
 			prRxRptBlkRxv->u4CRxv1[6];
-	} else {
-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector1 =
-			0;
-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector2 =
-			0;
-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector3 =
-			0;
-		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].u4RxVector4 =
-			0;
-		DBGLOG(RX, WARN, "RX_RPT C-RXV1 not valid!\n");
+
+		prAdapter->arStaRec[prSwRfb->ucStaRecIdx].fgCRXVValid = 1;
 	}
 #endif
 
@@ -3910,7 +3906,7 @@ void nicRxReturnRFB(IN struct ADAPTER *prAdapter,
 		/* QUEUE_INSERT_TAIL */
 		QUEUE_INSERT_TAIL(&prRxCtrl->rFreeSwRfbList, prQueEntry);
 		if (prAdapter->u4NoMoreRfb != 0) {
-			DBGLOG_LIMITED(RX, INFO,
+			DBGLOG_LIMITED(RX, TEMP,
 				"Free rfb and set IntEvent!!!!!\n");
 			kalSetDrvIntEvent(prAdapter->prGlueInfo);
 		}

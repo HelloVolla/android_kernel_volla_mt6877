@@ -52,6 +52,7 @@
 #define QCA_WLAN_VENDOR_ATTR_SETBAND_MASK 43
 #define QCA_WLAN_VENDOR_ATTR_MAX 44
 #define QCA_NL80211_VENDOR_SUBCMD_SETBAND 105
+#define QCA_WLAN_VENDOR_ATTR_ROAMING_POLICY 5
 #define NL80211_VENDOR_SUBCMD_NAN 12
 #define NL80211_VENDOR_SUBCMD_GET_APF_CAPABILITIES 14
 #define NL80211_VENDOR_SUBCMD_NDP 81
@@ -360,14 +361,6 @@ enum WIFI_DATA_STALL_ATTRIBUTE {
  *                            P U B L I C   D A T A
  *******************************************************************************
  */
-#if CFG_SUPPORT_WAPI
-extern uint8_t
-keyStructBuf[1024];	/* add/remove key shared buffer */
-#else
-extern uint8_t
-keyStructBuf[100];	/* add/remove key shared buffer */
-#endif
-
 #if KERNEL_VERSION(5, 4, 0) <= LINUX_VERSION_CODE
 extern const struct nla_policy nla_parse_wifi_rssi_monitor[
 		WIFI_ATTRIBUTE_RSSI_MONITOR_ATTRIBUTE_MAX + 1];

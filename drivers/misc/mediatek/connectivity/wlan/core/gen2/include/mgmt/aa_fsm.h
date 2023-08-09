@@ -109,9 +109,9 @@ VOID saaFsmRunEventStart(IN P_ADAPTER_T prAdapter, IN P_MSG_HDR_T prMsgHdr);
 WLAN_STATUS
 saaFsmRunEventTxDone(IN P_ADAPTER_T prAdapter, IN P_MSDU_INFO_T prMsduInfo, IN ENUM_TX_RESULT_CODE_T rTxDoneStatus);
 
-VOID saaFsmRunEventTxReqTimeOut(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec);
+void saaFsmRunEventTxReqTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
-VOID saaFsmRunEventRxRespTimeOut(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec);
+void saaFsmRunEventRxRespTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
 VOID saaFsmRunEventRxAuth(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb);
 

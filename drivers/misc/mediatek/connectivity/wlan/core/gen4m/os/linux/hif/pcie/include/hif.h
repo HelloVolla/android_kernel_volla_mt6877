@@ -184,6 +184,9 @@ struct GL_HIF_INFO {
 
 	uint32_t u4WakeupIntSta;
 	bool fgIsBackupIntSta;
+
+	uint32_t u4TxRingPrefetchDefaultVal;
+	u_int8_t fgTxRingPrefetchEn[NUM_OF_TX_RING];
 };
 
 struct BUS_INFO {
@@ -308,6 +311,10 @@ struct BUS_INFO {
 	void (*setDmaIntMask)(struct GLUE_INFO *prGlueInfo,
 		uint8_t ucType, u_int8_t fgEnable);
 	void (*enableFwDlMode)(struct ADAPTER *prAdapter);
+
+	void (*enableTxDataRingPrefetch)(
+		struct GLUE_INFO *prGlueInfo, uint32_t u4Port);
+	void (*resetTxDataRingPrefetch)(struct GLUE_INFO *prGlueInfo);
 
 	struct SW_WFDMA_INFO rSwWfdmaInfo;
 };

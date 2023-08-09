@@ -144,7 +144,11 @@ typedef struct _PKT_STATUS_RECORD {
 #define PKT_STATUS_MSG_GROUP_RANGE 80
 #define PKT_STATUS_MSG_LENGTH 900
 
+#if IS_ENABLED(CONFIG_ARM64)
 #define CMD_BUF_MSG_LENGTH 1024
+#else
+#define CMD_BUF_MSG_LENGTH 950
+#endif
 
 #if CFG_SUPPORT_EMI_DEBUG
 #define WLAN_EMI_DEBUG_BUF_SIZE 512
@@ -427,7 +431,7 @@ VOID wlanPktStatusDebugDumpInfo(P_ADAPTER_T prAdapter)
 	UINT_32 index;
 	UINT_32 offsetMsg;
 	P_PKT_STATUS_ENTRY prPktInfo;
-	UINT_8 pucMsg[PKT_STATUS_MSG_LENGTH];
+	UINT_8 pucMsg[PKT_STATUS_MSG_LENGTH + 1];
 	UINT_32 u4PktCnt;
 	UINT_64 u8TxTimeBase; /*ns*/
 	UINT_32 u4TxTimeOffset; /*ms*/
@@ -505,21 +509,26 @@ VOID wlanPktStatusDebugDumpInfo(P_ADAPTER_T prAdapter)
 						DBGLOG(RX, INFO, "%s\n", pucMsg);
 
 					offsetMsg = 0;
-					kalMemSet(pucMsg, '\0', PKT_STATUS_MSG_LENGTH);
+					kalMemSet(pucMsg, '\0', (PKT_STATUS_MSG_LENGTH + 1));
 				}
 			}
 		}
 
 		/*dump rx sequence*/
-		kalMemZero(pucMsg, PKT_STATUS_MSG_LENGTH * sizeof(UINT_8));
+		kalMemZero(pucMsg, (PKT_STATUS_MSG_LENGTH + 1) * sizeof(UINT_8));
 		offsetMsg = 0;
 		offsetMsg += kalSnprintf(pucMsg + offsetMsg, (PKT_STATUS_MSG_LENGTH - offsetMsg)
 			, "RX Seq count: %d [", u4PktSeqCount);
 
-		for (index = 0; index < u4PktSeqCount; index++)
+		for (index = 0; index < u4PktSeqCount; index++) {
+			if (offsetMsg >= (PKT_STATUS_MSG_LENGTH - 4)) {
+				DBGLOG(RX, INFO, "index = %d, offsetMsg = %d\n", index, offsetMsg);
+				pucMsg[PKT_STATUS_MSG_LENGTH] = '\0';
+				break;
+			}
 			offsetMsg += kalSnprintf(pucMsg + offsetMsg, (PKT_STATUS_MSG_LENGTH - offsetMsg)
 			, "%x,", gau2PktSeq[index]);
-
+		}
 		DBGLOG(RX, INFO, "%s]\n", pucMsg);
 
 		u4PktSeqCount = 0;
@@ -1340,7 +1349,11 @@ VOID wlanFillTimestamp(P_ADAPTER_T prAdapter, PVOID pvPacket, UINT_8 ucPhase)
 	PUINT_8 pucEth = NULL;
 	UINT_32 u4Length = 0;
 	PUINT_8 pucUdp = NULL;
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	struct timespec64 tval;
+#else
 	struct timeval tval;
+#endif
 
 	if (!prAdapter || !prAdapter->rDebugInfo.fgVoE5_7Test || !skb)
 		return;
@@ -1354,7 +1367,11 @@ VOID wlanFillTimestamp(P_ADAPTER_T prAdapter, PVOID pvPacket, UINT_8 ucPhase)
 	pucUdp = &pucEth[ETH_HLEN+28];
 	if (kalStrnCmp(pucUdp, "1345678", 7))
 		return;
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	ktime_get_ts64(&tval);
+#else
 	do_gettimeofday(&tval);
+#endif
 	switch (ucPhase) {
 	case PHASE_XMIT_RCV: /* xmit */
 		pucUdp += 20;
@@ -1367,7 +1384,11 @@ VOID wlanFillTimestamp(P_ADAPTER_T prAdapter, PVOID pvPacket, UINT_8 ucPhase)
 		break;
 	}
 	wlanSetBE32(tval.tv_sec, pucUdp);
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	wlanSetBE32(NSEC_TO_USEC(tval.tv_nsec), pucUdp+4);
+#else
 	wlanSetBE32(tval.tv_usec, pucUdp+4);
+#endif
 }
 /* End: Functions used to breakdown packet jitter, for test case VoE 5.7 */
 VOID wlanDebugCommandRecodTime(P_CMD_INFO_T prCmdInfo)
@@ -1401,11 +1422,11 @@ VOID wlanDebugCommandRecodTime(P_CMD_INFO_T prCmdInfo)
 VOID wlanDebugCommandRecodDump(VOID)
 {
 	UINT_16 i = 0;
-	UINT_8 pucMsg[CMD_BUF_MSG_LENGTH];
+	UINT_8 pucMsg[CMD_BUF_MSG_LENGTH+1];
 	UINT_32 offsetMsg = 0;
 
 	DBGLOG(RX, INFO, "now getTimeTick:%u\n", kalGetTimeTick());
-	kalMemZero(pucMsg, sizeof(UINT_8)*CMD_BUF_MSG_LENGTH);
+	kalMemZero(pucMsg, sizeof(UINT_8)*(CMD_BUF_MSG_LENGTH+1));
 
 	for (i = 0; i < TXED_CMD_TRACE_BUF_MAX_NUM; i++) {
 		offsetMsg += kalSnprintf(pucMsg + offsetMsg, CMD_BUF_MSG_LENGTH - offsetMsg
@@ -1418,7 +1439,7 @@ VOID wlanDebugCommandRecodDump(VOID)
 
 		if (i%5 == 0 && i > 0) {
 			DBGLOG(RX, INFO, "%s\n", pucMsg);
-			kalMemZero(pucMsg, sizeof(UINT_8)*CMD_BUF_MSG_LENGTH);
+			kalMemZero(pucMsg, sizeof(UINT_8)*(CMD_BUF_MSG_LENGTH+1));
 			offsetMsg = 0;
 		}
 	}

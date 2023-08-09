@@ -3015,7 +3015,8 @@ void nicSetAvailablePhyTypeSet(IN struct ADAPTER *prAdapter)
 {
 	ASSERT(prAdapter);
 
-	if (prAdapter->rWifiVar.eDesiredPhyConfig >= PHY_CONFIG_NUM) {
+	if (prAdapter->rWifiVar.eDesiredPhyConfig
+		>= PHY_CONFIG_NUM) {
 		ASSERT(0);
 		return;
 	}
@@ -4680,6 +4681,11 @@ void nicUpdateLinkQuality(IN struct ADAPTER *prAdapter,
 	ASSERT(ucBssIndex <= prAdapter->ucHwBssIdNum);
 	ASSERT(prEventLinkQuality);
 
+	if (ucBssIndex >= BSSID_NUM) {
+		DBGLOG(NIC, ERROR, "ucBssIndex out of range!\n");
+		return;
+	}
+
 	prLq = &prAdapter->rLinkQuality.rLq[ucBssIndex];
 	switch (GET_BSS_INFO_BY_INDEX(prAdapter,
 				      ucBssIndex)->eNetworkType) {
@@ -4868,6 +4874,11 @@ void nicUpdateRSSI(IN struct ADAPTER *prAdapter,
 	ASSERT(prAdapter);
 	ASSERT(ucBssIndex <= prAdapter->ucHwBssIdNum);
 
+	if (ucBssIndex >= BSSID_NUM) {
+		DBGLOG(NIC, ERROR, "ucBssIndex out of range!\n");
+		return;
+	}
+
 	switch (GET_BSS_INFO_BY_INDEX(prAdapter,
 				      ucBssIndex)->eNetworkType) {
 	case NETWORK_TYPE_AIS:
@@ -4926,6 +4937,11 @@ void nicUpdateLinkSpeed(IN struct ADAPTER *prAdapter,
 {
 	ASSERT(prAdapter);
 	ASSERT(ucBssIndex <= prAdapter->ucHwBssIdNum);
+
+	if (ucBssIndex >= BSSID_NUM) {
+		DBGLOG(NIC, ERROR, "ucBssIndex out of range!\n");
+		return;
+	}
 
 	switch (GET_BSS_INFO_BY_INDEX(prAdapter,
 				      ucBssIndex)->eNetworkType) {

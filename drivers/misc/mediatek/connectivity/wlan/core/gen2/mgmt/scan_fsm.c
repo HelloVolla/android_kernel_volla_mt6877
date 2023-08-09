@@ -1287,7 +1287,7 @@ BOOLEAN scnQuerySparseChannel(IN P_ADAPTER_T prAdapter, P_ENUM_BAND_T prSparseBa
 	}
 }
 
-VOID scnFsmRunEventNloConReqTimeOut(IN P_ADAPTER_T prAdapter)
+void scnFsmRunEventNloConReqTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_SCAN_INFO_T prScanInfo;
 
@@ -1332,7 +1332,7 @@ VOID scnEventNloDone(IN P_ADAPTER_T prAdapter, IN P_EVENT_NLO_DONE_T prNloDone)
 		cnmTimerInitTimer(prAdapter,
 				  &prAdapter->rScanNloTimeoutTimer,
 				  (PFN_MGMT_TIMEOUT_FUNC) scnFsmRunEventNloConReqTimeOut,
-				  (ULONG) NULL);
+				  (uintptr_t) NULL);
 
 		cnmTimerStartTimer(prAdapter,
 				   &prAdapter->rScanNloTimeoutTimer,

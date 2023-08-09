@@ -385,6 +385,11 @@ else
     ccflags-y += -DCFG_MTK_ANDROID_EMI=0
 endif
 
+ifneq ($(CONFIG_MTK_EMI_LEGACY_V0),)
+ccflags-y += -DCONFIG_WLAN_MTK_EMI=1
+endif
+
+
 ifneq ($(WIFI_IP_SET),)
     ccflags-y += -DCFG_WIFI_IP_SET=$(WIFI_IP_SET)
 else
@@ -535,6 +540,7 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/emi/submodule
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/pmic/include/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/power_throttling/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/connectivity/common
+ccflags-y += -I$(srctree)/drivers/gpu/drm/mediatek/mediatek_v2/
 ccflags-y += -I$(srctree)/drivers/devfreq/
 ccflags-y += -I$(srctree)/net
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/connectivity/connfem/include/

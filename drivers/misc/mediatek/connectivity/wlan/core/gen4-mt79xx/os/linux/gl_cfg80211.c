@@ -40,6 +40,10 @@
  *******************************************************************************
  */
 
+#if CFG_SUPPORT_WAPI
+#define KEY_BUF_SIZE	1024
+#endif
+
 /*******************************************************************************
  *                             D A T A   T Y P E S
  *******************************************************************************
@@ -1186,8 +1190,8 @@ int mtk_cfg80211_auth(struct wiphy *wiphy,
 #if CFG_SUPPORT_REPLAY_DETECTION
 	struct GL_DETECT_REPLAY_INFO *prDetRplyInfo = NULL;
 #endif
-	struct PARAM_WEP *prWepKey;
-	uint8_t wepBuf[48];
+	struct PARAM_WEP *prWepKey = NULL;
+	int ret = 0;
 	u_int8_t fgAddWepPending = FALSE;
 	struct PARAM_OP_MODE rOpMode;
 
@@ -1352,13 +1356,17 @@ int mtk_cfg80211_auth(struct wiphy *wiphy,
 		/* NL80211 only set the Tx wep key while connect,
 		* the max 4 wep key set prior via add key cmd
 		*/
+		prWepKey = (struct PARAM_WEP *)kalMemAlloc(
+			sizeof(struct PARAM_WEP), VIR_MEM_TYPE);
+		if (prWepKey == NULL) {
+			DBGLOG(REQ, ERROR, "alloc buffer fail\n");
+			return -ENOMEM;
+		}
 		if (!(prGlueInfo->rWpaInfo[ucBssIndex].u4AuthAlg &
 						AUTH_TYPE_SHARED_KEY))
 			DBGLOG(REQ, WARN,
 				"Auth Algorithm : %u with wep key\n",
 				prGlueInfo->rWpaInfo[ucBssIndex].u4AuthAlg);
-
-		prWepKey = (struct PARAM_WEP *) wepBuf;
 
 		kalMemZero(prWepKey, sizeof(struct PARAM_WEP));
 		prWepKey->u4Length = OFFSET_OF(
@@ -1370,7 +1378,8 @@ int mtk_cfg80211_auth(struct wiphy *wiphy,
 			DBGLOG(REQ, WARN,
 				"Too long key length (%u)\n",
 				prWepKey->u4KeyLength);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto freeBuf;
 		}
 		kalMemCopy(prWepKey->aucKeyMaterial,
 			req->key, prWepKey->u4KeyLength);
@@ -1404,7 +1413,8 @@ int mtk_cfg80211_auth(struct wiphy *wiphy,
 			FALSE, FALSE, FALSE, &u4InfoBufLen);
 		if (rStatus != WLAN_STATUS_SUCCESS) {
 			DBGLOG(REQ, WARN, "update FTIE fail:%x\n", rStatus);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto freeBuf;
 		}
 
 	}
@@ -1423,7 +1433,8 @@ int mtk_cfg80211_auth(struct wiphy *wiphy,
 
 		if (rStatus != WLAN_STATUS_SUCCESS) {
 			DBGLOG(REQ, WARN, "set SSID:%x\n", rStatus);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto freeBuf;
 		}
 	} else {
 		/* skip join initial flow when it has been completed with
@@ -1434,7 +1445,8 @@ int mtk_cfg80211_auth(struct wiphy *wiphy,
 				FALSE, FALSE, TRUE, &u4BufLen, ucBssIndex);
 		if (rStatus != WLAN_STATUS_SUCCESS) {
 			DBGLOG(REQ, WARN, "send auth failed:%x\n", rStatus);
-			return -EINVAL;
+			ret = -EINVAL;
+			goto freeBuf;
 		}
 
 	}
@@ -1448,11 +1460,15 @@ int mtk_cfg80211_auth(struct wiphy *wiphy,
 		if (rStatus != WLAN_STATUS_SUCCESS) {
 			DBGLOG(INIT, INFO,
 				"wlanoidSetAddWep fail 0x%x\n", rStatus);
-			return -EFAULT;
+			ret = -EFAULT;
+			goto freeBuf;
 		}
 	}
 
-	return 0;
+freeBuf:
+	if (prWepKey)
+		kalMemFree(prWepKey, VIR_MEM_TYPE, sizeof(struct PARAM_WEP));
+	return ret;
 }
 
 /* Add .disassoc method to avoid kernel WARN_ON when insmod wlan.ko */
@@ -1511,7 +1527,6 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 	struct HS20_INFO *prHS20Info;
 #endif
 	uint8_t ucBssIndex = 0;
-	uint8_t wepBuf[48];
 
 	prGlueInfo = (struct GLUE_INFO *) wiphy_priv(wiphy);
 	ASSERT(prGlueInfo);
@@ -2030,7 +2045,14 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 		/* NL80211 only set the Tx wep key while connect, the max 4 wep
 		 * key set prior via add key cmd
 		 */
-		struct PARAM_WEP *prWepKey = (struct PARAM_WEP *) wepBuf;
+		struct PARAM_WEP *prWepKey;
+
+		prWepKey = (struct PARAM_WEP *)kalMemAlloc(
+			sizeof(struct PARAM_WEP), VIR_MEM_TYPE);
+		if (prWepKey == NULL) {
+			DBGLOG(REQ, ERROR, "alloc buffer fail\n");
+			return -ENOMEM;
+		}
 
 		kalMemZero(prWepKey, sizeof(struct PARAM_WEP));
 		prWepKey->u4Length = OFFSET_OF(struct PARAM_WEP,
@@ -2041,6 +2063,9 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 		if (prWepKey->u4KeyLength > MAX_KEY_LEN) {
 			DBGLOG(REQ, WARN, "Too long key length (%u)\n",
 			       prWepKey->u4KeyLength);
+			if (prWepKey)
+				kalMemFree(prWepKey, VIR_MEM_TYPE,
+					sizeof(struct PARAM_WEP));
 			return -EINVAL;
 		}
 		kalMemCopy(prWepKey->aucKeyMaterial, sme->key,
@@ -2054,8 +2079,14 @@ int mtk_cfg80211_connect(struct wiphy *wiphy,
 		if (rStatus != WLAN_STATUS_SUCCESS) {
 			DBGLOG(INIT, INFO, "wlanoidSetAddWep fail 0x%x\n",
 				rStatus);
+			if (prWepKey)
+				kalMemFree(prWepKey, VIR_MEM_TYPE,
+					sizeof(struct PARAM_WEP));
 			return -EFAULT;
 		}
+		if (prWepKey)
+			kalMemFree(prWepKey, VIR_MEM_TYPE,
+				sizeof(struct PARAM_WEP));
 	}
 
 	/* Avoid dangling pointer, set defatul all zero */
@@ -3268,10 +3299,8 @@ int mtk_cfg80211_testmode_set_key_ext(IN struct wiphy
 	const uint8_t aucBCAddr[] = BC_MAC_ADDR;
 	uint8_t ucBssIndex = 0;
 
-	struct PARAM_KEY *prWpiKey = (struct PARAM_KEY *)
-				     keyStructBuf;
-
-	memset(keyStructBuf, 0, sizeof(keyStructBuf));
+	struct PARAM_KEY *prWpiKey;
+	uint8_t *keyStructBuf;
 
 	ASSERT(wiphy);
 
@@ -3285,6 +3314,14 @@ int mtk_cfg80211_testmode_set_key_ext(IN struct wiphy
 		DBGLOG(INIT, TRACE, "%s data or len is invalid\n", __func__);
 		return -EINVAL;
 	}
+
+	keyStructBuf = kalMemAlloc(KEY_BUF_SIZE, VIR_MEM_TYPE);
+	if (keyStructBuf == NULL) {
+		DBGLOG(REQ, ERROR, "alloc key buffer fail\n");
+		return -ENOMEM;
+	}
+	memset(keyStructBuf, 0, KEY_BUF_SIZE);
+	prWpiKey = (struct PARAM_KEY *) keyStructBuf;
 
 	ucBssIndex = wlanGetBssIdx(wdev->netdev);
 	if (!IS_BSS_INDEX_VALID(ucBssIndex))
@@ -3300,11 +3337,13 @@ int mtk_cfg80211_testmode_set_key_ext(IN struct wiphy
 		prWpiKey->u4KeyIndex = prParams->key_index;
 		prWpiKey->u4KeyIndex--;
 		if (prWpiKey->u4KeyIndex > 1) {
-			return -EINVAL;
+			fgIsValid = -EINVAL;
+			goto freeBuf;
 		}
 
 		if (prIWEncExt->key_len != 32) {
-			return -EINVAL;
+			fgIsValid = -EINVAL;
+			goto freeBuf;
 		}
 		prWpiKey->u4KeyLength = prIWEncExt->key_len;
 
@@ -3342,6 +3381,10 @@ int mtk_cfg80211_testmode_set_key_ext(IN struct wiphy
 		}
 
 	}
+
+freeBuf:
+	if (keyStructBuf)
+		kalMemFree(keyStructBuf, VIR_MEM_TYPE, KEY_BUF_SIZE);
 	return fgIsValid;
 }
 #endif
@@ -5666,6 +5709,12 @@ mtk_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 	rCmdMgt.ucDialogToken = dialog_token;
 	rCmdMgt.ucActionCode = action_code;
 	kalMemCopy(&(rCmdMgt.aucPeer), peer, 6);
+
+	if  (len > TDLS_SEC_BUF_LENGTH) {
+		DBGLOG(REQ, WARN, "%s:len > TDLS_SEC_BUF_LENGTH\n", __func__);
+		return -EINVAL;
+	}
+
 	kalMemCopy(&(rCmdMgt.aucSecBuf), buf, len);
 	rCmdMgt.ucBssIdx = ucBssIndex;
 	kalIoctl(prGlueInfo, TdlsexLinkMgt, &rCmdMgt,
@@ -5708,11 +5757,14 @@ mtk_cfg80211_tdls_mgmt(struct wiphy *wiphy,
 	rCmdMgt.ucDialogToken = dialog_token;
 	rCmdMgt.ucActionCode = action_code;
 	kalMemCopy(&(rCmdMgt.aucPeer), peer, 6);
-	if	(len > TDLS_SEC_BUF_LENGTH)
+
+	if (len > TDLS_SEC_BUF_LENGTH) {
 		DBGLOG(REQ, WARN,
 		       "In mtk_cfg80211_tdls_mgmt , len > TDLS_SEC_BUF_LENGTH, please check\n");
-	else
-		kalMemCopy(&(rCmdMgt.aucSecBuf), buf, len);
+		return -EINVAL;
+	}
+
+	kalMemCopy(&(rCmdMgt.aucSecBuf), buf, len);
 	rCmdMgt.ucBssIdx = ucBssIndex;
 	kalIoctl(prGlueInfo, TdlsexLinkMgt, &rCmdMgt,
 		 sizeof(struct TDLS_CMD_LINK_MGT), FALSE, TRUE, FALSE,

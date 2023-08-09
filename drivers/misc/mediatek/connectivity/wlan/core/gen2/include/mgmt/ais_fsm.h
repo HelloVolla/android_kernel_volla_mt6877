@@ -395,19 +395,20 @@ VOID aisUpdateBssInfoForRoamingAP(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T pr
 /*----------------------------------------------------------------------------*/
 /* Timeout Handling                                                           */
 /*----------------------------------------------------------------------------*/
-VOID aisFsmRunEventBGSleepTimeOut(IN P_ADAPTER_T prAdapter, ULONG ulParam);
+void aisFsmRunEventBGSleepTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
-VOID aisFsmRunEventIbssAloneTimeOut(IN P_ADAPTER_T prAdapter, ULONG ulParam);
 
-VOID aisFsmRunEventJoinTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam);
+void aisFsmRunEventIbssAloneTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
-VOID aisFsmRunEventChannelTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam);
+void aisFsmRunEventJoinTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
-VOID aisFsmRunEventScanDoneTimeOut(IN P_ADAPTER_T prAdapter, ULONG ulParam);
+void aisFsmRunEventChannelTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
-VOID aisFsmRunEventDeauthTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParam);
+void aisFsmRunEventScanDoneTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam);
+
+void aisFsmRunEventDeauthTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 #if CFG_SUPPORT_DETECT_SECURITY_MODE_CHANGE
-VOID aisFsmRunEventSecModeChangeTimeout(IN P_ADAPTER_T prAdapter, ULONG ulParamPtr);
+void aisFsmRunEventSecModeChangeTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 #endif
 
 /*----------------------------------------------------------------------------*/
@@ -464,6 +465,7 @@ UINT_16 aisCalculateBlackListScore(P_ADAPTER_T prAdapter, P_BSS_DESC_T prBssDesc
 VOID aisCollectNeighborAPChannel(P_ADAPTER_T prAdapter,
 	struct IE_NEIGHBOR_REPORT_T *prNeiRep, UINT_16 u2Length);
 VOID aisRunEventChnlUtilRsp(P_ADAPTER_T prAdapter, P_MSG_HDR_T prMsgHdr);
+void aisFsmSetOkcTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
 /*******************************************************************************
 *                              F U N C T I O N S

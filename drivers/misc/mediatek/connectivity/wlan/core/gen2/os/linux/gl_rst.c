@@ -48,9 +48,10 @@ static void mtk_wifi_trigger_reset(struct work_struct *work);
 *                   F U N C T I O N   D E C L A R A T I O N S
 ********************************************************************************
 */
-static void *glResetCallback(ENUM_WMTDRV_TYPE_T eSrcType,
-			     ENUM_WMTDRV_TYPE_T eDstType,
-			     ENUM_WMTMSG_TYPE_T eMsgType, void *prMsgBody, unsigned int u4MsgLength);
+static void glResetCallback(enum _ENUM_WMTDRV_TYPE_T eSrcType,
+			     enum _ENUM_WMTDRV_TYPE_T eDstType,
+			     enum _ENUM_WMTMSG_TYPE_T eMsgType, void *prMsgBody,
+			     unsigned int u4MsgLength);
 
 /*******************************************************************************
 *                              F U N C T I O N S
@@ -81,7 +82,7 @@ VOID glResetInit(VOID)
 {
 #if (MTK_WCN_SINGLE_MODULE == 0)
 	/* 1. Register reset callback */
-	mtk_wcn_wmt_msgcb_reg(WMTDRV_TYPE_WIFI, (PF_WMT_CB) glResetCallback);
+	mtk_wcn_wmt_msgcb_reg(WMTDRV_TYPE_WIFI, glResetCallback);
 #endif /* MTK_WCN_SINGLE_MODULE */
 
 	/* 2. Initialize reset work */
@@ -121,14 +122,16 @@ VOID glResetUninit(VOID)
  * @retval
  */
 /*----------------------------------------------------------------------------*/
-static void *glResetCallback(ENUM_WMTDRV_TYPE_T eSrcType,
-			     ENUM_WMTDRV_TYPE_T eDstType,
-			     ENUM_WMTMSG_TYPE_T eMsgType, void *prMsgBody, unsigned int u4MsgLength)
+static void glResetCallback(enum _ENUM_WMTDRV_TYPE_T eSrcType,
+			     enum _ENUM_WMTDRV_TYPE_T eDstType,
+			     enum _ENUM_WMTMSG_TYPE_T eMsgType, void *prMsgBody,
+			     unsigned int u4MsgLength)
 {
 	switch (eMsgType) {
 	case WMTMSG_TYPE_RESET:
-		if (u4MsgLength == sizeof(ENUM_WMTRSTMSG_TYPE_T)) {
-			P_ENUM_WMTRSTMSG_TYPE_T prRstMsg = (P_ENUM_WMTRSTMSG_TYPE_T) prMsgBody;
+		if (u4MsgLength == sizeof(enum _ENUM_WMTRSTMSG_TYPE_T)) {
+			enum _ENUM_WMTRSTMSG_TYPE_T *prRstMsg =
+				(enum _ENUM_WMTRSTMSG_TYPE_T *) prMsgBody;
 
 			switch (*prRstMsg) {
 			case WMTRSTMSG_RESET_START:
@@ -161,8 +164,6 @@ static void *glResetCallback(ENUM_WMTDRV_TYPE_T eSrcType,
 	default:
 		break;
 	}
-
-	return NULL;
 }
 
 /*----------------------------------------------------------------------------*/

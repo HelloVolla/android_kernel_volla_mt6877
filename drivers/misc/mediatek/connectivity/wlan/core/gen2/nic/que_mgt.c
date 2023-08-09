@@ -158,7 +158,7 @@ VOID qmInit(IN P_ADAPTER_T prAdapter)
 		cnmTimerInitTimer(prAdapter,
 				&(prQM->arRxBaTable[u4QueArrayIdx].rReorderBubbleTimer),
 				(PFN_MGMT_TIMEOUT_FUNC) qmHandleReorderBubbleTimeout,
-				(ULONG) (&prQM->arRxBaTable[u4QueArrayIdx]));
+				(uintptr_t) (&prQM->arRxBaTable[u4QueArrayIdx]));
 
 	}
 	prQM->ucRxBaCount = 0;
@@ -5123,7 +5123,7 @@ VOID qmResetArpDetect(VOID)
 #endif
 
 
-VOID qmHandleReorderBubbleTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParamPtr)
+void qmHandleReorderBubbleTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParamPtr)
 {
 	P_RX_BA_ENTRY_T prReorderQueParm = (P_RX_BA_ENTRY_T) ulParamPtr;
 	P_SW_RFB_T prSwRfb = (P_SW_RFB_T) NULL;

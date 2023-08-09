@@ -451,7 +451,7 @@ WLAN_STATUS wlanSendCommand(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo)
 
 VOID wlanReleaseCommand(IN P_ADAPTER_T prAdapter, IN P_CMD_INFO_T prCmdInfo);
 
-VOID wlanReleasePendingOid(IN P_ADAPTER_T prAdapter, IN ULONG ulData);
+void wlanReleasePendingOid(P_ADAPTER_T prAdapter, uintptr_t ulData);
 
 VOID wlanReleasePendingCMDbyNetwork(IN P_ADAPTER_T prAdapter, IN ENUM_NETWORK_TYPE_INDEX_T eNetworkType);
 
@@ -614,9 +614,9 @@ UINT_32 wlanGetTxPendingFrameCount(IN P_ADAPTER_T prAdapter);
 /*----------------------------------------------------------------------------*/
 /* ACPI state inquiry (for Glue Layer)                                        */
 /*----------------------------------------------------------------------------*/
-ENUM_ACPI_STATE_T wlanGetAcpiState(IN P_ADAPTER_T prAdapter);
+enum ENUM_ACPI_STATE_T wlanGetAcpiState(IN P_ADAPTER_T prAdapter);
 
-VOID wlanSetAcpiState(IN P_ADAPTER_T prAdapter, IN ENUM_ACPI_STATE_T ePowerState);
+VOID wlanSetAcpiState(IN P_ADAPTER_T prAdapter, IN enum ENUM_ACPI_STATE_T ePowerState);
 
 VOID wlanDefTxPowerCfg(IN P_ADAPTER_T prAdapter);
 

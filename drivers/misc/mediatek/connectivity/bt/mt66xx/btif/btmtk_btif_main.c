@@ -1950,12 +1950,10 @@ int32_t btmtk_tx_thread(void * arg)
 						break;
 					else
 						usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
-					if (ii == 4)
-						BTMTK_INFO("%s mtk_btif_is_tx_complete run 5 times", state_tag);
 				}
 				// re-run while loop
-				if (ii == 4) {
-					BTMTK_INFO("%s mtk_btif_is_tx_complete run 5 times", state_tag);
+				if (ii == 5) {
+					BTMTK_INFO("%s mtk_btif_is_tx_complete run 5 times, Exit while", state_tag);
 					break;
 				}
 

@@ -51,7 +51,7 @@
 *                   F U N C T I O N   D E C L A R A T I O N S
 ********************************************************************************
 */
-static VOID rlmObssScanTimeout(P_ADAPTER_T prAdapter, ULONG ulData);
+
 
 /*******************************************************************************
 *                              F U N C T I O N S
@@ -76,7 +76,7 @@ VOID rlmObssInit(P_ADAPTER_T prAdapter)
 		prBssInfo = &prAdapter->rWifiVar.arBssInfo[ucNetIdx];
 		ASSERT(prBssInfo);
 
-		cnmTimerInitTimer(prAdapter, &prBssInfo->rObssScanTimer, rlmObssScanTimeout, (ULONG) prBssInfo);
+		cnmTimerInitTimer(prAdapter, &prBssInfo->rObssScanTimer, rlmObssScanTimeout, (uintptr_t) prBssInfo);
 	}			/* end of RLM_NET_FOR_EACH */
 }
 
@@ -216,7 +216,7 @@ VOID rlmObssScanDone(P_ADAPTER_T prAdapter, P_MSG_HDR_T prMsgHdr)
 * \return none
 */
 /*----------------------------------------------------------------------------*/
-static VOID rlmObssScanTimeout(P_ADAPTER_T prAdapter, ULONG ulData)
+void rlmObssScanTimeout(P_ADAPTER_T prAdapter, uintptr_t ulData)
 {
 	P_BSS_INFO_T prBssInfo;
 

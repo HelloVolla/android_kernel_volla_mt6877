@@ -885,7 +885,7 @@ VOID qmFreeAllByNetType(IN P_ADAPTER_T prAdapter, IN ENUM_NETWORK_TYPE_INDEX_T e
 
 UINT_32 qmGetRxReorderQueuedBufferCount(IN P_ADAPTER_T prAdapter);
 
-VOID qmHandleReorderBubbleTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParamPtr);
+void qmHandleReorderBubbleTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParamPtr);
 VOID qmHandleEventCheckReorderBubble(IN P_ADAPTER_T prAdapter, IN P_WIFI_EVENT_T prEvent);
 VOID qmHandleMissTimeout(IN P_RX_BA_ENTRY_T prReorderQueParm);
 

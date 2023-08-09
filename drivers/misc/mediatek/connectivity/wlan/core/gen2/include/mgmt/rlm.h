@@ -339,7 +339,7 @@ BOOLEAN rlmBcnRmRunning(P_ADAPTER_T prAdapter);
 
 BOOLEAN rlmFillScanMsg(P_ADAPTER_T prAdapter, P_MSG_SCN_SCAN_REQ prMsg);
 
-VOID rlmDoBeaconMeasurement(P_ADAPTER_T prAdapter, ULONG ulParam);
+void rlmDoBeaconMeasurement(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
 VOID rlmTxNeighborReportRequest(P_ADAPTER_T prAdapter, P_STA_RECORD_T prStaRec, struct SUB_ELEMENT_LIST *prSubIEs);
 

@@ -360,7 +360,7 @@ void bssDetermineStaRecPhyTypeSet(IN struct ADAPTER *prAdapter,
 		prStaRec->ucPhyTypeSet &= ~PHY_TYPE_BIT_VHT;
 	else if (IS_FEATURE_FORCE_ENABLED(ucVhtOption))
 		prStaRec->ucPhyTypeSet |= PHY_TYPE_BIT_VHT;
-	else if (prBssInfo->eBand == BAND_2G4 &&
+	else if (prBssDesc->eBand == BAND_2G4 &&
 		IS_FEATURE_DISABLED(prWifiVar->ucVhtIeIn2g)) {
 		prStaRec->ucPhyTypeSet &= ~PHY_TYPE_BIT_VHT;
 	}
@@ -1173,6 +1173,13 @@ uint32_t bssUpdateBeaconContentEx(IN struct ADAPTER *prAdapter,
 	DBGLOG(INIT, LOUD, "\n");
 
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
+
+	if (!prBssInfo || !prBssInfo->fgIsInUse) {
+		DBGLOG(P2P, WARN,
+			"bss%d is not in used\n",
+			ucBssIndex);
+		return 0;
+	}
 
 	/* 4 <1> Allocate a PKT_INFO_T for Beacon Frame */
 	/* Allocate a MSDU_INFO_T */

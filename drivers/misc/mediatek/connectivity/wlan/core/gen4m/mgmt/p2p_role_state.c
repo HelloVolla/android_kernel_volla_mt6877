@@ -236,8 +236,9 @@ p2pRoleStateInit_AP_CHNL_DETECTION(IN struct ADAPTER *prAdapter,
 	do {
 		prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
 		ASSERT_BREAK((prAdapter != NULL) && (prScanReqInfo != NULL)
-			     && (prConnReqInfo != NULL) && (prBssInfo != NULL));
-
+			     && (prConnReqInfo != NULL));
+		if (!prBssInfo)
+			break;
 		prP2pSpecificBssInfo =
 			prAdapter->rWifiVar
 				.prP2pSpecificBssInfo[prBssInfo->u4PrivateData];
@@ -310,6 +311,8 @@ p2pRoleStateAbort_AP_CHNL_DETECTION(IN struct ADAPTER *prAdapter,
 		if (eNextState == P2P_ROLE_STATE_REQING_CHANNEL) {
 			prBssInfo =
 				GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIndex);
+			if (!prBssInfo)
+				break;
 			prP2pSpecificBssInfo =
 				prAdapter->rWifiVar
 				.prP2pSpecificBssInfo[prBssInfo->u4PrivateData];
@@ -371,7 +374,8 @@ p2pRoleStateInit_GC_JOIN(IN struct ADAPTER *prAdapter,
 		prP2pBssInfo =
 			GET_BSS_INFO_BY_INDEX(prAdapter,
 				prP2pRoleFsmInfo->ucBssIndex);
-
+		if (!prP2pBssInfo)
+			break;
 		/* Setup a join timer. */
 		DBGLOG(P2P, TRACE, "Start a join init timer\n");
 		cnmTimerStartTimer(prAdapter,
@@ -483,7 +487,8 @@ p2pRoleStateInit_SWITCH_CHANNEL(IN struct ADAPTER *prAdapter,
 	struct BSS_INFO *prBssInfo = (struct BSS_INFO *) NULL;
 
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter, ucBssIdx);
-
+	if (!prBssInfo)
+		return;
 	do {
 		ASSERT_BREAK((prAdapter != NULL) && (prChnlReqInfo != NULL));
 

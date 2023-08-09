@@ -38,9 +38,21 @@
 #include "nic/bow.h"
 #endif
 
+#if KERNEL_VERSION(5, 10, 0) <= CFG80211_VERSION_CODE
+#include "linux/bug.h"
+#include "linux/kmemleak.h"
+#include "linux/kallsyms.h"
+#include "linux/sched.h"
+#if KERNEL_VERSION(4, 11, 0) <= CFG80211_VERSION_CODE
+#include "uapi/linux/sched/types.h"
+#endif
+#else
 #if KERNEL_VERSION(4, 11, 0) <= CFG80211_VERSION_CODE
 #include "linux/sched/types.h"
 #endif
+#endif
+
+
 
 #if DBG
 extern int allocatedMemSize;
@@ -58,7 +70,11 @@ extern int allocatedMemSize;
 extern BOOLEAN fgIsUnderSuspend;
 extern UINT_32 TaskIsrCnt;
 extern BOOLEAN fgIsResetting;
+#if KERNEL_VERSION(5, 10, 0) <= CFG80211_VERSION_CODE
+extern netdev_tx_t wlanHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev);
+#else
 extern int wlanHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev);
+#endif
 extern UINT_32 u4MemAllocCnt, u4MemFreeCnt;
 
 
@@ -178,6 +194,12 @@ enum ENUM_BUILD_VARIANT_E {
 	MTK_BUILD_VAR_USER = 3	/*user load*/
 };
 
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+#define get_ds() KERNEL_DS
+#define kal_access_ok(type, addr, size) access_ok(addr, size)
+#else
+#define kal_access_ok(type, addr, size) access_ok(type, addr, size)
+#endif
 #if CONFIG_ANDROID		/* Defined in Android kernel source */
 #if (KERNEL_VERSION(4, 9, 0) <= LINUX_VERSION_CODE)
 typedef struct wakeup_source KAL_WAKE_LOCK_T, *P_KAL_WAKE_LOCK_T;
@@ -869,7 +891,7 @@ UINT_32 kalGetMfpSetting(IN P_GLUE_INFO_T prGlueInfo);
 UINT_8 kalGetRsnIeMfpCap(IN P_GLUE_INFO_T prGlueInfo);
 #endif
 
-UINT_32 kalWriteToFile(const PUINT_8 pucPath, BOOLEAN fgDoAppend, PUINT_8 pucData, UINT_32 u4Size);
+
 
 /*----------------------------------------------------------------------------*/
 /* NL80211                                                                    */
@@ -911,7 +933,10 @@ int kalMetRemoveProcfs(void);
 
 UINT_64 kalGetBootTime(void);
 
-INT_32 kalReadToFile(const PUINT_8 pucPath, PUINT_8 pucData, UINT_32 u4Size, PUINT_32 pu4ReadSize);
+
+int32_t kalRequestFirmware(const uint8_t *pucPath, uint8_t **ppucData, uint32_t *pu4ReadSize,
+		uint8_t ucIsZeroPadding, struct device *dev);
+
 #if CFG_SUPPORT_WAKEUP_REASON_DEBUG
 BOOLEAN kalIsWakeupByWlan(P_ADAPTER_T  prAdapter);
 #endif
@@ -929,7 +954,7 @@ INT_32 kalPerMonEnable(IN P_GLUE_INFO_T prGlueInfo);
 INT_32 kalPerMonStart(IN P_GLUE_INFO_T prGlueInfo);
 INT_32 kalPerMonStop(IN P_GLUE_INFO_T prGlueInfo);
 INT_32 kalPerMonDestroy(IN P_GLUE_INFO_T prGlueInfo);
-VOID kalPerMonHandler(IN P_ADAPTER_T prAdapter, ULONG ulParam);
+void kalPerMonHandler(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 INT_32 kalBoostCpu(IN P_GLUE_INFO_T prGlueInfo, UINT_32 core_num);
 INT32 kalSetCpuNumFreq(UINT_32 core_num, UINT_32 freq);
 INT_32 kalFbNotifierReg(IN P_GLUE_INFO_T prGlueInfo);

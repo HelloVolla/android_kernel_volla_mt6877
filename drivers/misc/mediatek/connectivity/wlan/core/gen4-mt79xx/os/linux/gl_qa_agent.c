@@ -5558,7 +5558,10 @@ static int32_t HQA_GetDumpRecal(struct net_device *prNetDev,
 
 	DBGLOG(RFTEST, INFO, "prReCalInfo->u4Count = [%d]\n",
 						 prReCalInfo->u4Count);
-	if (prReCalInfo->u4Count > 0) {
+	/* according nicExtEventReCalData prCalArray is 2048 groups */
+	if (prReCalInfo->u4Count > 0 &&
+	    prReCalInfo->u4Count <= (CAL_ARRAY_SIZE - 6) /
+				    (3 * sizeof(u4Value))) {
 		for (i = 0; i < prReCalInfo->u4Count; i++) {
 			u4Value = ntohl(prCalArray[i].u4CalId);
 			kalMemCopy(HqaCmdFrame->Data + 6 + u4RespLen,
@@ -5596,7 +5599,7 @@ static int32_t HQA_GetDumpRecal(struct net_device *prNetDev,
 	if (prReCalInfo->prCalArray != NULL) {
 		kalMemFree(prReCalInfo->prCalArray,
 			       VIR_MEM_TYPE,
-			       2048 * sizeof(struct RECAL_DATA_T));
+			       CAL_ARRAY_SIZE * sizeof(struct RECAL_DATA_T));
 		prReCalInfo->prCalArray = 0;
 		prReCalInfo->u4Count = 0;
 	}

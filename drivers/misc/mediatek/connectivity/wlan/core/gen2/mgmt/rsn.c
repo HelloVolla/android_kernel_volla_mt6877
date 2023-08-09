@@ -734,7 +734,7 @@ BOOLEAN rsnPerformPolicySelection(IN P_ADAPTER_T prAdapter, IN P_BSS_DESC_T prBs
 	UINT_32 u4PairwiseCipher = 0;
 	UINT_32 u4GroupCipher = 0;
 	UINT_32 u4AkmSuite = 0;
-	P_RSN_INFO_T prBssRsnInfo;
+	P_RSN_INFO_T prBssRsnInfo = NULL;
 	ENUM_PARAM_AUTH_MODE_T eAuthMode;
 	ENUM_NETWORK_TYPE_INDEX_T eNetwotkType;
 	BOOLEAN fgIsWpsActive = (BOOLEAN) FALSE;
@@ -2172,7 +2172,7 @@ BOOLEAN rsnCheckPmkidCandicate(IN P_ADAPTER_T prAdapter)
 * \return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID rsnIndicatePmkidCand(IN P_ADAPTER_T prAdapter, IN ULONG ulParm)
+void rsnIndicatePmkidCand(P_ADAPTER_T prAdapter, uintptr_t ulParm)
 {
 	DBGLOG(RSN, EVENT, "Security - Time to indicate the PMKID cand.\n");
 
@@ -2603,7 +2603,7 @@ UINT_8 rsnCheckSaQueryTimeout(IN P_ADAPTER_T prAdapter)
 *      Called by: AIS module, Handle Rx mgmt request
 */
 /*----------------------------------------------------------------------------*/
-void rsnStartSaQueryTimer(IN P_ADAPTER_T prAdapter)
+void rsnStartSaQueryTimer(P_ADAPTER_T prAdapter, uintptr_t ulParm)
 {
 	P_BSS_INFO_T prBssInfo;
 	P_AIS_SPECIFIC_BSS_INFO_T prBssSpecInfo;
@@ -2729,7 +2729,7 @@ void rsnStartSaQueryTimer(IN P_ADAPTER_T prAdapter)
 /*----------------------------------------------------------------------------*/
 void rsnStartSaQuery(IN P_ADAPTER_T prAdapter)
 {
-	rsnStartSaQueryTimer(prAdapter);
+	rsnStartSaQueryTimer(prAdapter, (uintptr_t) NULL);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -3415,13 +3415,13 @@ max timeout
 *      Called by: AAA module, Handle TX SAQ request
 */
 /*----------------------------------------------------------------------------*/
-void rsnApStartSaQueryTimer(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T
-	prStaRec, IN ULONG ulParamPtr)
+void rsnApStartSaQueryTimer(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_BSS_INFO_T prBssInfo;
 	P_MSDU_INFO_T prMsduInfo;
 	P_ACTION_SA_QUERY_FRAME prTxFrame;
 	UINT_16 u2PayloadLen;
+	P_STA_RECORD_T prStaRec = (P_STA_RECORD_T)ulParam;
 
 	ASSERT(prStaRec);
 
@@ -3525,11 +3525,10 @@ void rsnApStartSaQuery(IN P_ADAPTER_T prAdapter, IN P_STA_RECORD_T prStaRec)
 	if (prStaRec) {
 		cnmTimerStopTimer(prAdapter, &prStaRec->rPmfCfg.rSAQueryTimer);
 		cnmTimerInitTimer(prAdapter, &prStaRec->rPmfCfg.rSAQueryTimer,
-			(PFN_MGMT_TIMEOUT_FUNC)rsnApStartSaQueryTimer, (ULONG) prStaRec);
+			(PFN_MGMT_TIMEOUT_FUNC)rsnApStartSaQueryTimer, (uintptr_t) prStaRec);
 
 		if (prStaRec->rPmfCfg.u4SAQueryCount == 0)
-			rsnApStartSaQueryTimer(prAdapter, prStaRec,
-						(ULONG) NULL);
+			rsnApStartSaQueryTimer(prAdapter, (uintptr_t)prStaRec);
 	}
 }
 

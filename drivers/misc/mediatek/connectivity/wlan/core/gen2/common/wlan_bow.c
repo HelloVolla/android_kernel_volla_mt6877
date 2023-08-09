@@ -459,11 +459,11 @@ WLAN_STATUS bowCmdSetupConnection(IN P_ADAPTER_T prAdapter, IN P_AMPC_COMMAND pr
 #endif
 		cnmTimerInitTimer(prAdapter,
 				  &prBowFsmInfo->rStartingBeaconTimer,
-				  (PFN_MGMT_TIMEOUT_FUNC) bowSendBeacon, (ULONG) NULL);
+				  (PFN_MGMT_TIMEOUT_FUNC) bowSendBeacon, (uintptr_t) NULL);
 
 		cnmTimerInitTimer(prAdapter,
 				  &prBowFsmInfo->rChGrantedTimer,
-				  (PFN_MGMT_TIMEOUT_FUNC) bowChGrantedTimeout, (ULONG) NULL);
+				  (PFN_MGMT_TIMEOUT_FUNC) bowChGrantedTimeout, (uintptr_t) NULL);
 
 		/* Reset Global Variable */
 		g_u4Beaconing = 0;
@@ -1723,7 +1723,7 @@ BOOLEAN bowValidateProbeReq(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb, OUT
 * @return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID bowSendBeacon(IN P_ADAPTER_T prAdapter, IN ULONG ulParam)
+void bowSendBeacon(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_BOW_FSM_INFO_T prBowFsmInfo;
 
@@ -2857,7 +2857,7 @@ VOID bowReleaseCh(IN P_ADAPTER_T prAdapter)
 * @return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID bowChGrantedTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParam)
+void bowChGrantedTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	P_BOW_FSM_INFO_T prBowFsmInfo;
 	ENUM_BOW_DEVICE_STATE eFsmState;

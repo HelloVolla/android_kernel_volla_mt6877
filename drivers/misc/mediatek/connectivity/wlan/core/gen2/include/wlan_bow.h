@@ -186,7 +186,7 @@ VOID bowAssignSsid(IN PUINT_8 pucSsid, IN PUINT_8 pucSsidLen);
 
 BOOLEAN bowValidateProbeReq(IN P_ADAPTER_T prAdapter, IN P_SW_RFB_T prSwRfb, OUT PUINT_32 pu4ControlFlags);
 
-VOID bowSendBeacon(IN P_ADAPTER_T prAdapter, ULONG ulParam);
+void bowSendBeacon(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
 VOID bowResponderScan(IN P_ADAPTER_T prAdapter);
 
@@ -222,7 +222,7 @@ VOID bowRequestCh(IN P_ADAPTER_T prAdapter);
 
 VOID bowReleaseCh(IN P_ADAPTER_T prAdapter);
 
-VOID bowChGrantedTimeout(IN P_ADAPTER_T prAdapter, IN ULONG ulParam);
+void bowChGrantedTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam);
 
 BOOLEAN bowNotifyAllLinkDisconnected(IN P_ADAPTER_T prAdapter);
 

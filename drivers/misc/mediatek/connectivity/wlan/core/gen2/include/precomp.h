@@ -191,7 +191,7 @@
 #include "gl_p2p_kal.h"
 #endif
 
-typedef int (*set_p2p_mode) (struct net_device *netdev, PARAM_CUSTOM_P2P_SET_STRUCT_T p2pmode);
+typedef int (*set_p2p_mode) (struct net_device *netdev, struct PARAM_CUSTOM_P2P_SET_STRUCT p2pmode);
 
 extern void wlanRegisterNotifier(void);
 extern void wlanUnregisterNotifier(void);

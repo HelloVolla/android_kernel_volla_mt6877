@@ -60,8 +60,8 @@ wmmTxTspecFrame(P_ADAPTER_T prAdapter, UINT_8 ucTid, enum TSPEC_OP_CODE eOpCode,
 static VOID wmmSyncAcParamWithFw(
 	P_ADAPTER_T prAdapter, UINT_8 ucAc, UINT_16 u2MediumTime, UINT_32 u4PhyRate);
 
-static void wmmGetTsmRptTimeout(P_ADAPTER_T prAdapter, ULONG ulParam);
-static VOID wmmQueryTsmResult(P_ADAPTER_T prAdapter, ULONG ulParam);
+
+
 static VOID
 wmmRemoveTSM(P_ADAPTER_T prAdapter, struct ACTIVE_RM_TSM_REQ *prActiveTsm, BOOLEAN fgNeedStop);
 static struct ACTIVE_RM_TSM_REQ *
@@ -89,7 +89,7 @@ VOID wmmInit(IN P_ADAPTER_T prAdapter)
 
 	for (ucTid = 0; ucTid < WMM_TSPEC_ID_NUM; ucTid++, prTspecInfo++)
 		cnmTimerInitTimer(prAdapter, &prTspecInfo->rAddTsTimer,
-						  (PFN_MGMT_TIMEOUT_FUNC)wmmSetupTspecTimeOut, (ULONG)ucTid);
+						  (PFN_MGMT_TIMEOUT_FUNC)wmmSetupTspecTimeOut, (uintptr_t)ucTid);
 
 	LINK_INITIALIZE(&prWmmInfo->rActiveTsmReq);
 	prWmmInfo->rTriggeredTsmRptTime = 0;
@@ -270,7 +270,7 @@ wmmTxTspecFrame(P_ADAPTER_T prAdapter, UINT_8 ucTid, enum TSPEC_OP_CODE eOpCode,
 	*/
 }
 
-VOID wmmSetupTspecTimeOut(P_ADAPTER_T prAdapter, ULONG ulParam)
+void wmmSetupTspecTimeOut(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	struct TSPEC_INFO *prTsInfo = NULL;
 	UINT_8 ucTimeoutTid = (UINT_8)ulParam;
@@ -524,10 +524,10 @@ wmmTspecSteps(P_ADAPTER_T prAdapter, UINT_8 ucTid, enum TSPEC_OP_CODE eOpCode,
 			/* start pending TSM if it was requested before admitted */
 			prActiveTsmReq = wmmGetActiveTsmReq(prAdapter, ucTid, TRUE, FALSE);
 			if (prActiveTsmReq)
-				wmmStartTsmMeasurement(prAdapter, (ULONG)prActiveTsmReq->prTsmReq);
+				wmmStartTsmMeasurement(prAdapter, (uintptr_t)prActiveTsmReq->prTsmReq);
 			prActiveTsmReq = wmmGetActiveTsmReq(prAdapter, ucTid, FALSE, FALSE);
 			if (prActiveTsmReq)
-				wmmStartTsmMeasurement(prAdapter, (ULONG)prActiveTsmReq->prTsmReq);
+				wmmStartTsmMeasurement(prAdapter, (uintptr_t)prActiveTsmReq->prTsmReq);
 		} else {
 			prCurTs->eState = QOS_TS_INACTIVE;
 			DBGLOG(WMM, ERROR, "ADD TS is rejected, status=%d\n", prParam->ucStatusCode);
@@ -642,7 +642,7 @@ void DumpData(PUINT8 prAddr, UINT8 uLen, char *tag)
 }
 /* TSM related */
 
-static VOID wmmQueryTsmResult(P_ADAPTER_T prAdapter, ULONG ulParam)
+void wmmQueryTsmResult(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	struct RM_TSM_REQ *prTsmReq = ((struct ACTIVE_RM_TSM_REQ *)ulParam)->prTsmReq;
 	struct WMM_INFO *prWmmInfo = &prAdapter->rWifiVar.rWmmInfo;
@@ -666,7 +666,7 @@ static VOID wmmQueryTsmResult(P_ADAPTER_T prAdapter, ULONG ulParam)
 		(PUINT_8)&rGetTsmStatistics,
 		NULL,
 		0);
-	cnmTimerInitTimer(prAdapter, &prWmmInfo->rTsmTimer, wmmGetTsmRptTimeout, ulParam);
+	cnmTimerInitTimer(prAdapter, &prWmmInfo->rTsmTimer, wmmGetTsmRptTimeout, (uintptr_t)ulParam);
 	cnmTimerStartTimer(prAdapter, &prWmmInfo->rTsmTimer, 2000);
 }
 
@@ -724,8 +724,7 @@ wmmRemoveTSM(P_ADAPTER_T prAdapter, struct ACTIVE_RM_TSM_REQ *prActiveTsm, BOOLE
 	cnmMemFree(prAdapter, prActiveTsm);
 }
 
-void
-wmmStartTsmMeasurement(P_ADAPTER_T prAdapter, ULONG ulParam)
+void wmmStartTsmMeasurement(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	struct WMM_INFO *prWMMInfo = &prAdapter->rWifiVar.rWmmInfo;
 	CMD_SET_TSM_STATISTICS_REQUEST_T rTsmStatistics;
@@ -799,7 +798,7 @@ wmmStartTsmMeasurement(P_ADAPTER_T prAdapter, ULONG ulParam)
 			cnmMemFree(prAdapter, prActiveTsmReq->prTsmReq);
 		DBGLOG(WMM, INFO, "%p tid %d, aci %d, duration %d\n",
 			   prTsmReq, prTsmReq->ucTID, prTsmReq->ucACI, prTsmReq->u2Duration);
-		cnmTimerInitTimer(prAdapter, &prWMMInfo->rTsmTimer, wmmQueryTsmResult, (ULONG)prActiveTsmReq);
+		cnmTimerInitTimer(prAdapter, &prWMMInfo->rTsmTimer, wmmQueryTsmResult, (uintptr_t)prActiveTsmReq);
 		cnmTimerStartTimer(prAdapter, &prWMMInfo->rTsmTimer, TU_TO_MSEC(prTsmReq->u2Duration));
 	} else {
 		prActiveTsmReq = wmmGetActiveTsmReq(prAdapter, ucTid, !prTsmReq->u2Duration, TRUE);
@@ -1036,7 +1035,7 @@ wmmParseTspecIE(P_ADAPTER_T prAdapter, PUINT_8 pucIE, P_PARAM_QOS_TSPEC prTspec)
 	return TRUE;
 }
 
-static void wmmGetTsmRptTimeout(P_ADAPTER_T prAdapter, ULONG ulParam)
+void wmmGetTsmRptTimeout(P_ADAPTER_T prAdapter, uintptr_t ulParam)
 {
 	DBGLOG(WMM, ERROR, "timeout to get Tsm Rpt from firmware\n");
 	wlanReleasePendingCmdById(prAdapter, CMD_ID_GET_TSM_STATISTICS);

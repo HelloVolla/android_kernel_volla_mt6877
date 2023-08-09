@@ -26,7 +26,6 @@
 */
 
 #if CFG_ENABLE_WIFI_DIRECT
-extern int set_p2p_mode_handler(struct net_device *netdev, PARAM_CUSTOM_P2P_SET_STRUCT_T p2pmode);
 #if 0
 extern BOOLEAN fgIsResetting;
 extern BOOLEAN g_u4HaltFlag;

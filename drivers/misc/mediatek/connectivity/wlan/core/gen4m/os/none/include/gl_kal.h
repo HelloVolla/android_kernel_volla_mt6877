@@ -468,6 +468,14 @@ enum ENUM_CMD_TX_RESULT {
 })
 #endif
 
+#define kalMemZAlloc(u4Size, eMemType) ({    \
+	void *pvAddr; \
+	pvAddr = kalMemAlloc(u4Size, eMemType); \
+	if (pvAddr) \
+		kalMemSet(pvAddr, 0, u4Size); \
+	pvAddr; \
+})
+
 /*----------------------------------------------------------------------------*/
 /*!
  * \brief Free allocated cache memory

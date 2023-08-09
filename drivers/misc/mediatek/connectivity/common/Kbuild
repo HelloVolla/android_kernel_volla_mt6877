@@ -65,6 +65,7 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/eccci1
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/eccci1/$(MTK_PLATFORM)
 else
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/eccci
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/eccci/platform/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/eccci/$(MTK_PLATFORM)
 endif
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/eemcs

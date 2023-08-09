@@ -491,6 +491,8 @@ void statsParseIPV4Info(struct sk_buff *skb,
 		break;
 	}
 	case IP_PRO_UDP:
+		if (eventType == EVENT_RX)
+			GLUE_SET_PKT_FLAG(skb, ENUM_PKT_UDP);
 		statsParseUDPInfo(skb, pucEthBody, eventType, u2IpId);
 	}
 }

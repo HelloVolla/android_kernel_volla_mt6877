@@ -166,7 +166,8 @@ VOID cnmTimerDestroy(IN P_ADAPTER_T prAdapter)
 * \return (none)
 */
 /*----------------------------------------------------------------------------*/
-VOID cnmTimerInitTimer(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer, IN PFN_MGMT_TIMEOUT_FUNC pfFunc, IN ULONG ulData)
+VOID cnmTimerInitTimer(IN P_ADAPTER_T prAdapter, IN P_TIMER_T prTimer,
+			IN PFN_MGMT_TIMEOUT_FUNC pfFunc, IN uintptr_t ulData)
 {
 	ASSERT(prAdapter);
 
@@ -345,7 +346,7 @@ VOID cnmTimerDoTimeOutCheck(IN P_ADAPTER_T prAdapter)
 	P_TIMER_T prTimer;
 	OS_SYSTIME rCurSysTime;
 	PFN_MGMT_TIMEOUT_FUNC pfMgmtTimeOutFunc;
-	ULONG ulTimeoutData;
+	uintptr_t ulTimeoutData;
 	BOOLEAN fgNeedWakeLock;
 
 	KAL_SPIN_LOCK_DECLARATION();
@@ -379,6 +380,7 @@ VOID cnmTimerDoTimeOutCheck(IN P_ADAPTER_T prAdapter)
 				prTimer->rExpiredSysTime = rCurSysTime + MSEC_TO_SYSTIME(MSEC_PER_MIN);
 				LINK_INSERT_TAIL(prTimerList, &prTimer->rLinkEntry);
 			} else if (pfMgmtTimeOutFunc) {
+				DBGLOG(CNM, INFO, "Timeout callback func = %ps\n", pfMgmtTimeOutFunc);
 				KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_TIMER);
 				(pfMgmtTimeOutFunc) (prAdapter, ulTimeoutData);
 				KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_TIMER);

@@ -27,8 +27,16 @@
 *                    E X T E R N A L   R E F E R E N C E S
 ********************************************************************************
 */
+#if KERNEL_VERSION(5, 10, 0) <= CFG80211_VERSION_CODE
+extern netdev_tx_t wlanHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev);
+#else
 extern int wlanHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev);
+#endif
+#if KERNEL_VERSION(5, 10, 0) <= CFG80211_VERSION_CODE
+extern netdev_tx_t p2pHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev);
+#else
 extern int p2pHardStartXmit(struct sk_buff *prSkb, struct net_device *prDev);
+#endif
 extern BOOLEAN flgTdlsTestExtCapElm;
 extern UINT8 aucTdlsTestExtCapElm[];
 /*******************************************************************************
@@ -311,6 +319,7 @@ VOID MTKTdlsSetup(P_GLUE_INFO_T prGlueInfo, struct ksta_info *prSta);
 VOID MTKTdlsTearDown(P_GLUE_INFO_T prGlueInfo, struct ksta_info *prSta, CHAR *reason);
 VOID MTKTdlsApStaUpdateTxRxStatus(P_GLUE_INFO_T prGlueInfo, unsigned long tx_bytes,
 				  unsigned long rx_bytes, const u8 *addr);
+void TdlsTimerTestDataContSend(ADAPTER_T *prAdapter, uintptr_t u4Param);
 
 /*******************************************************************************
 *                              F U N C T I O N S

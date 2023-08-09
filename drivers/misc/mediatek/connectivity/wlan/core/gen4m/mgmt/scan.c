@@ -3692,7 +3692,7 @@ struct BSS_DESC *scanSearchBssDescByPolicy(
 	GET_CURRENT_SYSTIME(&rCurrentTime);
 
 	/* check for fixed channel operation */
-	if (prBssInfo->eNetworkType == NETWORK_TYPE_AIS) {
+	if (prBssInfo && prBssInfo->eNetworkType == NETWORK_TYPE_AIS) {
 #if CFG_SUPPORT_CHNL_CONFLICT_REVISE
 		fgIsFixedChannel =
 			cnmAisDetectP2PChannel(prAdapter, &eBand, &ucChannel);

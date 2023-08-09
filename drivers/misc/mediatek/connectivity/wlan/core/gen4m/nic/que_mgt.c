@@ -984,10 +984,11 @@ struct QUE *qmDetermineStaTxQueue(IN struct ADAPTER *prAdapter,
 		if (prStaRec->fgIsQoS) {
 			if (prMsduInfo->ucUserPriority < TX_DESC_TID_NUM) {
 				eAci = aucTid2ACI[prMsduInfo->ucUserPriority];
-				ucQueIdx = aucACI2TxQIdx[eAci];
-				ucTC =
-					arNetwork2TcResource[
-					prMsduInfo->ucBssIndex][eAci];
+				if (eAci < WMM_AC_INDEX_NUM) {
+					ucQueIdx = aucACI2TxQIdx[eAci];
+					ucTC = arNetwork2TcResource[
+						prMsduInfo->ucBssIndex][eAci];
+				}
 			} else {
 				ucQueIdx = TX_QUEUE_INDEX_AC1;
 				ucTC = TC1_INDEX;
@@ -996,7 +997,8 @@ struct QUE *qmDetermineStaTxQueue(IN struct ADAPTER *prAdapter,
 					"Packet TID is not in [0~7]\n");
 				ASSERT(0);
 			}
-			if ((prBssInfo->arACQueParms[eAci].ucIsACMSet) &&
+			if (eAci < WMM_AC_INDEX_NUM &&
+				(prBssInfo->arACQueParms[eAci].ucIsACMSet) &&
 			    !(ucActiveTs & BIT(eAci)) &&
 			    (eAci != WMM_AC_BK_INDEX)) {
 				DBGLOG(WMM, TRACE,
@@ -1320,9 +1322,12 @@ struct MSDU_INFO *qmEnqueueTxPackets(IN struct ADAPTER *prAdapter,
 		}
 #if QM_TC_RESOURCE_EMPTY_COUNTER
 		if (prCurrentMsduInfo->u4PageCount >
-			prTxCtrl->rTc.au4FreePageCount[ucTC])
-			prQM->au4QmTcResourceEmptyCounter[
-			prCurrentMsduInfo->ucBssIndex][ucTC]++;
+			prTxCtrl->rTc.au4FreePageCount[ucTC]) {
+			if (prCurrentMsduInfo->ucBssIndex < MAX_BSSID_NUM
+				&& ucTC < TC_NUM)
+				prQM->au4QmTcResourceEmptyCounter[
+				prCurrentMsduInfo->ucBssIndex][ucTC]++;
+		}
 #endif
 
 #if QM_FAST_TC_RESOURCE_CTRL && QM_ADAPTIVE_TC_RESOURCE_CTRL
@@ -1376,6 +1381,11 @@ void qmDetermineStaRecIndex(IN struct ADAPTER *prAdapter,
 	prTempStaRec = NULL;
 
 	ASSERT(prMsduInfo);
+
+	if (prBssInfo == NULL) {
+		DBGLOG(QM, INFO, "TX with prBssInfo = NULL\n");
+		return;
+	}
 
 	DBGLOG(QM, LOUD,
 		"Msdu BSS Idx[%u] OpMode[%u] StaRecOfApExist[%u]\n",
@@ -1634,7 +1644,7 @@ qmDequeueTxPacketsFromPerStaQueues(IN struct ADAPTER *prAdapter,
 
 			/* fgIsInPS */
 			/* Absent BSS handling */
-			if (prBssInfo->fgIsNetAbsent) {
+			if (prBssInfo && prBssInfo->fgIsNetAbsent) {
 				if (u4MaxForwardFrameCountLimit >
 					prBssInfo->ucBssFreeQuota)
 					u4MaxForwardFrameCountLimit =
@@ -1995,7 +2005,7 @@ qmDequeueTxPacketsFromGlobalQueue(IN struct ADAPTER *prAdapter,
 		prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter,
 			prDequeuedPkt->ucBssIndex);
 
-		if (IS_BSS_ACTIVE(prBssInfo)) {
+		if (prBssInfo && IS_BSS_ACTIVE(prBssInfo)) {
 			if (!prBssInfo->fgIsNetAbsent) {
 				/* to record WMM Set */
 				prDequeuedPkt->ucWmmQueSet =
@@ -6645,6 +6655,13 @@ enum ENUM_FRAME_ACTION qmGetFrameAction(IN struct ADAPTER *prAdapter,
 #endif
 		}
 		/* 4 <2> Drop, if BSS is inactive */
+		if (!prBssInfo) {
+			DBGLOG(QM, INFO,
+				"Drop packets (BSS is NULL)\n");
+			eFrameAction = FRAME_ACTION_DROP_PKT;
+			break;
+		}
+
 		if (!IS_BSS_ACTIVE(prBssInfo)) {
 			DBGLOG(QM, TRACE,
 				"Drop packets (BSS[%u] is INACTIVE)\n",
@@ -6769,6 +6786,11 @@ void qmHandleEventBssAbsencePresence(IN struct ADAPTER *prAdapter,
 		prEvent->aucBuffer);
 	prBssInfo = GET_BSS_INFO_BY_INDEX(prAdapter,
 		prEventBssStatus->ucBssIndex);
+	if (!prBssInfo) {
+		DBGLOG(QM, INFO, "NAF:prBssInfo is NULL\n");
+		return;
+	}
+
 	fgIsNetAbsentOld = prBssInfo->fgIsNetAbsent;
 	prBssInfo->fgIsNetAbsent = prEventBssStatus->ucIsAbsent;
 	prBssInfo->ucBssFreeQuota = prEventBssStatus->ucBssFreeQuota;
@@ -8754,6 +8776,9 @@ void qmHandleDelTspec(struct ADAPTER *prAdapter, struct STA_RECORD *prStaRec,
 	uint8_t ucTc = 0;
 	struct BSS_INFO *prAisBssInfo = NULL;
 
+	if (eAci >= ACI_NUM)
+		return;
+
 	if (!prStaRec || eAci == ACI_NUM || eAci == ACI_BK || !prAdapter) {
 		DBGLOG(QM, ERROR, "prSta NULL %d, eAci %d, prAdapter NULL %d\n",
 		       !prStaRec, eAci, !prAdapter);
@@ -8772,10 +8797,14 @@ void qmHandleDelTspec(struct ADAPTER *prAdapter, struct STA_RECORD *prStaRec,
 		aisGetWMMInfo(prAdapter, prAisBssInfo->ucBssIndex));
 
 	while (prAcQueParam[eAci].ucIsACMSet &&
-			!(ucActivedTspec & BIT(eAci)) && eAci != ACI_BK) {
+			!(ucActivedTspec & BIT(eAci)) && eAci != ACI_BK
+			&& eAci < ACI_NUM) {
 		eAci = aeNextAci[eAci];
-		ucNewUp = aucNextUP[eAci];
+		if (eAci < ACI_NUM)
+			ucNewUp = aucNextUP[eAci];
 	}
+	if (eAci >= ACI_NUM)
+		return;
 	DBGLOG(QM, INFO, "new ACI %d, ACM %d, HasTs %d\n", eAci,
 	       prAcQueParam[eAci].ucIsACMSet, !!(ucActivedTspec & BIT(eAci)));
 	ucTc = aucWmmAC2TcResourceSet1[eAci];

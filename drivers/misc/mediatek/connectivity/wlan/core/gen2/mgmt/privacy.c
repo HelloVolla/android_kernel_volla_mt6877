@@ -162,11 +162,12 @@ VOID secInit(IN P_ADAPTER_T prAdapter, IN UINT_8 ucNetTypeIdx)
 
 	cnmTimerInitTimer(prAdapter,
 			  &prAisSpecBssInfo->rPreauthenticationTimer,
-			  (PFN_MGMT_TIMEOUT_FUNC) rsnIndicatePmkidCand, (ULONG) NULL);
+			  (PFN_MGMT_TIMEOUT_FUNC) rsnIndicatePmkidCand, (uintptr_t) NULL);
 #endif
 #if CFG_SUPPORT_802_11W
 	cnmTimerInitTimer(prAdapter,
-			  &prAisSpecBssInfo->rSaQueryTimer, (PFN_MGMT_TIMEOUT_FUNC) rsnStartSaQueryTimer, (ULONG) NULL);
+	 &prAisSpecBssInfo->rSaQueryTimer,
+	 (PFN_MGMT_TIMEOUT_FUNC) rsnStartSaQueryTimer, (uintptr_t) NULL);
 #endif
 
 	prAisSpecBssInfo->fgCounterMeasure = FALSE;

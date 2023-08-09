@@ -833,7 +833,7 @@ struct _ADAPTER_T {
 #endif
 	UINT_32 u4IntStatus;
 
-	ENUM_ACPI_STATE_T rAcpiState;
+	enum ENUM_ACPI_STATE_T rAcpiState;
 
 	BOOLEAN fgIsIntEnable;
 	BOOLEAN fgIsIntEnableWithLPOwnSet;

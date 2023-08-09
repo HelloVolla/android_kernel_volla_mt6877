@@ -1174,6 +1174,18 @@ uint32_t kal_is_skb_gro(struct ADAPTER *prAdapter, uint8_t ucBssIdx)
 	return 0;
 }
 
+uint32_t kal_is_udp_enable_gro(struct ADAPTER *prAdapter, uint8_t ucBssIdx)
+{
+	struct PERF_MONITOR *prPerMonitor;
+	struct WIFI_VAR *prWifiVar = &prAdapter->rWifiVar;
+
+	prPerMonitor = &prAdapter->rPerMonitor;
+	if (prPerMonitor->ulRxTp[ucBssIdx] > prWifiVar->u4UdpEnableGroTputTh)
+		return 1;
+
+	return 0;
+}
+
 static inline void napi_gro_flush_list(struct napi_struct *napi)
 {
 	napi_gro_flush(napi, false);
@@ -1264,6 +1276,7 @@ uint32_t kalRxIndicateOnePkt(IN struct GLUE_INFO
 	struct sk_buff *prSkb = NULL;
 	struct mt66xx_chip_info *prChipInfo;
 	uint8_t ucBssIdx;
+	struct WIFI_VAR *prWifiVar;
 #if CFG_SUPPORT_RX_GRO
 	struct NETDEV_PRIVATE_GLUE_INFO *prNetDevPrivate = NULL;
 #endif
@@ -1273,6 +1286,7 @@ uint32_t kalRxIndicateOnePkt(IN struct GLUE_INFO
 
 	prSkb = pvPkt;
 	prChipInfo = prGlueInfo->prAdapter->chip_info;
+	prWifiVar = &prGlueInfo->prAdapter->rWifiVar;
 	ucBssIdx = GLUE_GET_PKT_BSS_IDX(prSkb);
 	RX_INC_CNT(&prGlueInfo->prAdapter->rRxCtrl, RX_DATA_INDICATION_COUNT);
 #if DBG && 0
@@ -1427,6 +1441,16 @@ uint32_t kalRxIndicateOnePkt(IN struct GLUE_INFO
 	kalTraceEvent("Rx ipid=0x%04x", GLUE_GET_PKT_IP_ID(prSkb));
 
 #if CFG_SUPPORT_RX_GRO
+/* Disable UDP GRO for kernel [4.19,5.10) due to kernel bug */
+#if KERNEL_VERSION(4, 19, 0) <= CFG80211_VERSION_CODE
+#if KERNEL_VERSION(5, 10, 0) > CFG80211_VERSION_CODE
+	if (GLUE_TEST_PKT_FLAG(prSkb, ENUM_PKT_UDP)
+		&& ucBssIdx < MAX_BSSID_NUM
+		&& !kal_is_udp_enable_gro(prGlueInfo->prAdapter, ucBssIdx))
+		goto skip_gro;
+#endif
+#endif
+
 	if (ucBssIdx < MAX_BSSID_NUM &&
 		kal_is_skb_gro(prGlueInfo->prAdapter, ucBssIdx)) {
 		/* GRO receive function can't be interrupt so it need to
@@ -1443,6 +1467,13 @@ uint32_t kalRxIndicateOnePkt(IN struct GLUE_INFO
 		DBGLOG_LIMITED(INIT, TRACE, "napi_gro_receive:%p\n", prNetDev);
 		return WLAN_STATUS_SUCCESS;
 	}
+#endif
+
+/* Disable UDP GRO for kernel [4.19,5.10) due to kernel bug */
+#if KERNEL_VERSION(4, 19, 0) <= CFG80211_VERSION_CODE
+#if KERNEL_VERSION(5, 10, 0) > CFG80211_VERSION_CODE
+skip_gro:
+#endif
 #endif
 	if (!in_interrupt())
 		netif_rx_ni(prSkb);
@@ -4695,6 +4726,10 @@ int main_thread(void *data)
 				      prTxThreadWakeLock);
 #endif
 		kalTraceBegin("main_thread");
+
+		if (test_and_clear_bit(GLUE_FLAG_DISABLE_PERF_BIT,
+			&prGlueInfo->ulFlag))
+			kalPerMonDisable(prGlueInfo);
 
 #if CFG_ENABLE_WIFI_DIRECT
 		/*run p2p multicast list work. */
@@ -7995,6 +8030,24 @@ inline int32_t kalPerMonEnable(IN struct GLUE_INFO
 	return 0;
 }
 
+inline int32_t kalSetPerMonEnable(struct GLUE_INFO *prGlueInfo)
+{
+	DBGLOG(SW4, INFO, "enter %s\n", __func__);
+	clear_bit(GLUE_FLAG_DISABLE_PERF_BIT, &prGlueInfo->ulFlag);
+	kalPerMonEnable(prGlueInfo);
+	DBGLOG(SW4, LOUD, "exit %s\n", __func__);
+	return 0;
+}
+
+inline int32_t kalSetPerMonDisable(struct GLUE_INFO *prGlueInfo)
+{
+	DBGLOG(SW4, INFO, "enter %s\n", __func__);
+	set_bit(GLUE_FLAG_DISABLE_PERF_BIT, &prGlueInfo->ulFlag);
+	wake_up_interruptible(&prGlueInfo->waitq);
+	DBGLOG(SW4, LOUD, "exit %s\n", __func__);
+	return 0;
+}
+
 inline int32_t kalPerMonStart(IN struct GLUE_INFO
 			      *prGlueInfo)
 {
@@ -8706,40 +8759,67 @@ int32_t kalPerMonSetForceEnableFlag(uint8_t uFlag)
 static int wlan_fb_notifier_callback(struct notifier_block
 				     *self, unsigned long event, void *data)
 {
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	int32_t *pData = (int32_t *)data;
+#else
 	struct fb_event *evdata = data;
+#endif
 	int32_t blank = 0;
 	struct GLUE_INFO *prGlueInfo = (struct GLUE_INFO *)
 				       wlan_fb_notifier_priv_data;
 
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	blank = *pData;
+#else
+	blank = *(int32_t *)evdata->data;
+#endif
+
 	/* If we aren't interested in this event, skip it immediately ... */
-	if ((event != FB_EVENT_BLANK) || !prGlueInfo)
-		return 0;
+	if ((event !=
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+		MTK_DISP_EARLY_EVENT_BLANK
+#else
+		FB_EVENT_BLANK
+#endif
+		) || !prGlueInfo)
+		goto end;
+
+	DBGLOG(SW4, INFO, "%s: event[%ld], blank[%d]\n", __func__,
+			event, blank);
 
 	if (kalHaltTryLock())
-		return 0;
+		goto end;
 
 	if (kalIsHalted()) {
 		kalHaltUnlock();
-		return 0;
+		goto end;
 	}
 
-	blank = *(int32_t *)evdata->data;
-
 	switch (blank) {
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	case MTK_DISP_BLANK_UNBLANK:
+#else
 	case FB_BLANK_UNBLANK:
-		kalPerMonEnable(prGlueInfo);
+#endif
+		kalSetPerMonEnable(prGlueInfo);
 		wlan_fb_power_down = FALSE;
 		break;
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	case MTK_DISP_BLANK_POWERDOWN:
+#else
 	case FB_BLANK_POWERDOWN:
+#endif
 		wlan_fb_power_down = TRUE;
 		if (!wlan_perf_monitor_force_enable)
-			kalPerMonDisable(prGlueInfo);
+			kalSetPerMonDisable(prGlueInfo);
 		break;
 	default:
 		break;
 	}
 
 	kalHaltUnlock();
+	DBGLOG(SW4, INFO, "%s: end\n", __func__);
+end:
 	return 0;
 }
 
@@ -8749,7 +8829,12 @@ int32_t kalFbNotifierReg(IN struct GLUE_INFO *prGlueInfo)
 
 	wlan_fb_notifier_priv_data = prGlueInfo;
 
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	i4Ret = mtk_disp_notifier_register("wlan_fb_notifier",
+			&wlan_fb_notifier);
+#else
 	i4Ret = fb_register_client(&wlan_fb_notifier);
+#endif
 	if (i4Ret)
 		DBGLOG(SW4, WARN, "Register wlan_fb_notifier failed:%d\n",
 		       i4Ret);
@@ -8760,7 +8845,11 @@ int32_t kalFbNotifierReg(IN struct GLUE_INFO *prGlueInfo)
 
 void kalFbNotifierUnReg(void)
 {
+#if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	mtk_disp_notifier_unregister(&wlan_fb_notifier);
+#else
 	fb_unregister_client(&wlan_fb_notifier);
+#endif
 	wlan_fb_notifier_priv_data = NULL;
 }
 

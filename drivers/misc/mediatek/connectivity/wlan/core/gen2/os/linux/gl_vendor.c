@@ -114,6 +114,55 @@
 *                            P U B L I C   D A T A
 ********************************************************************************
 */
+
+
+const struct nla_policy nla_parse_wifi_attribute[
+	WIFI_ATTRIBUTE_MAX + 1] = {
+	[WIFI_ATTRIBUTE_BAND] = {.type = NLA_U32},
+#if KERNEL_VERSION(5, 9, 0) <= CFG80211_VERSION_CODE
+	[WIFI_ATTRIBUTE_PNO_RANDOM_MAC_OUI] = NLA_POLICY_MIN_LEN(0),
+#elif KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	[WIFI_ATTRIBUTE_PNO_RANDOM_MAC_OUI] = {.type = NLA_MIN_LEN, .len = 0 },
+#else
+	[WIFI_ATTRIBUTE_PNO_RANDOM_MAC_OUI] = {.type = NLA_BINARY},
+#endif
+	[WIFI_ATTRIBUTE_COUNTRY_CODE] = {.type = NLA_STRING},
+	[WIFI_ATTRIBUTE_ROAMING_BLACKLIST_NUM] = {.type = NLA_U32},
+#if KERNEL_VERSION(5, 9, 0) <= CFG80211_VERSION_CODE
+	[WIFI_ATTRIBUTE_ROAMING_BLACKLIST_BSSID] = NLA_POLICY_MIN_LEN(0),
+#elif KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	[WIFI_ATTRIBUTE_ROAMING_BLACKLIST_BSSID] = {
+		.type = NLA_MIN_LEN, .len = 0 },
+#else
+	[WIFI_ATTRIBUTE_ROAMING_BLACKLIST_BSSID] = {.type = NLA_BINARY},
+#endif
+	[WIFI_ATTRIBUTE_ROAMING_WHITELIST_NUM] = {.type = NLA_U32},
+#if KERNEL_VERSION(5, 9, 0) <= CFG80211_VERSION_CODE
+	[WIFI_ATTRIBUTE_ROAMING_WHITELIST_SSID] = NLA_POLICY_MIN_LEN(0),
+#elif KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	[WIFI_ATTRIBUTE_ROAMING_WHITELIST_SSID] = {
+		.type = NLA_MIN_LEN, .len = 0 },
+#else
+	[WIFI_ATTRIBUTE_ROAMING_WHITELIST_SSID] = {.type = NLA_BINARY},
+#endif
+	[WIFI_ATTRIBUTE_ROAMING_STATE] = {.type = NLA_U32},
+	[WIFI_ATTRIBUTE_TX_POWER_SCENARIO] = {.type = NLA_U32},
+};
+const struct nla_policy nla_get_version_policy[
+		LOGGER_ATTRIBUTE_MAX + 1] = {
+#if KERNEL_VERSION(5, 9, 0) <= CFG80211_VERSION_CODE
+	[LOGGER_ATTRIBUTE_DRIVER_VER] = NLA_POLICY_MIN_LEN(0),
+	[LOGGER_ATTRIBUTE_FW_VER] = NLA_POLICY_MIN_LEN(0),
+#elif KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE
+	[LOGGER_ATTRIBUTE_DRIVER_VER] = { .type = NLA_MIN_LEN, .len = 0 },
+	[LOGGER_ATTRIBUTE_FW_VER] = { .type = NLA_MIN_LEN, .len = 0 },
+#else
+	[LOGGER_ATTRIBUTE_DRIVER_VER] = { .type = NLA_UNSPEC },
+	[LOGGER_ATTRIBUTE_FW_VER] = { .type = NLA_UNSPEC },
+#endif
+};
+
+
 #if 0
 static struct nla_policy nla_parse_wifi_policy[WIFI_ATTRIBUTE_ROAMING_STATE + 1] = {
 	[WIFI_ATTRIBUTE_BAND] = {.type = NLA_U32},
@@ -158,9 +207,13 @@ static struct nla_policy nla_parse_gscan_policy[GSCAN_ATTRIBUTE_SIGNIFICANT_CHAN
 	[GSCAN_ATTRIBUTE_NUM_AP_PER_SCAN] = {.type = NLA_U32},
 	[GSCAN_ATTRIBUTE_REPORT_THRESHOLD] = {.type = NLA_U32},
 	[GSCAN_ATTRIBUTE_NUM_SCANS_TO_CACHE] = {.type = NLA_U32},
+	[GSCAN_ATTRIBUTE_ENABLE_FEATURE] = {.type = NLA_U32},
+	[GSCAN_ENABLE_FULL_SCAN_RESULTS] = {.type = NLA_U32},
 	[GSCAN_ATTRIBUTE_REPORT_EVENTS] = {.type = NLA_U32},
 	[GSCAN_ATTRIBUTE_BUCKET_STEP_COUNT] = {.type = NLA_U32},
 	[GSCAN_ATTRIBUTE_BUCKET_MAX_PERIOD] = {.type = NLA_U32},
+	[GSCAN_ATTRIBUTE_NUM_OF_RESULTS] = {.type = NLA_U32},
+	[GSCAN_ATTRIBUTE_FLUSH_RESULTS] = {.type = NLA_U8}
 	[GSCAN_ATTRIBUTE_BSSID] = {.type = NLA_UNSPEC},
 	[GSCAN_ATTRIBUTE_RSSI_LOW] = {.type = NLA_U32},
 	[GSCAN_ATTRIBUTE_RSSI_HIGH] = {.type = NLA_U32},
@@ -173,7 +226,7 @@ static struct nla_policy nla_parse_gscan_policy[GSCAN_ATTRIBUTE_SIGNIFICANT_CHAN
 };
 #endif
 
-static struct nla_policy nla_parse_offloading_policy[MKEEP_ALIVE_ATTRIBUTE_PERIOD_MSEC + 1] = {
+const struct nla_policy nla_parse_offloading_policy[MKEEP_ALIVE_ATTRIBUTE_PERIOD_MSEC + 1] = {
 	[MKEEP_ALIVE_ATTRIBUTE_ID] = {.type = NLA_U8},
 	[MKEEP_ALIVE_ATTRIBUTE_IP_PKT] = {.type = NLA_UNSPEC},
 	[MKEEP_ALIVE_ATTRIBUTE_IP_PKT_LEN] = {.type = NLA_U16},
@@ -220,7 +273,7 @@ int mtk_cfg80211_vendor_get_channel_list(struct wiphy *wiphy, struct wireless_de
 	struct nlattr *attr;
 	UINT_32 band = 0;
 	UINT_8 ucNumOfChannel, i, j;
-	RF_CHANNEL_INFO_T aucChannelList[64];
+	struct _RF_CHANNEL_INFO_T *aucChannelList = NULL;
 	UINT_32 num_channels;
 	wifi_channel channels[64];
 	struct sk_buff *skb;
@@ -239,6 +292,15 @@ int mtk_cfg80211_vendor_get_channel_list(struct wiphy *wiphy, struct wireless_de
 		prGlueInfo = (P_GLUE_INFO_T) wiphy_priv(wiphy);
 	if (!prGlueInfo)
 		return -EFAULT;
+	aucChannelList = (struct _RF_CHANNEL_INFO_T *)
+		kalMemAlloc(sizeof(struct _RF_CHANNEL_INFO_T)*64, VIR_MEM_TYPE);
+	if (!aucChannelList) {
+		DBGLOG(REQ, ERROR,
+			"Can not alloc memory for rf channel info\n");
+		return -ENOMEM;
+	}
+	kalMemZero(aucChannelList,
+		sizeof(struct _RF_CHANNEL_INFO_T)*64);
 
 	switch (band) {
 	case 1: /* 2.4G band */
@@ -270,6 +332,8 @@ int mtk_cfg80211_vendor_get_channel_list(struct wiphy *wiphy, struct wireless_de
 	}
 	num_channels = j;
 	DBGLOG(REQ, INFO, "Get channel list for band: %d, num_channels=%d\n", band, num_channels);
+
+	kalMemFree(aucChannelList, VIR_MEM_TYPE, sizeof(struct _RF_CHANNEL_INFO_T)*64);
 
 	skb = cfg80211_vendor_cmd_alloc_reply_skb(wiphy, sizeof(channels));
 	if (!skb) {

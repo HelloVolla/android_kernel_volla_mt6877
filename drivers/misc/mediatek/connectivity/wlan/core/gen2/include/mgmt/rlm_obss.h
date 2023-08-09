@@ -90,6 +90,8 @@ VOID rlmObssScanDone(P_ADAPTER_T prAdapter, P_MSG_HDR_T prMsgHdr);
 
 VOID rlmObssTriggerScan(P_ADAPTER_T prAdapter, P_BSS_INFO_T prBssInfo);
 
+void rlmObssScanTimeout(P_ADAPTER_T prAdapter, uintptr_t ulData);
+
 /*******************************************************************************
 *                              F U N C T I O N S
 ********************************************************************************
