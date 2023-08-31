@@ -14,27 +14,17 @@
 #include <uapi/linux/sched/types.h>
 #include <linux/sched_clock.h>
 #include <linux/log2.h>
+#include <linux/kobject.h>
+#include <linux/sysfs.h>
 
 struct pixel_data {
-    int16_t pixelA;
-    int16_t pixelR;
-    int16_t pixelG;
-    int16_t pixelB;
+	int16_t pixelA;
+	int16_t pixelR;
+	int16_t pixelG;
+	int16_t pixelB;
 } g_pix_param;
 
-static int dev_major;
-static struct class *pixel_manager_class;
-
-static int pixel_manager_open(struct inode *inode, struct file *filp)
-{
-	nonseekable_open(inode, filp);
-	return 0;
-}
-
-static int pixel_manager_release(struct inode *inode, struct file *filp)
-{
-    return 0;
-}
+static struct kobject *pix_manager_kobj;
 
 static int string_is_digital(const char *str)
 {
@@ -57,7 +47,7 @@ static int string_is_digital(const char *str)
 static int pixel_atoi(const char *str)
 {
 	int i = 0;
-    int ret_value = 0;
+	int ret_value = 0;
 
 	if (str == NULL) {
 		return -1;
@@ -71,24 +61,20 @@ static int pixel_atoi(const char *str)
 	return ret_value;
 }
 
-static ssize_t pixel_manager_write(struct file *filp,
-		const char __user *buf, size_t count, loff_t *f_pos)
+static ssize_t sysfs_als_color_write(struct kobject *kobj,
+	struct kobj_attribute *attr, const char *buf, size_t count)
 {
-	char rgb_buf[64] = {0};
 	char *find_str1 = NULL;
 	char *find_str2 = NULL;
 	char *find_str3 = NULL;
 	char *find_str4 = NULL;
 	char tmp_buf[16] = {0};
 
-	if (copy_from_user(rgb_buf, buf, count))
-		return -EFAULT;
-
-	pr_info("pixel_manager_write:%s\n", rgb_buf);
-	find_str1 = strstr(rgb_buf, "A:");
-	find_str2 = strstr(rgb_buf, "R:");
-	find_str3 = strstr(rgb_buf, "G:");
-	find_str4 = strstr(rgb_buf, "B:");
+	pr_info("pixel_manager_write:%s\n", buf);
+	find_str1 = strstr(buf, "A:");
+	find_str2 = strstr(buf, "R:");
+	find_str3 = strstr(buf, "G:");
+	find_str4 = strstr(buf, "B:");
 	if (find_str1 != NULL && find_str2 != NULL && find_str2 - find_str1 > 2) {
 		strncpy(tmp_buf, find_str1 + 2, find_str2 - find_str1 - 2);
 		if (string_is_digital(tmp_buf) == 0) {
@@ -122,11 +108,21 @@ static ssize_t pixel_manager_write(struct file *filp,
 	return count;
 }
 
+static ssize_t sysfs_als_color_read(struct kobject *kobj,
+	struct kobj_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "A:%dR:%dG:%dB:%d\n",
+					g_pix_param.pixelA, g_pix_param.pixelR,
+					g_pix_param.pixelG, g_pix_param.pixelB);
+}
+
 void get_pix_rgb(int16_t *R, int16_t *G, int16_t *B)
 {
 	if (R == NULL || G == NULL || B == NULL) {
 		return;
 	}
+
+	sysfs_notify(pix_manager_kobj, NULL, "als_color");
 
 	if (g_pix_param.pixelR > 255 || g_pix_param.pixelG > 255 || g_pix_param.pixelB > 255) {
 		*R = -1;
@@ -148,57 +144,40 @@ void reset_pix_rgb(void)
 }
 EXPORT_SYMBOL_GPL(reset_pix_rgb);
 
-static const struct file_operations pixel_manager_fops = {
-	.owner          = THIS_MODULE,
-	.open           = pixel_manager_open,
-	.release        = pixel_manager_release,
-	.write          = pixel_manager_write
+static struct kobj_attribute kobj_attr_als_color =
+	__ATTR(als_color, 0644, sysfs_als_color_read, sysfs_als_color_write);
+
+static struct attribute *pix_manager_fs_attrs[] = {
+	&kobj_attr_als_color.attr,
+	NULL,
+};
+
+static struct attribute_group pix_manager_fs_attrs_group = {
+	.attrs = pix_manager_fs_attrs,
 };
 
 static int __init pixel_manager_init(void)
 {
 	int ret;
-	struct device *dev;
 
-	dev_major = register_chrdev(0, "pix_manager", &pixel_manager_fops);
-	if (dev_major < 0) {
-		pr_err("Unable to get major\n");
-		ret = dev_major;
-		goto err_exit;
-	}
+	pix_manager_kobj = kobject_create_and_add("pix_manager", kernel_kobj);
+	if (!pix_manager_kobj)
+		return -ENOMEM;
 
-	pixel_manager_class = class_create(THIS_MODULE, "pix_manager");
-	if (IS_ERR(pixel_manager_class)) {
-		pr_err("Failed to create class\n");
-		ret = PTR_ERR(pixel_manager_class);
-		goto err_chredev;
-	}
-
-	dev = device_create(pixel_manager_class, NULL, MKDEV(dev_major, 0),
-		NULL, "pix_manager");
-	if (IS_ERR(dev)) {
-		pr_err("Failed to create device\n");
-		ret = PTR_ERR(dev);
-		goto err_class;
+	ret = sysfs_create_group(pix_manager_kobj, &pix_manager_fs_attrs_group);
+	if (ret) {
+		pr_err("failed to create display device attributes");
+		kobject_put(pix_manager_kobj);
 	}
 
 	memset(&g_pix_param, -1, sizeof(g_pix_param));
 
-	return 0;
-
-err_class:
-	class_destroy(pixel_manager_class);
-err_chredev:
-	unregister_chrdev(dev_major, "pix_manager");
-err_exit:
 	return ret;
 }
 
 static void __exit pixel_manager_exit(void)
 {
-	device_destroy(pixel_manager_class, MKDEV(dev_major, 0));
-	class_destroy(pixel_manager_class);
-	unregister_chrdev(dev_major, "pix_manager");
+	kobject_put(pix_manager_kobj);
 }
 
 subsys_initcall(pixel_manager_init);
@@ -207,4 +186,3 @@ module_exit(pixel_manager_exit);
 MODULE_DESCRIPTION("transfer rgb value");
 MODULE_AUTHOR("Coosea");
 MODULE_LICENSE("GPL v2");
-
