@@ -152,9 +152,9 @@ static ssize_t hbmstate_show(struct device *dev,struct device_attribute*attr, ch
 {
     int count = 0;
 	if (local_common_node->node_array[HBMSTATE].hbm_set) {
-		count = sprintf(buf, "hbm_stat = %s\n",local_common_node->node_array[HBMSTATE].hbm_set()?"On":"Off");
+		count = sprintf(buf, "%d\n",local_common_node->node_array[HBMSTATE].hbm_set());
 	} else {
-		count = sprintf(buf, "hbm_stat error\n");
+		count = sprintf(buf, "0\n");
 	}
 	//count = sprintf(buf, "hbm_stat = %s\n",g_ctx->state?"On":"Off");
     return count;
