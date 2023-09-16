@@ -1418,6 +1418,22 @@ static void panel_hbm_get_state(struct drm_panel *panel, bool *state)
 	*state = ctx->hbm_en;
 }
 
+static void panel_hbm_get_wait_state(struct drm_panel *panel, bool *wait)
+{
+	struct lcm *ctx = panel_to_lcm(panel);
+
+	*wait = ctx->hbm_wait;
+}
+
+static bool panel_hbm_set_wait_state(struct drm_panel *panel, bool wait)
+{
+	struct lcm *ctx = panel_to_lcm(panel);
+	bool old = ctx->hbm_wait;
+
+	ctx->hbm_wait = wait;
+	return old;
+}
+
 static int lcm_get_virtual_heigh(void)
 {
 	return VAC;
@@ -1438,6 +1454,8 @@ static struct mtk_panel_params ext_params_120 = {
 		.para_list[0] = 0x9c,
 		.para_list[1] = 0xdc,
 	},
+	.hbm_en_time = 0,
+	.hbm_dis_time = 1,
 	.physical_width_um = PHYSICAL_WIDTH,
 	.physical_height_um = PHYSICAL_HEIGHT,
 	.dsc_params = {
@@ -1838,6 +1856,8 @@ static struct mtk_panel_funcs ext_funcs = {
 	.ata_check = panel_ata_check,
 	.hbm_set_cmdq = panel_hbm_set_cmdq,
 	.hbm_get_state = panel_hbm_get_state,
+	.hbm_get_wait_state = panel_hbm_get_wait_state,
+	.hbm_set_wait_state = panel_hbm_set_wait_state,
 	.get_virtual_heigh = lcm_get_virtual_heigh,
 	.get_virtual_width = lcm_get_virtual_width,
 	.ext_param_set = mtk_panel_ext_param_set,
