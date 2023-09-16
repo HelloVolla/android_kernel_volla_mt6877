@@ -1388,7 +1388,7 @@ static int panel_hbm_set_cmdq(struct drm_panel *panel, void *dsi,
 	{
 		printk("[panel] %s : set normal = %d\n",__func__,bl_level);
 		/*PRIZE:Added by lvyuanchuan,X9-534,20230103*/
-		level_normal = bl_level * BLK_LEVEL_MAP3/259 + BLK_LEVEL_OFFSET; /* prize modified by gongtaitao for x9 lava hbm mode 20230421 */
+		level_normal = Gamma_to_level[bl_level] + BLK_LEVEL_OFFSET;
 		normal_tb0[1] = (level_normal>>8)&0xff;
 		normal_tb0[2] = (level_normal)&0xff;
 	#if 0
