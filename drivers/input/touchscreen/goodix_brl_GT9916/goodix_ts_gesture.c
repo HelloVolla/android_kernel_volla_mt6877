@@ -184,6 +184,23 @@ static ssize_t gsx_fod_type_store(struct goodix_ext_module *module,
 	return count;
 }
 
+static ssize_t gsx_fp_state_show(struct goodix_ext_module *module,
+		char *buf)
+{
+	struct gesture_module *gsx = module->priv_data;
+
+	if (!gsx)
+		return -EIO;
+
+	if (atomic_read(&gsx->registered) == 0) {
+		ts_err("gesture module is not registered");
+		return 0;
+	}
+
+	return sprintf(buf, "%d,%d,%d\n", gsx->ts_core->fodx, gsx->ts_core->fody,
+				   gsx->ts_core->finger_in_fod);
+}
+
 
 const struct goodix_ext_attribute gesture_attrs[] = {
 	__EXTMOD_ATTR(double_en, 0664,
@@ -192,6 +209,8 @@ const struct goodix_ext_attribute gesture_attrs[] = {
 			gsx_single_type_show, gsx_single_type_store),
 	__EXTMOD_ATTR(fod_en, 0664,
 			gsx_fod_type_show, gsx_fod_type_store),
+	__EXTMOD_ATTR(fp_state, 0664,
+			gsx_fp_state_show, NULL),
 };
 
 static int gsx_gesture_init(struct goodix_ts_core *cd,
@@ -206,6 +225,9 @@ static int gsx_gesture_init(struct goodix_ts_core *cd,
 
 	gsx->ts_core = cd;
 	gsx->ts_core->gesture_type = GESTURE_FOD_PRESS;
+	gsx->ts_core->finger_in_fod = false;
+	gsx->ts_core->fodx = 0;
+	gsx->ts_core->fody = 0;
 
 	atomic_set(&gsx->registered, 1);
 
@@ -241,7 +263,7 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 {
 	struct goodix_ts_hw_ops *hw_ops = cd->hw_ops;
 	struct goodix_ts_event gs_event = {0};
-	int fodx, fody, overlay_area;
+	int overlay_area;
 	int ret;
 
 	if (atomic_read(&cd->suspended) == 0 || cd->gesture_type == 0)
@@ -287,15 +309,17 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 	case GOODIX_GESTURE_FOD_DOWN:
 		if (cd->gesture_type & GESTURE_FOD_PRESS) {
 			ts_info("get FOD-DOWN gesture");
-			fodx = le16_to_cpup((__le16 *)gs_event.gesture_data);
-			fody = le16_to_cpup((__le16 *)(gs_event.gesture_data + 2));
+			cd->finger_in_fod = true;
+			cd->fodx = le16_to_cpup((__le16 *)gs_event.gesture_data);
+			cd->fody = le16_to_cpup((__le16 *)(gs_event.gesture_data + 2));
+			sysfs_notify(&gsx_gesture->module.kobj, NULL, "fp_state");
 			overlay_area = gs_event.gesture_data[4];
-			ts_debug("fodx:%d fody:%d overlay_area:%d", fodx, fody, overlay_area);
+			ts_debug("fodx:%d fody:%d overlay_area:%d", cd->fodx, cd->fody, overlay_area);
 			input_report_key(cd->input_dev, KEY_GESTURE, 1);
 			input_mt_slot(cd->input_dev, 0);
 			input_mt_report_slot_state(cd->input_dev, MT_TOOL_FINGER, 1);
-			input_report_abs(cd->input_dev, ABS_MT_POSITION_X, fodx);
-			input_report_abs(cd->input_dev, ABS_MT_POSITION_Y, fody);
+			input_report_abs(cd->input_dev, ABS_MT_POSITION_X, cd->fodx);
+			input_report_abs(cd->input_dev, ABS_MT_POSITION_Y, cd->fody);
 			input_report_abs(cd->input_dev, ABS_MT_WIDTH_MAJOR, overlay_area);
 			input_sync(cd->input_dev);
 		} else {
@@ -305,8 +329,10 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 	case GOODIX_GESTURE_FOD_UP:
 		if (cd->gesture_type & GESTURE_FOD_PRESS) {
 			ts_info("get FOD-UP gesture");
-			fodx = le16_to_cpup((__le16 *)gs_event.gesture_data);
-			fody = le16_to_cpup((__le16 *)(gs_event.gesture_data + 2));
+			cd->finger_in_fod = false;
+			cd->fodx = le16_to_cpup((__le16 *)gs_event.gesture_data);
+			cd->fody = le16_to_cpup((__le16 *)(gs_event.gesture_data + 2));
+			sysfs_notify(&gsx_gesture->module.kobj, NULL, "fp_state");
 			overlay_area = gs_event.gesture_data[4];
 			input_report_key(cd->input_dev, KEY_GESTURE, 0);
 			input_mt_slot(cd->input_dev, 0);

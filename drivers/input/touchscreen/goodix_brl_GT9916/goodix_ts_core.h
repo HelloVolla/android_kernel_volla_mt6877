@@ -515,6 +515,9 @@ struct goodix_ts_core {
 	struct regulator *avdd;
 	struct regulator *iovdd;
 	unsigned char gesture_type;
+	bool finger_in_fod;
+	int fodx;
+	int fody;
 	int power_on;
 	int irq;
 	size_t irq_trig_cnt;
