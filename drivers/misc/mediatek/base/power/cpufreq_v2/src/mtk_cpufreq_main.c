@@ -165,7 +165,7 @@ void set_cur_freq_wrapper(struct mt_cpu_dvfs *p,
 		cpu_dvfs_get_name(p), idx, cpu_dvfs_get_freq_by_idx(p, idx));
 
 	if (!p->armpll_is_available) {
-		tag_pr_notice("%s: armpll not available, cur_khz = %d, target_khz = %d\n",
+		tag_pr_debug("%s: armpll not available, cur_khz = %d, target_khz = %d\n",
 			cpu_dvfs_get_name(p), cur_khz, target_khz);
 	}
 
@@ -313,7 +313,7 @@ int set_cur_volt_wrapper(struct mt_cpu_dvfs *p, unsigned int volt)
 		cpu_dvfs_get_name(vsram_p), cur_vsram);
 
 	if (cur_vproc == 0) {
-		tag_pr_notice("@%s():%d, can not use ext buck!\n",
+		tag_pr_debug("@%s():%d, can not use ext buck!\n",
 			__func__, __LINE__);
 		return -1;
 	}
@@ -448,7 +448,7 @@ static void dump_all_opp_table(void)
 	struct mt_cpu_dvfs *p;
 
 	for_each_cpu_dvfs(i, p) {
-		tag_pr_notice("[%s/%d] available = %d, oppidx = %d (%u, %u)\n",
+		tag_pr_debug("[%s/%d] available = %d, oppidx = %d (%u, %u)\n",
 			p->name, p->cpu_id, p->armpll_is_available,
 			p->idx_opp_tbl,
 			cpu_dvfs_get_freq_by_idx(p, p->idx_opp_tbl),
@@ -477,7 +477,7 @@ static int _cpufreq_set_locked(struct cpufreq_policy *policy,
 		return 0;
 
 	if (!policy) {
-		tag_pr_notice("Can't get policy of %s\n", cpu_dvfs_get_name(p));
+		tag_pr_debug("Can't get policy of %s\n", cpu_dvfs_get_name(p));
 		goto out;
 	}
 
@@ -550,7 +550,7 @@ static int _cpufreq_set_locked(struct cpufreq_policy *policy,
 		unsigned int freq = pll_p->pll_ops->get_cur_freq(pll_p);
 
 		if (volt < target_volt || freq != target_khz) {
-			tag_pr_notice("volt = %u, target_volt = %u, freq = %u, target_khz = %u\n",
+			tag_pr_debug("volt = %u, target_volt = %u, freq = %u, target_khz = %u\n",
 				volt, target_volt, freq, target_khz);
 			dump_all_opp_table();
 		}
@@ -1162,18 +1162,18 @@ static int _mt_cpufreq_init(struct cpufreq_policy *policy)
 	}
 
 	if (dev_pm_opp_of_get_sharing_cpus(cpu_dev, policy->cpus))
-		tag_pr_notice("failed to share opp framework table\n");
+		tag_pr_debug("failed to share opp framework table\n");
 
 	if (dev_pm_opp_of_cpumask_add_table(policy->cpus))
-		tag_pr_notice("failed to add opp framework table\n");
+		tag_pr_debug("failed to add opp framework table\n");
 
 	pd_ret = em_register_perf_domain(policy->cpus, NR_FREQ, &em_cb);
 
 	if (pd_ret)
-		tag_pr_notice("energy model regist fail\n");
+		tag_pr_debug("energy model regist fail\n");
 
 	if (ret)
-		tag_pr_notice("failed to setup frequency table\n");
+		tag_pr_debug("failed to setup frequency table\n");
 
 	FUNC_EXIT(FUNC_LV_MODULE);
 

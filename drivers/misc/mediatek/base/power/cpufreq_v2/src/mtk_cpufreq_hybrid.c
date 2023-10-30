@@ -122,7 +122,7 @@ int Ripi_cpu_dvfs_thread(void *data)
 	unsigned int tmp_limit;
 	unsigned int tmp_base;
 
-	/* tag_pr_info("CPU DVFS received thread\n"); */
+	/* tag_pr_debug("CPU DVFS received thread\n"); */
 	cpufreq_act.data = (void *)cpufreq_buf;
 	ret = sspm_ipi_recv_registration_ex(IPI_ID_CPU_DVFS,
 		&cpudvfs_lock, &cpufreq_act);
@@ -136,16 +136,16 @@ int Ripi_cpu_dvfs_thread(void *data)
 		return (-1);
 	}
 /*
- * tag_pr_info("sspm_ipi_recv_registration IPI_ID_CPU_DVFS pass!!(%d)\n",
+ * tag_pr_debug("sspm_ipi_recv_registration IPI_ID_CPU_DVFS pass!!(%d)\n",
  * ret);
  */
 
 	/* an endless loop in which we are doing our work */
 	do {
-		/* tag_pr_info("sspm_ipi_recv_wait IPI_ID_CPU_DVFS\n"); */
+		/* tag_pr_debug("sspm_ipi_recv_wait IPI_ID_CPU_DVFS\n"); */
 		sspm_ipi_recv_wait(IPI_ID_CPU_DVFS);
 /*
- * tag_pr_info("Info: CPU DVFS thread received ID=%d, i=%d\n",
+ * tag_pr_debug("Info: CPU DVFS thread received ID=%d, i=%d\n",
  * cpufreq_act.id, i);
  */
 		spin_lock_irqsave(&cpudvfs_lock, flags);
@@ -331,7 +331,7 @@ int dvfs_to_spm2_command(u32 cmd, struct cdvfs_data *cdvfs_d)
 			IPI_OPT_POLLING, cdvfs_d, len, &ack_data, 1);
 		aee_record_cpu_dvfs_cb(7);
 		if (ret != 0) {
-			tag_pr_notice("ret = %d, set cluster%d ON/OFF state to %d\n",
+			tag_pr_debug("ret = %d, set cluster%d ON/OFF state to %d\n",
 				ret, cdvfs_d->u.set_fv.arg[0],
 				cdvfs_d->u.set_fv.arg[1]);
 #if 0
@@ -339,7 +339,7 @@ int dvfs_to_spm2_command(u32 cmd, struct cdvfs_data *cdvfs_d)
 				__func__, __LINE__, ret);
 #endif
 		} else if (ack_data < 0) {
-			tag_pr_notice("ret = %d, set cluster%d ON/OFF state to %d\n",
+			tag_pr_debug("ret = %d, set cluster%d ON/OFF state to %d\n",
 				ret, cdvfs_d->u.set_fv.arg[0],
 				cdvfs_d->u.set_fv.arg[1]);
 #if 0
@@ -845,7 +845,7 @@ void cpuhvfs_pvt_tbl_create(void)
 	unsigned int lv = _mt_cpufreq_get_cpu_level();
 
 	recordRef = ioremap_nocache(DBG_REPO_TBL_S, PVT_TBL_SIZE);
-	tag_pr_info("DVFS - @(Record)%s----->(%p)\n", __func__, recordRef);
+	tag_pr_debug("DVFS - @(Record)%s----->(%p)\n", __func__, recordRef);
 	memset_io((u8 *)recordRef, 0x00, PVT_TBL_SIZE);
 
 	recordTbl = xrecordTbl[lv];
@@ -987,7 +987,7 @@ static int create_cpuhvfs_debug_fs(void)
 	/* create /proc/cpuhvfs */
 	dir = proc_mkdir("cpuhvfs", NULL);
 	if (!dir) {
-		tag_pr_notice("fail to create /proc/cpuhvfs @ %s()\n",
+		tag_pr_debug("fail to create /proc/cpuhvfs @ %s()\n",
 			__func__);
 		return -ENOMEM;
 	}
@@ -995,7 +995,7 @@ static int create_cpuhvfs_debug_fs(void)
 	for (i = 0; i < ARRAY_SIZE(entries); i++) {
 		if (!proc_create_data(entries[i].name, 0664,
 			dir, entries[i].fops, entries[i].data))
-			tag_pr_notice("%s(), create /proc/cpuhvfs/%s failed\n",
+			tag_pr_debug("%s(), create /proc/cpuhvfs/%s failed\n",
 				__func__,
 				    entries[i].name);
 	}
@@ -1008,13 +1008,13 @@ int cpuhvfs_module_init(void)
 	int r;
 
 	if (!log_repo) {
-		tag_pr_notice("FAILED TO PRE-INIT CPUHVFS\n");
+		tag_pr_debug("FAILED TO PRE-INIT CPUHVFS\n");
 		return -ENODEV;
 	}
 
 	r = create_cpuhvfs_debug_fs();
 	if (r) {
-		tag_pr_notice("FAILED TO CREATE DEBUG FILESYSTEM (%d)\n", r);
+		tag_pr_debug("FAILED TO CREATE DEBUG FILESYSTEM (%d)\n", r);
 		return r;
 	}
 
@@ -1032,11 +1032,11 @@ static int dvfsp_module_init(void)
 
 	r = platform_driver_register(&_mt_dvfsp_pdrv);
 	if (r)
-		tag_pr_notice("fail to register sspm driver @ %s()\n",
+		tag_pr_debug("fail to register sspm driver @ %s()\n",
 			__func__);
 
 	if (!dvfsp_probe_done) {
-		tag_pr_notice("FAILED TO PROBE SSPM DEVICE\n");
+		tag_pr_debug("FAILED TO PROBE SSPM DEVICE\n");
 		return -ENODEV;
 	}
 
@@ -1086,7 +1086,7 @@ static int cpuhvfs_pre_module_init(void)
 
 	r = dvfsp_module_init();
 	if (r) {
-		tag_pr_notice("FAILED TO INIT DVFS SSPM (%d)\n", r);
+		tag_pr_debug("FAILED TO INIT DVFS SSPM (%d)\n", r);
 		return r;
 	}
 

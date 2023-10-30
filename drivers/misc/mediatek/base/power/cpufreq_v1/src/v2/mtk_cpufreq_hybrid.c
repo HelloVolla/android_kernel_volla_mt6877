@@ -206,7 +206,7 @@ int Ripi_cpu_dvfs_thread(void *data)
 	ret = sspm_ipi_recv_registration_ex(IPI_ID_CPU_DVFS,
 						&cpudvfs_lock, &cpufreq_act);
 	if (ret != 0) {
-		tag_pr_notice
+		tag_pr_debug
 		("Error: ipi_recv_registration CPU DVFS error: %d\n", ret);
 		do {
 			msleep(1000);
@@ -512,7 +512,7 @@ int dvfs_to_mcupm_command(u32 cmd, struct cdvfs_data *cdvfs_d)
 
 		aee_record_cpu_dvfs_cb(7);
 		if (ret != 0) {
-			tag_pr_notice
+			tag_pr_debug
 			("ret = %d, set cluster%d ON/OFF state to %d\n",
 				ret, cdvfs_d->u.set_fv.arg[0],
 				cdvfs_d->u.set_fv.arg[1]);
@@ -521,7 +521,7 @@ int dvfs_to_mcupm_command(u32 cmd, struct cdvfs_data *cdvfs_d)
 			__func__, __LINE__, ret);
 #endif
 		} else {
-			tag_pr_notice
+			tag_pr_debug
 			("ret = %d, set cluster%d ON/OFF state to %d\n",
 			ret, cdvfs_d->u.set_fv.arg[0],
 			cdvfs_d->u.set_fv.arg[1]);
@@ -766,7 +766,7 @@ int dvfs_to_spm2_command(u32 cmd, struct cdvfs_data *cdvfs_d)
 		cdvfs_d, len, &ack_data, 1);
 		aee_record_cpu_dvfs_cb(7);
 		if (ret != 0) {
-			tag_pr_notice
+			tag_pr_debug
 			("ret = %d, set cluster%d ON/OFF state to %d\n",
 				ret, cdvfs_d->u.set_fv.arg[0],
 				cdvfs_d->u.set_fv.arg[1]);
@@ -775,7 +775,7 @@ int dvfs_to_spm2_command(u32 cmd, struct cdvfs_data *cdvfs_d)
 			__func__, __LINE__, ret);
 #endif
 		} else if (ack_data < 0) {
-			tag_pr_notice
+			tag_pr_debug
 			("ret = %d, set cluster%d ON/OFF state to %d\n",
 			ret, cdvfs_d->u.set_fv.arg[0],
 			cdvfs_d->u.set_fv.arg[1]);
@@ -1003,7 +1003,7 @@ void srate_doe(void)
 	ret = of_property_read_u32(node, "change_flag", &d->change_flag);
 
 	if (ret)
-		tag_pr_info("Cant find change_flag attr\n");
+		tag_pr_debug("Cant find change_flag attr\n");
 
 	if (!d->change_flag)
 		return;
@@ -1011,7 +1011,7 @@ void srate_doe(void)
 	/* little up srate */
 	ret = of_property_read_u32(node,
 			"little-rise-time", &d->lt_rs_t);
-	tag_pr_notice("@@~%s DVFS little rise time = %d\n",
+	tag_pr_debug("@@~%s DVFS little rise time = %d\n",
 			__func__, d->lt_rs_t);
 	if (ret)
 		csram_write(OFFS_VOLT2_RISE, UP_SRATE);
@@ -1020,7 +1020,7 @@ void srate_doe(void)
 	/* little fall srate */
 	ret = of_property_read_u32(node, "little-down-time",
 			&d->lt_dw_t);
-	tag_pr_notice("@@~%s DVFS little down time = %d\n", __func__,
+	tag_pr_debug("@@~%s DVFS little down time = %d\n", __func__,
 			d->lt_dw_t);
 	if (ret)
 		csram_write(OFFS_VOLT2_FALL, DOWN_SRATE);
@@ -1029,7 +1029,7 @@ void srate_doe(void)
 	/* big raise srate */
 	ret = of_property_read_u32(node, "big-rise-time",
 			&d->bg_rs_t);
-	tag_pr_notice("@@~%s DVFS big raise time = %d\n", __func__,
+	tag_pr_debug("@@~%s DVFS big raise time = %d\n", __func__,
 			d->bg_rs_t);
 	if (ret)
 		csram_write(OFFS_VOLT1_RISE, UP_SRATE);
@@ -1039,7 +1039,7 @@ void srate_doe(void)
 	/* big fall srate */
 	ret = of_property_read_u32(node, "big-down-time",
 			&d->bg_dw_t);
-	tag_pr_notice("@@~%s DVFS big down time = %d\n", __func__,
+	tag_pr_debug("@@~%s DVFS big down time = %d\n", __func__,
 			d->bg_dw_t);
 	if (ret)
 		csram_write(OFFS_VOLT1_FALL, DOWN_SRATE);
@@ -1064,7 +1064,7 @@ static int _mt_dvfsp_pdrv_probe(struct platform_device *pdev)
 	ret = of_property_read_u32(pdev->dev.of_node,
 			"change_flag", &d->change_flag);
 	if (ret)
-		tag_pr_info("Cant find change_flag attr\n");
+		tag_pr_debug("Cant find change_flag attr\n");
 	if (d->change_flag) {
 		for (i = 0; i < NR_MT_CPU_DVFS; i++) {
 			flag = 0;
@@ -1072,12 +1072,12 @@ static int _mt_dvfsp_pdrv_probe(struct platform_device *pdev)
 					d->dtsn[i],
 			d->dts_opp_tbl[i], ARRAY_SIZE(d->dts_opp_tbl[i]));
 			if (ret)
-				tag_pr_info("Cant find %s node\n", d->dtsn[i]);
+				tag_pr_debug("Cant find %s node\n", d->dtsn[i]);
 		else {
 			for (j = 0; j < ARRAY_SIZE(d->dts_opp_tbl[i]); j++) {
 				if (!d->dts_opp_tbl[i][j]) {
 					flag = 1;
-					tag_pr_info
+					tag_pr_debug
 					("@@ %s contain illegal value\n",
 					d->dtsn[i]);
 					break;
@@ -1088,7 +1088,7 @@ static int _mt_dvfsp_pdrv_probe(struct platform_device *pdev)
 		}
 #if 0
 		for (j = 0; j < NR_FREQ * ARRAY_COL_SIZE; j++)
-			tag_pr_info("@@@ %d pvt[%d] = %u\n",
+			tag_pr_debug("@@@ %d pvt[%d] = %u\n",
 					i, j, d->dts_opp_tbl[i][j]);
 #endif
 	}
@@ -1684,7 +1684,7 @@ void update_pvt_tbl_by_doe(void)
 			memcpy(&(*(recordTbl + (NR_FREQ * i) * ARRAY_COL_SIZE)),
 				d->dts_opp_tbl[i], sizeof(d->dts_opp_tbl[i]));
 #if 0
-			tag_pr_info("@@@[%s] %d update doe_flag = %d\n",
+			tag_pr_debug("@@@[%s] %d update doe_flag = %d\n",
 					__func__, i, d->doe_flag);
 #endif
 		}
@@ -1709,7 +1709,7 @@ void cpuhvfs_pvt_tbl_create(void)
 #endif
 
 	recordRef = ioremap_nocache(DBG_REPO_TBL_S, PVT_TBL_SIZE);
-	tag_pr_info("DVFS - @(Record)%s----->(%p)\n", __func__, recordRef);
+	tag_pr_debug("DVFS - @(Record)%s----->(%p)\n", __func__, recordRef);
 	memset_io((u8 *)recordRef, 0x00, PVT_TBL_SIZE);
 
 	recordTbl = xrecordTbl[lv];
@@ -1805,7 +1805,7 @@ void cpuhvfs_pvt_tbl_create(void)
 
 #ifdef CCI_MAP_TBL_SUPPORT
 	record_CCI_Ref = ioremap_nocache(DBG_REPO_CCI_TBL_S, PVT_CCI_TBL_SIZE);
-	tag_pr_info("DVFS - @(Record)%s----->(%p)\n", __func__, record_CCI_Ref);
+	tag_pr_debug("DVFS - @(Record)%s----->(%p)\n", __func__, record_CCI_Ref);
 	memset_io((u8 *)record_CCI_Ref, 0x00, PVT_CCI_TBL_SIZE);
 
 	record_CCI_Tbl = xrecord_CCI_Tbl[lv];
@@ -1826,11 +1826,11 @@ void cpuhvfs_pvt_tbl_create(void)
 	node = of_find_compatible_node(NULL, NULL, DVFSP_DT_NODE);
 	ret = of_property_read_u32(node, "imax_state", &imax_state);
 	if (ret)
-		tag_pr_info(" %s Cant find imax state node\n", __func__);
+		tag_pr_debug(" %s Cant find imax state node\n", __func__);
 #endif
 	record_IMAX_Ref = ioremap_nocache(DBG_REPO_IMAX_TBL_S,
 			PVT_IMAX_TBL_SIZE);
-	tag_pr_info("DVFS - @(IMAX Record)%s----->(%p)\n", __func__,
+	tag_pr_debug("DVFS - @(IMAX Record)%s----->(%p)\n", __func__,
 			record_IMAX_Ref);
 	memset_io((u8 *)record_IMAX_Ref, 0x00, PVT_IMAX_TBL_SIZE);
 
@@ -1905,7 +1905,7 @@ static int create_cpuhvfs_debug_fs(void)
 	/* create /proc/cpuhvfs */
 	dir = proc_mkdir("cpuhvfs", NULL);
 	if (!dir) {
-		tag_pr_notice("fail to create /proc/cpuhvfs @ %s()\n",
+		tag_pr_debug("fail to create /proc/cpuhvfs @ %s()\n",
 								__func__);
 		return -ENOMEM;
 	}
@@ -1913,7 +1913,7 @@ static int create_cpuhvfs_debug_fs(void)
 	for (i = 0; i < ARRAY_SIZE(entries); i++) {
 		if (!proc_create_data(entries[i].name, 0664,
 		    dir, entries[i].fops, entries[i].data))
-			tag_pr_notice("%s(), create /proc/cpuhvfs/%s failed\n",
+			tag_pr_debug("%s(), create /proc/cpuhvfs/%s failed\n",
 						__func__, entries[i].name);
 	}
 
@@ -1925,13 +1925,13 @@ int cpuhvfs_module_init(void)
 	int r;
 
 	if (!log_repo) {
-		tag_pr_notice("FAILED TO PRE-INIT CPUHVFS\n");
+		tag_pr_debug("FAILED TO PRE-INIT CPUHVFS\n");
 		return -ENODEV;
 	}
 
 	r = create_cpuhvfs_debug_fs();
 	if (r) {
-		tag_pr_notice("FAILED TO CREATE DEBUG FILESYSTEM (%d)\n", r);
+		tag_pr_debug("FAILED TO CREATE DEBUG FILESYSTEM (%d)\n", r);
 		return r;
 	}
 
@@ -1947,19 +1947,19 @@ static int dvfsp_module_init(void)
 {
 	int r;
 
-	tag_pr_notice("@@!start %s\n", __func__);
+	tag_pr_debug("@@!start %s\n", __func__);
 	r = platform_driver_register(&_mt_dvfsp_pdrv);
 	if (r)
-		tag_pr_notice("fail to register dvfs driver @ %s()\n",
+		tag_pr_debug("fail to register dvfs driver @ %s()\n",
 								__func__);
 
 	if (!dvfsp_probe_done) {
-		tag_pr_notice("fail to probe dvfs\n");
+		tag_pr_debug("fail to probe dvfs\n");
 		return -ENODEV;
 	}
 
 	log_repo = csram_base;
-	tag_pr_notice("@@!end %s\n", __func__);
+	tag_pr_debug("@@!end %s\n", __func__);
 	return 0;
 }
 
@@ -2013,16 +2013,16 @@ static int cpuhvfs_pre_module_init(void)
 	node = of_find_compatible_node(NULL, NULL, DVFSP_DT_NODE);
 	ret = of_property_read_u32(node, "state", &d->state);
 	if (ret)
-		tag_pr_info(" %s Cant find state node\n", __func__);
+		tag_pr_debug(" %s Cant find state node\n", __func__);
 
-	tag_pr_notice("@@~%s DVFS state = %d\n", __func__, d->state);
+	tag_pr_debug("@@~%s DVFS state = %d\n", __func__, d->state);
 	if (!d->state)
 		return 0;
 #endif
 
 	r = dvfsp_module_init();
 	if (r) {
-		tag_pr_notice("FAILED TO INIT DVFS MODULE(%d)\n", r);
+		tag_pr_debug("FAILED TO INIT DVFS MODULE(%d)\n", r);
 		return r;
 	}
 

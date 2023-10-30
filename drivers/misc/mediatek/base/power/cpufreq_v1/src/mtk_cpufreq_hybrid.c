@@ -1000,7 +1000,7 @@ void srate_doe(void)
 	ret = of_property_read_u32(node, "change_flag", &d->change_flag);
 
 	if (ret)
-		tag_pr_info("Cant find change_flag attr\n");
+		tag_pr_debug("Cant find change_flag attr\n");
 
 	if (!d->change_flag)
 		return;
@@ -1061,7 +1061,7 @@ static int _mt_dvfsp_pdrv_probe(struct platform_device *pdev)
 	ret = of_property_read_u32(pdev->dev.of_node,
 			"change_flag", &d->change_flag);
 	if (ret)
-		tag_pr_info("Cant find change_flag attr\n");
+		tag_pr_debug("Cant find change_flag attr\n");
 	if (d->change_flag) {
 		for (i = 0; i < NR_MT_CPU_DVFS; i++) {
 			flag = 0;
@@ -1069,12 +1069,12 @@ static int _mt_dvfsp_pdrv_probe(struct platform_device *pdev)
 					d->dtsn[i],
 			d->dts_opp_tbl[i], ARRAY_SIZE(d->dts_opp_tbl[i]));
 			if (ret)
-				tag_pr_info("Cant find %s node\n", d->dtsn[i]);
+				tag_pr_debug("Cant find %s node\n", d->dtsn[i]);
 			else {
 				for (j = 0; j < ARRAY_SIZE(d->dts_opp_tbl[i]); j++) {
 					if (!d->dts_opp_tbl[i][j]) {
 						flag = 1;
-						tag_pr_info
+						tag_pr_debug
 						("@@ %s contain illegal value\n",
 						d->dtsn[i]);
 						break;
@@ -1712,7 +1712,7 @@ void __init cpuhvfs_pvt_tbl_create(void)
 
 	lv = _mt_cpufreq_get_cpu_level();
 	recordRef = ioremap_nocache(DBG_REPO_TBL_S, PVT_TBL_SIZE);
-	tag_pr_info("DVFS - @(Record)%s----->(%p)\n", __func__, recordRef);
+	tag_pr_debug("DVFS - @(Record)%s----->(%p)\n", __func__, recordRef);
 	memset_io((u8 *)recordRef, 0x00, PVT_TBL_SIZE);
 
 	recordTbl = xrecordTbl[lv];
@@ -1812,7 +1812,7 @@ void __init cpuhvfs_pvt_tbl_create(void)
 
 #ifdef CCI_MAP_TBL_SUPPORT
 	record_CCI_Ref = ioremap_nocache(DBG_REPO_CCI_TBL_S, PVT_CCI_TBL_SIZE);
-	tag_pr_info("DVFS - @(Record)%s----->(%p)\n", __func__, record_CCI_Ref);
+	tag_pr_debug("DVFS - @(Record)%s----->(%p)\n", __func__, record_CCI_Ref);
 	memset_io((u8 *)record_CCI_Ref, 0x00, PVT_CCI_TBL_SIZE);
 
 	record_CCI_Tbl = xrecord_CCI_Tbl[lv];
@@ -1833,11 +1833,11 @@ void __init cpuhvfs_pvt_tbl_create(void)
 	node = of_find_compatible_node(NULL, NULL, DVFSP_DT_NODE);
 	ret = of_property_read_u32(node, "imax_state", &imax_state);
 	if (ret)
-		tag_pr_info(" %s Cant find imax state node\n", __func__);
+		tag_pr_debug(" %s Cant find imax state node\n", __func__);
 #endif
 	record_IMAX_Ref = ioremap_nocache(DBG_REPO_IMAX_TBL_S,
 			PVT_IMAX_TBL_SIZE);
-	tag_pr_info("DVFS - @(IMAX Record)%s----->(%p)\n", __func__,
+	tag_pr_debug("DVFS - @(IMAX Record)%s----->(%p)\n", __func__,
 			record_IMAX_Ref);
 	memset_io((u8 *)record_IMAX_Ref, 0x00, PVT_IMAX_TBL_SIZE);
 
