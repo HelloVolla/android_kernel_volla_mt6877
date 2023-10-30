@@ -807,7 +807,7 @@ static irqreturn_t mtk_axi_interrupt(int irq, void *dev_instance)
 	kalSetIntEvent(prGlueInfo);
 #if AXI_ISR_DEBUG_LOG
 	if (__ratelimit(&_rs))
-		LOG_FUNC("In HIF ISR.\n");
+		pr_debug("In HIF ISR.\n");
 #endif
 
 	return IRQ_HANDLED;

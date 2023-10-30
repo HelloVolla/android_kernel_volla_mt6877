@@ -132,7 +132,7 @@ static _osal_inline_ VOID stp_dbg_cpupcr_deinit(P_STP_DBG_CPUPCR_T pCpupcr);
 
 INT32 __weak mtk_btif_rxd_be_blocked_flag_get(VOID)
 {
-	STP_DBG_PR_INFO("mtk_btif_rxd_be_blocked_flag_get is not define!!!\n");
+	STP_DBG_PR_DBG("mtk_btif_rxd_be_blocked_flag_get is not define!!!\n");
 	return 0;
 }
 
@@ -222,7 +222,7 @@ static _osal_inline_ P_WCN_CORE_DUMP_T stp_dbg_core_dump_init(UINT32 timeout)
 	osal_sleepable_lock_init(&core_dmp->dmp_lock);
 
 	core_dmp->sm = CORE_DUMP_INIT;
-	STP_DBG_PR_INFO("create coredump object OK!\n");
+	STP_DBG_PR_DBG("create coredump object OK!\n");
 
 	return core_dmp;
 }
@@ -326,7 +326,7 @@ static _osal_inline_ INT32 stp_dbg_core_dump_in(P_WCN_CORE_DUMP_T dmp, PUINT8 bu
 		/* parsing data, and check end srting */
 		ret = stp_dbg_core_dump_check_end(buf, len);
 		if (ret == 1) {
-			STP_DBG_PR_INFO("core dump end!\n");
+			STP_DBG_PR_DBG("core dump end!\n");
 			dmp->sm = CORE_DUMP_DONE;
 			stp_dbg_compressor_in(dmp->compressor, buf, len, 0, 0);
 		} else {
@@ -339,7 +339,7 @@ static _osal_inline_ INT32 stp_dbg_core_dump_in(P_WCN_CORE_DUMP_T dmp, PUINT8 bu
 		/* parsing data, and check end srting */
 		ret = stp_dbg_core_dump_check_end(buf, len);
 		if (ret == 1) {
-			STP_DBG_PR_INFO("core dump end!\n");
+			STP_DBG_PR_DBG("core dump end!\n");
 			dmp->sm = CORE_DUMP_DONE;
 			stp_dbg_compressor_in(dmp->compressor, buf, len, 0, 0);
 		} else {
@@ -385,7 +385,7 @@ static _osal_inline_ INT32 stp_dbg_core_dump_post_handle(P_WCN_CORE_DUMP_T dmp)
 			issue_type = STP_HOST_TRIGGER_FW_ASSERT;
 		else
 			issue_type = STP_FW_ASSERT_ISSUE;
-		STP_DBG_PR_INFO("dmp->head_len = %d\n", dmp->head_len);
+		STP_DBG_PR_DBG("dmp->head_len = %d\n", dmp->head_len);
 		/*parse f/w assert additional informationi for f/w's analysis */
 		ret = stp_dbg_set_fw_info(dmp->p_head, dmp->head_len, issue_type);
 		if (ret) {
@@ -422,11 +422,11 @@ static _osal_inline_ INT32 stp_dbg_core_dump_post_handle(P_WCN_CORE_DUMP_T dmp)
 			    osal_strlen("Fw ABT Exception..."));
 		dmp->info[osal_strlen(INFO_HEAD) + osal_strlen("Fw ABT Exception...") + 1] = '\0';
 	} else {
-		STP_DBG_PR_INFO(" <ASSERT> string not found, dmp->head_len:%d\n", dmp->head_len);
+		STP_DBG_PR_DBG(" <ASSERT> string not found, dmp->head_len:%d\n", dmp->head_len);
 		if (dmp->p_head == NULL)
-			STP_DBG_PR_INFO(" dmp->p_head is NULL\n");
+			STP_DBG_PR_DBG(" dmp->p_head is NULL\n");
 		else
-			STP_DBG_PR_INFO(" dmp->p_head:%s\n", dmp->p_head);
+			STP_DBG_PR_DBG(" dmp->p_head:%s\n", dmp->p_head);
 
 		/* first package, copy to info buffer */
 		osal_strcpy(&dmp->info[0], INFO_HEAD);
@@ -518,7 +518,7 @@ INT32 stp_dbg_core_dump_flush(INT32 rst, MTK_WCN_BOOL coredump_is_timeout)
 	stp_dbg_core_dump_post_handle(g_core_dump);
 	osal_unlock_sleepable_lock(&g_core_dump->dmp_lock);
 	stp_dbg_core_dump_out(g_core_dump, &pbuf, &len);
-	STP_DBG_PR_INFO("buf 0x%zx, len %d\n", (SIZE_T) pbuf, len);
+	STP_DBG_PR_DBG("buf 0x%zx, len %d\n", (SIZE_T) pbuf, len);
 
 #if IS_ENABLED(CONFIG_MTK_AEE_AED)
 	/* show coredump end info on UI */
@@ -564,7 +564,7 @@ static _osal_inline_ INT32 stp_dbg_core_dump_nl(P_WCN_CORE_DUMP_T dmp, PUINT8 bu
 		/* check end srting */
 		ret = stp_dbg_core_dump_check_end(buf, len);
 		if (ret == 1) {
-			STP_DBG_PR_INFO("core dump end!\n");
+			STP_DBG_PR_DBG("core dump end!\n");
 			osal_timer_stop(&dmp->dmp_timer);
 			dmp->sm = CORE_DUMP_INIT;
 		} else {
@@ -576,7 +576,7 @@ static _osal_inline_ INT32 stp_dbg_core_dump_nl(P_WCN_CORE_DUMP_T dmp, PUINT8 bu
 		/* check end srting */
 		ret = stp_dbg_core_dump_check_end(buf, len);
 		if (ret == 1) {
-			STP_DBG_PR_INFO("core dump end!\n");
+			STP_DBG_PR_DBG("core dump end!\n");
 			osal_timer_stop(&dmp->dmp_timer);
 			dmp->sm = CORE_DUMP_INIT;
 		} else {
@@ -670,7 +670,7 @@ INT32 stp_dbg_trigger_collect_ftrace(PUINT8 pbuf, INT32 len)
 		aed_combo_exception(NULL, 0, (const PINT32)pbuf, len, (const PINT8)g_core_dump->info);
 #endif
 	} else {
-		STP_DBG_PR_INFO("g_core_dump is not initialized\n");
+		STP_DBG_PR_DBG("g_core_dump is not initialized\n");
 #if IS_ENABLED(CONFIG_MTK_AEE_AED)
 		aed_combo_exception(NULL, 0, (const PINT32)pbuf, len, (const PINT8)pbuf);
 #endif
@@ -784,7 +784,7 @@ static _osal_inline_ P_WCN_COMPRESSOR_T stp_dbg_compressor_init(PUINT8 name, INT
 		ret = zlib_deflateInit2(pstream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, -MAX_WBITS,
 				  DEF_MEM_LEVEL, Z_DEFAULT_STRATEGY);
 		if (ret != Z_OK) {
-			STP_DBG_PR_INFO("[%s::%d] zlib_deflateInit2 failed!\n", __func__, __LINE__);
+			STP_DBG_PR_DBG("[%s::%d] zlib_deflateInit2 failed!\n", __func__, __LINE__);
 			goto fail;
 		}
 	}
@@ -809,7 +809,7 @@ static _osal_inline_ P_WCN_COMPRESSOR_T stp_dbg_compressor_init(PUINT8 name, INT
 		goto fail;
 	}
 
-	STP_DBG_PR_INFO("create compressor OK! L1 %d bytes, L2 %d bytes\n", L1_buf_sz, L2_buf_sz);
+	STP_DBG_PR_DBG("create compressor OK! L1 %d bytes, L2 %d bytes\n", L1_buf_sz, L2_buf_sz);
 	return compress;
 
 fail:
@@ -883,7 +883,7 @@ static _osal_inline_ INT32 stp_dbg_compressor_deinit(P_WCN_COMPRESSOR_T cprs)
 		osal_free(cprs);
 	}
 
-	STP_DBG_PR_INFO("destroy OK\n");
+	STP_DBG_PR_DBG("destroy OK\n");
 
 	return 0;
 }
@@ -945,7 +945,7 @@ static _osal_inline_ INT32 stp_dbg_compressor_in(P_WCN_COMPRESSOR_T cprs, PUINT8
 		} else {
 			/* no need compress */
 			/* Flush L1 buffer to L2 buffer */
-			STP_DBG_PR_INFO("No need do compress, Put to L2 buf\n");
+			STP_DBG_PR_DBG("No need do compress, Put to L2 buf\n");
 
 			tmp_len = cprs->L2_buf_sz - cprs->L2_pos;
 			tmp_len = (cprs->L1_pos > tmp_len) ? tmp_len : cprs->L1_pos;
@@ -1019,7 +1019,7 @@ static _osal_inline_ INT32 stp_dbg_compressor_out(P_WCN_COMPRESSOR_T cprs, PPUIN
 				*(uint32_t *) (&cprs->L2_buf[cprs->L2_pos + 4]) = cprs->uncomp_size;
 				cprs->L2_pos += 8;
 
-				STP_DBG_PR_INFO("compress OK!\n");
+				STP_DBG_PR_DBG("compress OK!\n");
 			} else {
 				STP_DBG_PR_ERR("compress error!\n");
 			}
@@ -1036,7 +1036,7 @@ static _osal_inline_ INT32 stp_dbg_compressor_out(P_WCN_COMPRESSOR_T cprs, PPUIN
 	*pbuf = cprs->L2_buf;
 	*plen = cprs->L2_pos;
 
-	STP_DBG_PR_INFO("0x%zx, len %d, l2_buf_remain %d\n", (SIZE_T)*pbuf, *plen, cprs->L2_buf_sz - cprs->L2_pos);
+	STP_DBG_PR_DBG("0x%zx, len %d, l2_buf_remain %d\n", (SIZE_T)*pbuf, *plen, cprs->L2_buf_sz - cprs->L2_pos);
 
 #if 1
 	ret = zlib_deflateReset((z_stream *) cprs->worker);
@@ -1073,7 +1073,7 @@ static _osal_inline_ INT32 stp_dbg_compressor_reset(P_WCN_COMPRESSOR_T cprs, UIN
 
 	/* zlib_deflateEnd((z_stream*)cprs->worker); */
 
-	STP_DBG_PR_INFO("OK! compress algorithm %d\n", type);
+	STP_DBG_PR_DBG("OK! compress algorithm %d\n", type);
 
 	return 0;
 }
@@ -1191,7 +1191,7 @@ static _osal_inline_ INT32 stp_dbg_dmp_in(MTKSTP_DBG_T *stp_dbg, PINT8 buf, INT3
 		pBuf = (PINT8)&(stp_dbg->logsys->queue[stp_dbg->logsys->in].buffer[0]) +
 			sizeof(STP_DBG_HDR_T);
 		length = stp_dbg->logsys->queue[stp_dbg->logsys->in].len - sizeof(STP_DBG_HDR_T);
-		pr_info("STP-DBG:%d.%ds, %s:pT%sn(%d)l(%d)s(%d)a(%d)\n",
+		pr_debug("STP-DBG:%d.%ds, %s:pT%sn(%d)l(%d)s(%d)a(%d)\n",
 			pHdr->sec,
 			pHdr->usec,
 			pHdr->dir == PKT_DIR_TX ? "Tx" : "Rx",
@@ -1244,7 +1244,7 @@ static VOID stp_dbg_dmp_print_work(struct work_struct *work)
 		pBuf = &(queue[i].buffer[0]) + sizeof(STP_DBG_HDR_T);
 		len = queue[i].len - sizeof(STP_DBG_HDR_T);
 		len = len > STP_PKT_SZ ? STP_PKT_SZ : len;
-		pr_info("STP-DBG:%d.%ds, %s:pT%sn(%d)l(%d)s(%d)a(%d), time[%llu.%06lu]\n",
+		pr_debug("STP-DBG:%d.%ds, %s:pT%sn(%d)l(%d)s(%d)a(%d), time[%llu.%06lu]\n",
 			pHdr->sec,
 			pHdr->usec,
 			pHdr->dir == PKT_DIR_TX ? "Tx" : "Rx",
@@ -1283,14 +1283,14 @@ INT32 stp_dbg_dmp_print(MTKSTP_DBG_T *stp_dbg)
 	dump_queue = vmalloc(sizeof(MTKSTP_LOG_ENTRY_T) * MAX_DMP_NUM);
 	if (dump_queue == NULL) {
 		stp_dbg->logsys->dump_queue = NULL;
-		pr_info("fail to allocate memory");
+		pr_debug("fail to allocate memory");
 		return -1;
 	}
 
 	if (spin_trylock_irqsave(&(stp_dbg->logsys->lock), flags) == 0) {
 		stp_dbg->logsys->dump_queue = NULL;
 		vfree(dump_queue);
-		pr_info("fail to get lock");
+		pr_debug("fail to get lock");
 		return -1;
 	}
 	/* Not to dequeue from loging system */
@@ -1332,7 +1332,7 @@ INT32 stp_dbg_dmp_print(MTKSTP_DBG_T *stp_dbg)
 	}
 
 	spin_unlock_irqrestore(&(stp_dbg->logsys->lock), flags);
-	STP_DBG_PR_INFO("loged packet size = %d, in(%d), out(%d)\n", dumpSize, inIndex, outIndex);
+	STP_DBG_PR_DBG("loged packet size = %d, in(%d), out(%d)\n", dumpSize, inIndex, outIndex);
 	schedule_work(&(stp_dbg->logsys->dump_work));
 	return 0;
 }
@@ -1504,10 +1504,10 @@ static _osal_inline_ INT32 stp_dbg_add_pkt(MTKSTP_DBG_T *stp_dbg, STP_DBG_HDR_T 
 	if (hdr->dbg_type == STP_DBG_FW_DMP) {
 		if (hdr->last_dbg_type != STP_DBG_FW_DMP) {
 
-			STP_DBG_PR_INFO
+			STP_DBG_PR_DBG
 			    ("reset stp_dbg logsys when queue fw coredump package(%d)\n",
 			     hdr->last_dbg_type);
-			STP_DBG_PR_INFO("dump 1st fw coredump package len(%d) for confirming\n",
+			STP_DBG_PR_DBG("dump 1st fw coredump package len(%d) for confirming\n",
 					  hdr->len);
 			spin_lock_irqsave(&(stp_dbg->logsys->lock), flags);
 			stp_dbg->logsys->in = 0;
@@ -1609,7 +1609,7 @@ static INT32 stp_dbg_nl_bind(struct sk_buff *skb, struct genl_info *info)
 	if (info == NULL)
 		goto out;
 
-	STP_DBG_PR_INFO("%s():->\n", __func__);
+	STP_DBG_PR_DBG("%s():->\n", __func__);
 
 	na = info->attrs[STP_DBG_ATTR_MSG];
 
@@ -1623,7 +1623,7 @@ static INT32 stp_dbg_nl_bind(struct sk_buff *skb, struct genl_info *info)
 		if (bind_pid[i] == 0) {
 			bind_pid[i] = info->snd_portid;
 			num_bind_process++;
-			STP_DBG_PR_INFO("%s():-> pid  = %d\n", __func__, info->snd_portid);
+			STP_DBG_PR_DBG("%s():-> pid  = %d\n", __func__, info->snd_portid);
 			break;
 		}
 	}
@@ -1696,7 +1696,7 @@ INT32 stp_dbg_nl_send(PINT8 aucMsg, UINT8 cmd, INT32 len)
 			/* sending message */
 			rc = genlmsg_unicast(&init_net, skb, bind_pid[i]);
 			if (rc != 0) {
-				STP_DBG_PR_INFO("%s(): genlmsg_unicast fail...: %d pid: %d\n",
+				STP_DBG_PR_DBG("%s(): genlmsg_unicast fail...: %d pid: %d\n",
 					__func__, rc, bind_pid[i]);
 				if (rc == -ECONNREFUSED) {
 					bind_pid[i] = 0;
@@ -1881,7 +1881,7 @@ static _osal_inline_ INT32 stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO
 					remain_array_len - 1);
 			g_stp_dbg_cpupcr->assert_info[STP_ASSERT_INFO_SIZE - 1] = '\0';
 		}
-		STP_DBG_PR_INFO("assert info:%s\n", &g_stp_dbg_cpupcr->assert_info[0]);
+		STP_DBG_PR_DBG("assert info:%s\n", &g_stp_dbg_cpupcr->assert_info[0]);
 		break;
 	case STP_DBG_FW_TASK_ID:
 		pDtr = osal_strstr(pStr, parser_sub_string[type]);
@@ -1910,7 +1910,7 @@ static _osal_inline_ INT32 stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO
 		}
 		g_stp_dbg_cpupcr->fwTaskId = (UINT32)res;
 
-		STP_DBG_PR_INFO("fw task id :%x\n", (UINT32)res);
+		STP_DBG_PR_DBG("fw task id :%x\n", (UINT32)res);
 		break;
 	case STP_DBG_FW_ISR:
 		pDtr = osal_strstr(pStr, parser_sub_string[type]);
@@ -1941,7 +1941,7 @@ static _osal_inline_ INT32 stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO
 		}
 		g_stp_dbg_cpupcr->fwIsr = (UINT32)res;
 
-		STP_DBG_PR_INFO("fw isr str:%x\n", (UINT32)res);
+		STP_DBG_PR_DBG("fw isr str:%x\n", (UINT32)res);
 		break;
 	case STP_DBG_FW_IRQ:
 		pDtr = osal_strstr(pStr, parser_sub_string[type]);
@@ -1970,7 +1970,7 @@ static _osal_inline_ INT32 stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO
 		}
 		g_stp_dbg_cpupcr->fwRrq = (UINT32)res;
 
-		STP_DBG_PR_INFO("fw irq value:%x\n", (UINT32)res);
+		STP_DBG_PR_DBG("fw irq value:%x\n", (UINT32)res);
 		break;
 	case STP_DBG_ASSERT_TYPE:
 		pDtr = osal_strstr(pStr, parser_sub_string[type]);
@@ -2020,10 +2020,10 @@ static _osal_inline_ INT32 stp_dbg_parser_assert_str(PINT8 str, ENUM_ASSERT_INFO
 			}
 			g_stp_dbg_cpupcr->fwTaskId = (UINT32)res;
 
-			STP_DBG_PR_INFO("update fw task id :%x\n", (UINT32)res);
+			STP_DBG_PR_DBG("update fw task id :%x\n", (UINT32)res);
 		}
 
-		STP_DBG_PR_INFO("fw asert type:%s\n", g_stp_dbg_cpupcr->assert_type);
+		STP_DBG_PR_DBG("fw asert type:%s\n", g_stp_dbg_cpupcr->assert_type);
 		break;
 	default:
 		STP_DBG_PR_ERR("unknown parser type\n");
@@ -2089,7 +2089,7 @@ INT32 stp_dbg_poll_cpupcr(UINT32 times, UINT32 sleep, UINT32 cmd)
 		stp_dbg_soc_poll_cpupcr(times, sleep, cmd);
 		break;
 	default:
-		STP_DBG_PR_INFO("error chip type(%d)\n", chip_type);
+		STP_DBG_PR_DBG("error chip type(%d)\n", chip_type);
 	}
 	return 0;
 }
@@ -2133,7 +2133,7 @@ INT32 stp_dbg_set_wifiver(UINT32 wifiver)
 	g_stp_dbg_cpupcr->wifiVer = wifiver;
 	osal_unlock_sleepable_lock(&g_stp_dbg_cpupcr->lock);
 
-	STP_DBG_PR_INFO("wifiver(%x)\n", g_stp_dbg_cpupcr->wifiVer);
+	STP_DBG_PR_DBG("wifiver(%x)\n", g_stp_dbg_cpupcr->wifiVer);
 
 	return 0;
 }
@@ -2156,9 +2156,9 @@ VOID stp_dbg_set_keyword(PINT8 keyword)
 	osal_lock_sleepable_lock(&g_stp_dbg_cpupcr->lock);
 	if (keyword != NULL) {
 		if (osal_strlen(keyword) >= STP_DBG_KEYWORD_SIZE)
-			STP_DBG_PR_INFO("Keyword over max size(%d)\n", STP_DBG_KEYWORD_SIZE);
+			STP_DBG_PR_DBG("Keyword over max size(%d)\n", STP_DBG_KEYWORD_SIZE);
 		else if (osal_strchr(keyword, '<') != NULL || osal_strchr(keyword, '>') != NULL)
-			STP_DBG_PR_INFO("Keyword has < or >, keywrod: %s\n", keyword);
+			STP_DBG_PR_DBG("Keyword has < or >, keywrod: %s\n", keyword);
 		else
 			osal_strncpy(&g_stp_dbg_cpupcr->keyword[0], keyword, osal_strlen(keyword));
 	} else {
@@ -2203,13 +2203,13 @@ INT32 stp_dbg_set_fw_info(PUINT8 issue_info, UINT32 len, ENUM_STP_FW_ISSUE_TYPE 
 		return -1;
 	}
 
-	STP_DBG_PR_INFO("issue type(%d)\n", issue_type);
+	STP_DBG_PR_DBG("issue type(%d)\n", issue_type);
 	g_stp_dbg_cpupcr->issue_type = issue_type;
 	osal_memset(&g_stp_dbg_cpupcr->assert_info[0], 0, STP_ASSERT_INFO_SIZE);
 
 	/*print patch version when assert happened */
-	STP_DBG_PR_INFO("[consys patch]patch version:%s\n", g_stp_dbg_cpupcr->patchVer);
-	STP_DBG_PR_INFO("[consys patch]ALPS branch:%s\n", g_stp_dbg_cpupcr->branchVer);
+	STP_DBG_PR_DBG("[consys patch]patch version:%s\n", g_stp_dbg_cpupcr->patchVer);
+	STP_DBG_PR_DBG("[consys patch]ALPS branch:%s\n", g_stp_dbg_cpupcr->branchVer);
 
 	if ((issue_type == STP_FW_ASSERT_ISSUE) ||
 	    (issue_type == STP_HOST_TRIGGER_FW_ASSERT) ||
@@ -2239,7 +2239,7 @@ INT32 stp_dbg_set_fw_info(PUINT8 issue_info, UINT32 len, ENUM_STP_FW_ISSUE_TYPE 
 					type_index++) {
 				iRet = stp_dbg_parser_assert_str(&tempbuf[0], type_index);
 				if (iRet)
-					STP_DBG_PR_INFO("fail to parse assert str %s, type = %d, ret = %d\n",
+					STP_DBG_PR_DBG("fail to parse assert str %s, type = %d, ret = %d\n",
 						&tempbuf[0], type_index, iRet);
 			}
 
@@ -2253,7 +2253,7 @@ INT32 stp_dbg_set_fw_info(PUINT8 issue_info, UINT32 len, ENUM_STP_FW_ISSUE_TYPE 
 			osal_lock_sleepable_lock(&g_stp_dbg_cpupcr->lock);
 			switch (g_stp_dbg_cpupcr->host_assert_info.drv_type) {
 			case WMTDRV_TYPE_BT:
-				STP_DBG_PR_INFO("BT trigger assert\n");
+				STP_DBG_PR_DBG("BT trigger assert\n");
 				if (g_stp_dbg_cpupcr->host_assert_info.reason != 31)
 					g_stp_dbg_cpupcr->fwTaskId = STP_DBG_TASK_BT; /*BT firmware trigger assert */
 				else {
@@ -2262,23 +2262,23 @@ INT32 stp_dbg_set_fw_info(PUINT8 issue_info, UINT32 len, ENUM_STP_FW_ISSUE_TYPE 
 				}
 				break;
 			case WMTDRV_TYPE_FM:
-				STP_DBG_PR_INFO("FM trigger assert\n");
+				STP_DBG_PR_DBG("FM trigger assert\n");
 				g_stp_dbg_cpupcr->fwTaskId = STP_DBG_TASK_FM;
 				break;
 			case WMTDRV_TYPE_GPS:
-				STP_DBG_PR_INFO("GPS trigger assert\n");
+				STP_DBG_PR_DBG("GPS trigger assert\n");
 				g_stp_dbg_cpupcr->fwTaskId = STP_DBG_TASK_DRVGPS;
 				break;
 			case WMTDRV_TYPE_GPSL5:
-				STP_DBG_PR_INFO("GPSL5 trigger assert\n");
+				STP_DBG_PR_DBG("GPSL5 trigger assert\n");
 				g_stp_dbg_cpupcr->fwTaskId = STP_DBG_TASK_DRVGPS;
 				break;
 			case WMTDRV_TYPE_WIFI:
-				STP_DBG_PR_INFO("WIFI trigger assert\n");
+				STP_DBG_PR_DBG("WIFI trigger assert\n");
 				g_stp_dbg_cpupcr->fwTaskId = STP_DBG_TASK_DRVWIFI;
 				break;
 			case WMTDRV_TYPE_WMT:
-				STP_DBG_PR_INFO("WMT trigger assert\n");
+				STP_DBG_PR_DBG("WMT trigger assert\n");
 				if (issue_type == STP_HOST_TRIGGER_ASSERT_TIMEOUT)
 					osal_memcpy(&g_stp_dbg_cpupcr->assert_info[0], issue_info, len);
 				/* 30: adb trigger assert */
@@ -2453,14 +2453,14 @@ INT32 stp_dbg_cpupcr_infor_format(PUINT8 buf, UINT32 max_len)
 	}
 
 	len += osal_sprintf(buf + len, "<pctrace>");
-	STP_DBG_PR_INFO("stp-dbg:sub len2 for debug(%d)\n", len);
+	STP_DBG_PR_DBG("stp-dbg:sub len2 for debug(%d)\n", len);
 
 	len += osal_sprintf(buf + len, "</pctrace>\n\t\t\t");
 	len += osal_sprintf(buf + len,
 			"<extension>NULL</extension>\n\t\t</client>\n\t</hint>\n</main>\n");
 
-	STP_DBG_PR_INFO("buffer len[%d]\n", len);
-	/* STP_DBG_PR_INFO("Format infor:\n%s\n",buf); */
+	STP_DBG_PR_DBG("buffer len[%d]\n", len);
+	/* STP_DBG_PR_DBG("Format infor:\n%s\n",buf); */
 
 	osal_lock_sleepable_lock(&g_stp_dbg_cpupcr->lock);
 

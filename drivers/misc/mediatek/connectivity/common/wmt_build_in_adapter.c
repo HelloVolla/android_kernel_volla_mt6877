@@ -44,7 +44,7 @@ do { \
 #define CONNADP_DBG_FUNC(fmt, arg...) \
 do { \
 	if (gConnAdpDbgLvl >= CONNADP_LOG_DBG) \
-		pr_info("[D]%s:"  fmt, __func__, ##arg); \
+		pr_debug("[D]%s:"  fmt, __func__, ##arg); \
 } while (0)
 #define CONNADP_INFO_FUNC(fmt, arg...)  \
 do { \
@@ -54,7 +54,7 @@ do { \
 #define CONNADP_WARN_FUNC(fmt, arg...) \
 do { \
 	if (gConnAdpDbgLvl >= CONNADP_LOG_WARN) \
-		pr_info("[W]%s:"  fmt, __func__, ##arg); \
+		pr_debug("[W]%s:"  fmt, __func__, ##arg); \
 } while (0)
 #define CONNADP_ERR_FUNC(fmt, arg...) \
 do { \
@@ -109,7 +109,7 @@ static int conn_dbg_dev_init(void)
 
 	ret = register_chrdev_region(dev_id, CONN_DBG_DEV_NUM, CONN_DBG_DRVIER_NAME);
 	if (ret) {
-		pr_info("%s fail to register chrdev.(%d)\n", __func__, ret);
+		pr_debug("%s fail to register chrdev.(%d)\n", __func__, ret);
 		return -1;
 	}
 
@@ -118,36 +118,36 @@ static int conn_dbg_dev_init(void)
 
 	ret = cdev_add(&gConnDbgdev, dev_id, CONN_DBG_DEV_NUM);
 	if (ret) {
-		pr_info("cdev_add() fails (%d)\n", ret);
+		pr_debug("cdev_add() fails (%d)\n", ret);
 		goto err1;
 	}
 
 	pConnDbgClass = class_create(THIS_MODULE, CONN_DBG_DEVICE_NAME);
 	if (IS_ERR(pConnDbgClass)) {
-		pr_info("class create fail, error code(%ld)\n", PTR_ERR(pConnDbgClass));
+		pr_debug("class create fail, error code(%ld)\n", PTR_ERR(pConnDbgClass));
 		goto err2;
 	}
 
 	pConnDbgDev = device_create(pConnDbgClass, NULL, dev_id, NULL, CONN_DBG_DEVICE_NAME);
 	if (IS_ERR(pConnDbgDev)) {
-		pr_info("device create fail, error code(%ld)\n", PTR_ERR(pConnDbgDev));
+		pr_debug("device create fail, error code(%ld)\n", PTR_ERR(pConnDbgDev));
 		goto err3;
 	}
 
 	return 0;
 err3:
 
-	pr_info("[%s] err3", __func__);
+	pr_debug("[%s] err3", __func__);
 	if (pConnDbgClass) {
 		class_destroy(pConnDbgClass);
 		pConnDbgClass = NULL;
 	}
 err2:
-	pr_info("[%s] err2", __func__);
+	pr_debug("[%s] err2", __func__);
 	cdev_del(&gConnDbgdev);
 
 err1:
-	pr_info("[%s] err1", __func__);
+	pr_debug("[%s] err1", __func__);
 	unregister_chrdev_region(dev_id, CONN_DBG_DEV_NUM);
 
 	return -1;
@@ -189,7 +189,7 @@ void wmt_export_platform_bridge_register(struct wmt_platform_bridge *cb)
 		conn_dbg_dev_init();
 	}
 
-	CONNADP_INFO_FUNC("\n");
+	CONNADP_DBG_FUNC("\n");
 }
 EXPORT_SYMBOL(wmt_export_platform_bridge_register);
 
@@ -198,7 +198,7 @@ void wmt_export_platform_bridge_unregister(void)
 	if (bridge.debug_write_cb && bridge.debug_read_cb)
 		conn_dbg_dev_deinit();
 	memset(&bridge, 0, sizeof(struct wmt_platform_bridge));
-	CONNADP_INFO_FUNC("\n");
+	CONNADP_DBG_FUNC("\n");
 }
 EXPORT_SYMBOL(wmt_export_platform_bridge_unregister);
 
@@ -324,7 +324,7 @@ static void mtk_wcn_cmb_sdio_request_eirq(msdc_sdio_irq_handler_t irq_handler,
 	struct device_node *node;
 	int ret = -EINVAL;
 
-	CONNADP_INFO_FUNC("enter\n");
+	CONNADP_DBG_FUNC("enter\n");
 	_mtk_wcn_sdio_irq_flag_set(0);
 	atomic_set(&irq_enable_flag, 1);
 	mtk_wcn_cmb_sdio_eirq_data = data;
@@ -345,7 +345,7 @@ static void mtk_wcn_cmb_sdio_request_eirq(msdc_sdio_irq_handler_t irq_handler,
 	} else
 		CONNADP_WARN_FUNC("can't find connectivity compatible node\n");
 
-	CONNADP_INFO_FUNC("exit\n");
+	CONNADP_DBG_FUNC("exit\n");
 #else
 	CONNADP_ERR_FUNC("not implemented\n");
 #endif
