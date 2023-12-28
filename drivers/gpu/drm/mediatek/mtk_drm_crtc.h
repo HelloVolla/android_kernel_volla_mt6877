@@ -734,6 +734,9 @@ struct mtk_drm_crtc {
 	struct cmdq_cb_data cb_data;
 	atomic_t cmdq_done;
 	wait_queue_head_t signal_fence_task_wq;
+
+	bool hbm_requested;
+	int hbm_old_bl;
 };
 
 struct mtk_crtc_state {

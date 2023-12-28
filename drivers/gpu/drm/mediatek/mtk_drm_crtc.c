@@ -758,6 +758,8 @@ int mtk_drm_setbacklight(struct drm_crtc *crtc, unsigned int level)
 	}
 
 	/* set backlight */
+	if (!mtk_crtc->hbm_requested)
+		mtk_crtc->hbm_old_bl = level;
 	if (comp->funcs && comp->funcs->io_cmd)
 		comp->funcs->io_cmd(comp, cmdq_handle, DSI_SET_BL, &level);
 
@@ -6495,10 +6497,10 @@ static void mtk_drm_crtc_atomic_flush(struct drm_crtc *crtc,
 	if (pending_planes)
 		mtk_crtc->pending_planes = true;
 
-	if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_HBM)) {
+	if (mtk_drm_helper_get_opt(priv->helper_opt, MTK_DRM_OPT_HBM) || mtk_crtc->hbm_requested) {
 		bool hbm_en = false;
 
-		hbm_en = (bool)state->prop_val[CRTC_PROP_HBM_ENABLE];
+		hbm_en = (bool)state->prop_val[CRTC_PROP_HBM_ENABLE] || mtk_crtc->hbm_requested;
 		mtk_drm_crtc_set_panel_hbm(crtc, hbm_en);
 		mtk_drm_crtc_hbm_wait(crtc, hbm_en);
 
