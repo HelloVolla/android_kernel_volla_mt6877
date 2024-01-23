@@ -28,10 +28,8 @@ EXPORT_SYMBOL_GPL(leds_list);
 static int __led_set_brightness(struct led_classdev *led_cdev,
 				enum led_brightness value)
 {
-	if (!led_cdev->brightness_set) {
-		printk("[%s] value: %d exit\n", __func__, value);
+	if (!led_cdev->brightness_set)
 		return -ENOTSUPP;
-	}
 
 	led_cdev->brightness_set(led_cdev, value);
 
@@ -41,10 +39,8 @@ static int __led_set_brightness(struct led_classdev *led_cdev,
 static int __led_set_brightness_blocking(struct led_classdev *led_cdev,
 					 enum led_brightness value)
 {
-	if (!led_cdev->brightness_set_blocking) {
-		printk("[%s] value: %d exit\n", __func__, value);
+	if (!led_cdev->brightness_set_blocking)
 		return -ENOTSUPP;
-	}
 
 	return led_cdev->brightness_set_blocking(led_cdev, value);
 }
@@ -262,10 +258,8 @@ void led_set_brightness_nopm(struct led_classdev *led_cdev,
 			      enum led_brightness value)
 {
 	/* Use brightness_set op if available, it is guaranteed not to sleep */
-	if (!__led_set_brightness(led_cdev, value)) {
-		printk("[%s] value: %d exit\n", __func__, value);
+	if (!__led_set_brightness(led_cdev, value))
 		return;
-	}
 
 	/* If brightness setting can sleep, delegate it to a work queue task */
 	led_cdev->delayed_set_value = value;
@@ -277,17 +271,15 @@ void led_set_brightness_nosleep(struct led_classdev *led_cdev,
 				enum led_brightness value)
 {
 /*liumiao add for HBM 20221124*/
-	if(value == 260 || value == 270 || (value > 255 && value < 260)) { /* prize modified by gongtaitao for x9 lava hbm mode 20230421 */
-		led_cdev->brightness = value;
-	} else {
+	if(value != 260 && value != 270) {
 		led_cdev->brightness = min(value, led_cdev->max_brightness);
+	} else {
+		led_cdev->brightness = value;
 	}
 /*liumiao add for HBM 20221124*/
 
-	if (led_cdev->flags & LED_SUSPENDED) {
-		printk("[%s] value: %d flags: %d exit\n", __func__, value, led_cdev->flags);
+	if (led_cdev->flags & LED_SUSPENDED)
 		return;
-	}
 
 	led_set_brightness_nopm(led_cdev, led_cdev->brightness);
 }

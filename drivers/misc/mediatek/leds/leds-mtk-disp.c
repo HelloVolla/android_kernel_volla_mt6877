@@ -180,44 +180,7 @@ static int led_level_disp_set(struct mtk_led_data *s_led,
 
 }
 
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 start */
-int prize_mt_leds_set_max_brightness(char *name, int set_max_level, bool enable)
-{
-	struct mtk_led_data *led_dat;
-		int max_l = 0, index = -1, limit_l = 0, cur_l = 0;
 
-	index = getLedDespIndex(name);
-	if (index < 0) {
-		pr_notice("can not find leds by led_desp %s", name);
-		return -1;
-	}
-	led_dat = container_of(leds_info->leds[index],
-		struct mtk_led_data, desp);
-
-	max_l = led_dat->conf.cdev.max_brightness;
-	limit_l = min(set_max_level, 259);
-	pr_info("before: name: %s, set_max_level : %d, limit_l : %d, enable: %d",
-		leds_info->leds[index]->name, set_max_level, limit_l, enable);
-	if (enable) {
-		led_dat->conf.max_level = limit_l;
-		cur_l = min(led_dat->last_level, limit_l);
-	} else if (!enable) {
-		led_dat->conf.max_level = limit_l;
-		cur_l = led_dat->last_level;
-	}
-#ifdef CONFIG_LEDS_BRIGHTNESS_CHANGED
-	call_notifier(3, led_dat);
-#endif
-	if (led_dat->conf.cdev.brightness != 0)
-		led_level_disp_set(led_dat, cur_l);
-
-	pr_info("after: name: %s, cur_l : %d, max_level : %d",
-		led_dat->conf.cdev.name, cur_l, led_dat->conf.max_level);
-	return 0;
-
-}
-EXPORT_SYMBOL(prize_mt_leds_set_max_brightness);
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 end */
 
 /****************************************************************************
  * add API for temperature control

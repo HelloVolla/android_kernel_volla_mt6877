@@ -362,18 +362,7 @@ static struct i2c_driver _lcm_i2c_driver = {
 	},
 };
 
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 start */
-#define NORMAL_MAX_LEVEL 255
-#define HBM_MAX_LEVEL 259
-#define CONTINUOUS_HBM_TIMES 600
-#define CONTINUOUS_NORMAL_TIMES 200
-#define NORMAL_TIMES 100
-static struct timer_list check_level_timer;
-static struct work_struct check_level_worker;
-static unsigned int g_max_set_level = HBM_MAX_LEVEL;
 static unsigned int g_current_level = 0;
-extern int prize_mt_leds_set_max_brightness(char *name, int percent, bool enable);
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 end */
 
 /*****************************************************************************
  * Function
@@ -1982,57 +1971,6 @@ static void check_is_need_fake_resolution(struct device *dev)
 	pr_err("%s------need_fake_resolution = %d------%d\n", __func__,need_fake_resolution,__LINE__);
 }
 
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 start */
-static void lcm_check_level_work(struct work_struct *work)
-{
-	static unsigned int hbm_times = 0;
-	static bool limit_max_level_flags = false;
-	static unsigned int limit_hbm_times = 0;
-	static unsigned int abnormal_times = 0;
-	static bool hbm_flags = false;
-
-	pr_err("%s g_current_level:%u, limit_max_level_flags:%d, hbm_times:%u, limit_hbm_times:%u, g_max_set_level:%u, abnormal_times:%u, hbm_flags:%d\n", __func__,
-		g_current_level, limit_max_level_flags, hbm_times, limit_hbm_times, g_max_set_level, abnormal_times, hbm_flags);
-
-	if (!limit_max_level_flags) {
-		if (g_current_level > NORMAL_MAX_LEVEL && g_current_level <= HBM_MAX_LEVEL) {
-			hbm_flags = true;
-			if (++hbm_times >= CONTINUOUS_HBM_TIMES) {
-				g_max_set_level = NORMAL_MAX_LEVEL;
-				hbm_times = 0;
-				limit_max_level_flags = true;
-				abnormal_times = 0;
-				hbm_flags = false;
-				pr_err("%s limit_max_level 255\n", __func__);
-				prize_mt_leds_set_max_brightness("lcd-backlight", NORMAL_MAX_LEVEL, 1);
-			}
-		} else if (hbm_flags && g_current_level <= NORMAL_MAX_LEVEL) {
-			if (++abnormal_times > NORMAL_TIMES) {
-				hbm_times = 0;
-				abnormal_times = 0;
-				hbm_flags = false;
-			}
-		}
-	} else {
-		if (++limit_hbm_times >= CONTINUOUS_NORMAL_TIMES) {
-			limit_max_level_flags = false;
-			limit_hbm_times = 0;
-			g_max_set_level = HBM_MAX_LEVEL;
-			pr_err("%s limit_max_level 259\n", __func__);
-			prize_mt_leds_set_max_brightness("lcd-backlight", HBM_MAX_LEVEL, 0);
-		}
-	}
-}
-
-static void lcm_check_level_timer(struct timer_list *list)
-{
-	schedule_work(&check_level_worker);
-
-	mod_timer(&check_level_timer,
-		jiffies +  msecs_to_jiffies(3000));
-}
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 end */
-
 static int lcm_probe(struct mipi_dsi_device *dsi)
 {
 	struct device *dev = &dsi->dev;
@@ -2145,12 +2083,6 @@ static int lcm_probe(struct mipi_dsi_device *dsi)
 	g_ctx->hbm_stat = false;
 	prize_common_node_show_register("HBMSTATE", &get_hbmstate);
 
-/* prize modified by gongtaitao for x9 lava hbm mode 20230421 start */
-	INIT_WORK(&check_level_worker, lcm_check_level_work);
-	timer_setup(&check_level_timer, lcm_check_level_timer, 0);
-	mod_timer(&check_level_timer, jiffies + msecs_to_jiffies(15000));
-	/* prize modified by gongtaitao for x9 lava hbm mode 20230421 end */
-
 #if defined(CONFIG_PRIZE_HARDWARE_INFO)
     strcpy(current_lcm_info.chip,"rm692e5.cmd");
     strcpy(current_lcm_info.vendor,"Raydium");
@@ -2166,7 +2098,6 @@ static int lcm_remove(struct mipi_dsi_device *dsi)
 
 	mipi_dsi_detach(dsi);
 	drm_panel_remove(&ctx->panel);
-	del_timer_sync(&check_level_timer); /* prize modified by gongtaitao for x9 lava hbm mode 20230421 */
 
 	return 0;
 }
