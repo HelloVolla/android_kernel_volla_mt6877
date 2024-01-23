@@ -4,7 +4,7 @@
 
 config TOUCHSCREEN_FTS_8057S
     tristate "Focaltech Touchscreen"
-    default m
+    default n
     help
       Say Y here if you have Focaltech touch panel.
       If unsure, say N.
