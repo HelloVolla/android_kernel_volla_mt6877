@@ -638,10 +638,6 @@ static void lcm_panel_init(struct lcm *ctx)
 	gpiod_set_value(ctx->reset_gpio, 0);
 	udelay(10 * 1000);
 	gpiod_set_value(ctx->reset_gpio, 1);
-	udelay(10 * 1000);
-	gpiod_set_value(ctx->reset_gpio, 0);
-	udelay(10 * 1000);
-	gpiod_set_value(ctx->reset_gpio, 1);
 	// udelay(250 * 1000);
 	mdelay(50);
 	devm_gpiod_put(ctx->dev, ctx->reset_gpio);
