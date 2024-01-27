@@ -167,10 +167,6 @@ static int getLedDespIndex(char *name)
 static int led_level_disp_set(struct mtk_led_data *s_led,
 	int brightness)
 {
-/*liumiao add for HBM 20221124*/
-	if(brightness != 260 && brightness != 270)
-		brightness = min(brightness, s_led->conf.max_level);
-/*liumiao add for HBM 20221124*/
 	if (brightness == s_led->conf.level)
 		return 0;
 
