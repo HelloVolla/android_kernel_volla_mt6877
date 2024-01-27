@@ -42,6 +42,8 @@
 #include "../mediatek/mtk_corner_pattern/mtk_data_hw_roundedpattern.h"
 #endif
 #include "include/panel-boe-rm692e5-cmd.h"
+#include "include/panel-boe-rm692e5-cmd-gamma.h"
+
 /* i2c control start */
 #define LCM_I2C_ID_NAME "I2C_LCD_BIAS"
 static struct i2c_client *_lcm_i2c_client;
@@ -50,267 +52,6 @@ static struct i2c_client *_lcm_i2c_client;
 #define BLK_LEVEL_MAP3				(4095)
 extern int mtk_drm_esd_check_status(void);
 extern void mtk_drm_esd_set_status(int status);
-/*PRIZE:Added by lvyuanchuan,X9-678,20221230 end*/
-/*PRIZE:Added by lvyuanchuan,X9-534,20230103 start*/
-static unsigned int Gamma_to_level[] = {
-0,
-23,
-44,
-64,
-83,
-101,
-119,
-137,
-155,
-172,
-189,
-206,
-223,
-240,
-257,
-273,
-289,
-306,
-322,
-338,
-354,
-370,
-386,
-401,
-417,
-433,
-448,
-464,
-479,
-495,
-510,
-525,
-540,
-556,
-571,
-586,
-601,
-616,
-631,
-646,
-661,
-676,
-690,
-705,
-720,
-735,
-749,
-764,
-779,
-793,
-808,
-822,
-837,
-851,
-866,
-880,
-895,
-909,
-923,
-938,
-952,
-966,
-980,
-995,
-1009,
-1023,
-1037,
-1051,
-1066,
-1080,
-1094,
-1108,
-1122,
-1136,
-1150,
-1164,
-1178,
-1193,
-1211,
-1230,
-1249,
-1268,
-1286,
-1305,
-1324,
-1343,
-1361,
-1380,
-1399,
-1418,
-1436,
-1455,
-1474,
-1492,
-1511,
-1530,
-1548,
-1567,
-1585,
-1604,
-1622,
-1641,
-1659,
-1677,
-1696,
-1714,
-1732,
-1750,
-1769,
-1787,
-1805,
-1823,
-1841,
-1859,
-1877,
-1894,
-1912,
-1930,
-1948,
-1965,
-1983,
-2000,
-2018,
-2035,
-2052,
-2070,
-2087,
-2104,
-2121,
-2138,
-2155,
-2171,
-2188,
-2205,
-2222,
-2238,
-2254,
-2271,
-2287,
-2303,
-2320,
-2336,
-2352,
-2367,
-2383,
-2399,
-2415,
-2430,
-2446,
-2461,
-2476,
-2491,
-2507,
-2522,
-2537,
-2551,
-2566,
-2581,
-2595,
-2610,
-2624,
-2638,
-2653,
-2667,
-2681,
-2695,
-2708,
-2722,
-2736,
-2749,
-2763,
-2776,
-2789,
-2802,
-2815,
-2828,
-2841,
-2853,
-2866,
-2879,
-2891,
-2903,
-2915,
-2927,
-2939,
-2951,
-2963,
-2975,
-2986,
-2997,
-3009,
-3020,
-3031,
-3042,
-3053,
-3064,
-3074,
-3085,
-3095,
-3106,
-3116,
-3126,
-3136,
-3146,
-3156,
-3165,
-3175,
-3184,
-3194,
-3203,
-3212,
-3221,
-3230,
-3239,
-3248,
-3256,
-3265,
-3273,
-3281,
-3289,
-3297,
-3305,
-3313,
-3321,
-3329,
-3336,
-3343,
-3351,
-3358,
-3365,
-3372,
-3379,
-3385,
-3392,
-3398,
-3405,
-3411,
-3417,
-3423,
-3429,
-3435,
-3441,
-3447,
-3452,
-3458,
-3463,
-3468,
-3473,
-3478,
-3483,
-3488,
-3493,
-3497,
-3502,
-3515,
-3515,
-};
-/*PRIZE:Added by lvyuanchuan,X9-534,20230103 end*/
 //prize add by wangfei for lcd hardware info 20210726 start
 #if defined(CONFIG_PRIZE_HARDWARE_INFO)
 #include "../../../misc/prize/hardware_info/hardware_info.h"
@@ -1268,54 +1009,25 @@ bool get_hbmstate(void)
 static int lcm_setbacklight_cmdq(void *dsi, dcs_write_gce cb,
 	void *handle, unsigned int level)
 {
-	 char bl_tb0[] = {0x51,0x07,0xFF};
-	 char hbm_tb[] = {0x51,0x0F,0xFF};
-	 unsigned int level_normal = 125;
-	 unsigned int reg_level = 125;
-	 if(level > 259) /* prize modified by gongtaitao for x9 lava hbm mode 20230421 */
-	 {
-	 	if(level == 260)
-	 	{
-	 		printk("panel into HBM\n");
-			if (!cb)
-				return -1;
-			g_ctx->hbm_stat = true;
-			cb(dsi, handle, hbm_tb, ARRAY_SIZE(hbm_tb));
-	 	}
-	 	else if(level == 270)
-	 	{
-	 		/*PRIZE:Added by lvyuanchuan,X9-534,20230103*/
-			//level_normal = bl_level * BLK_LEVEL_MAP3/255 + BLK_LEVEL_OFFSET;
-			/*PRIZE:modify by durunshen,MT6877-98,20230530*/
-			level_normal = Gamma_to_level[bl_level] + BLK_LEVEL_OFFSET;
-			bl_tb0[1] = (level_normal>>8)&0xf;
-			bl_tb0[2] = (level_normal)&0xff;
-			if (!cb)
-				return -1;
-			printk("panel out HBM bl_level = %d\n",bl_level);
-			g_ctx->hbm_stat = false;
-			cb(dsi, handle, bl_tb0, ARRAY_SIZE(bl_tb0));
-	 	}
-	 }
-	else
-	 {
-	 	/*PRIZE:Added by lvyuanchuan,X9-534,20230103 */
-	 	if(level){
-			reg_level = Gamma_to_level[level] + BLK_LEVEL_OFFSET;
-			bl_level = level; //PRIZE:modify by durunshen,X9-1080,20230301
-		}
-		else
-			reg_level = 0;
-        g_current_level = level;
-		bl_tb0[1] = (reg_level>>8)&0xf;
-		bl_tb0[2] = (reg_level)&0xff;
-		pr_err("level{ %d - %d },bl_tb0[1] = %d,bl_tb0[2] = %d\n",level,reg_level,bl_tb0[1],bl_tb0[2]);
-		if (!cb)
-			return -1;
-		if(g_ctx->hbm_stat == false || level == 0)//modify by zhangchao for X9LAVA-539
-			cb(dsi, handle, bl_tb0, ARRAY_SIZE(bl_tb0));
-		/*PRIZE:Added by lvyuanchuan,X9-678,20221230*/
+	char bl_tb0[] = {0x51,0x07,0xFF};
+	char hbm_tb[] = {0x51,0x0F,0xFF};
+	unsigned int level_normal = 125;
+	unsigned int reg_level = 125;
+
+	if(level){
+		reg_level = Gamma_to_level[level] + BLK_LEVEL_OFFSET;
+		bl_level = level;
 	}
+	else
+		reg_level = 0;
+	g_current_level = level;
+	bl_tb0[1] = (reg_level>>8)&0xf;
+	bl_tb0[2] = (reg_level)&0xff;
+	pr_err("level{ %d - %d },bl_tb0[1] = %d,bl_tb0[2] = %d\n",level,reg_level,bl_tb0[1],bl_tb0[2]);
+	if (!cb)
+		return -1;
+	if(g_ctx->hbm_stat == false || level == 0)
+		cb(dsi, handle, bl_tb0, ARRAY_SIZE(bl_tb0));
 	 return 0;
 }
 
@@ -1350,36 +1062,16 @@ static int panel_hbm_set_cmdq(struct drm_panel *panel, void *dsi,
 
 	if (en)
 	{
-		printk("[panel] %s : set HBM\n",__func__);
-	#if 0
-		lcm_dcs_write_seq_static(ctx,0xF0,0x55, 0xAA, 0x52, 0x08, 0x00);   //ELVSS
-		udelay(100);
-		lcm_dcs_write_seq_static(ctx,0xB5,0x80,0x80);
-		lcm_dcs_write_seq_static(ctx,0x6F,0x07);
-		lcm_dcs_write_seq_static(ctx,0xB5,0x1D);
-	#endif
-		/*PRIZE:Added by durunshen,X9-677,20230106 start*/
 		g_ctx->hbm_stat = true;
-		/*PRIZE:Added by durunshen,X9-677,20230106 end*/
 		cb(dsi, handle, hbm_tb, ARRAY_SIZE(hbm_tb));
 	}
 	else
 	{
 		printk("[panel] %s : set normal = %d\n",__func__,bl_level);
-		/*PRIZE:Added by lvyuanchuan,X9-534,20230103*/
 		level_normal = Gamma_to_level[bl_level] + BLK_LEVEL_OFFSET;
 		normal_tb0[1] = (level_normal>>8)&0xff;
 		normal_tb0[2] = (level_normal)&0xff;
-	#if 0
-		lcm_dcs_write_seq_static(ctx,0xF0,0x55, 0xAA, 0x52, 0x08, 0x00);   //ELVSS
-		udelay(100);
-		lcm_dcs_write_seq_static(ctx,0xB5,0x80,0x80);
-		lcm_dcs_write_seq_static(ctx,0x6F,0x07);
-		lcm_dcs_write_seq_static(ctx,0xB5,0x23);
-	#endif
-		/*PRIZE:Added by durunshen,X9-677,20230106 start*/
 		g_ctx->hbm_stat = false;
-		/*PRIZE:Added by durunshen,X9-677,20230106 end*/
 		cb(dsi, handle, normal_tb0, ARRAY_SIZE(normal_tb0));
 	}
 
