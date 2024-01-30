@@ -116,6 +116,22 @@ static ssize_t gsx_single_type_show(struct goodix_ext_module *module,
 			(type & GESTURE_SINGLE_TAP) ? "enable" : "disable");
 }
 
+static ssize_t gsx_single_pressed_type_show(struct goodix_ext_module *module,
+		char *buf)
+{
+	struct gesture_module *gsx = module->priv_data;
+
+	if (!gsx)
+		return -EIO;
+
+	if (atomic_read(&gsx->registered) == 0) {
+		ts_err("gesture module is not registered");
+		return 0;
+	}
+
+	return sprintf(buf, "%u\n", gsx->ts_core->single_tap_pressed);
+}
+
 static ssize_t gsx_single_type_store(struct goodix_ext_module *module,
 		const char *buf, size_t count)
 {
@@ -201,12 +217,13 @@ static ssize_t gsx_fp_state_show(struct goodix_ext_module *module,
 				   gsx->ts_core->finger_in_fod);
 }
 
-
 const struct goodix_ext_attribute gesture_attrs[] = {
 	__EXTMOD_ATTR(double_en, 0664,
 			gsx_double_type_show, gsx_double_type_store),
 	__EXTMOD_ATTR(single_en, 0664,
 			gsx_single_type_show, gsx_single_type_store),
+	__EXTMOD_ATTR(single_tap_pressed, 0664,
+			gsx_single_pressed_type_show, NULL),
 	__EXTMOD_ATTR(fod_en, 0664,
 			gsx_fod_type_show, gsx_fod_type_store),
 	__EXTMOD_ATTR(fp_state, 0664,
@@ -224,10 +241,10 @@ static int gsx_gesture_init(struct goodix_ts_core *cd,
 	}
 
 	gsx->ts_core = cd;
-	gsx->ts_core->gesture_type = GESTURE_FOD_PRESS;
 	gsx->ts_core->finger_in_fod = false;
 	gsx->ts_core->fodx = 0;
 	gsx->ts_core->fody = 0;
+	gsx->ts_core->single_tap_pressed = false;
 
 	atomic_set(&gsx->registered, 1);
 
@@ -245,7 +262,6 @@ static int gsx_gesture_exit(struct goodix_ts_core *cd,
 	}
 
 	atomic_set(&gsx->registered, 0);
-
 	return 0;
 }
 
@@ -285,12 +301,8 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 	case GOODIX_GESTURE_SINGLE_TAP:
 		if (cd->gesture_type & GESTURE_SINGLE_TAP) {
 			ts_info("get SINGLE-TAP gesture");
-			input_report_key(cd->input_dev, KEY_WAKEUP, 1);
-			// input_report_key(cd->input_dev, KEY_GOTO, 1);
-			input_sync(cd->input_dev);
-			input_report_key(cd->input_dev, KEY_WAKEUP, 0);
-			// input_report_key(cd->input_dev, KEY_GOTO, 0);
-			input_sync(cd->input_dev);
+			cd->single_tap_pressed = true;
+			sysfs_notify(&gsx_gesture->module.kobj, NULL, "single_tap_pressed");
 		} else {
 			ts_debug("not enable SINGLE-TAP");
 		}
@@ -387,6 +399,8 @@ static int gsx_gesture_before_resume(struct goodix_ts_core *cd,
 	struct goodix_ext_module *module)
 {
 	const struct goodix_ts_hw_ops *hw_ops = cd->hw_ops;
+
+	cd->single_tap_pressed = false;
 
 	if (cd->gesture_type == 0)
 		return EVT_CONTINUE;
