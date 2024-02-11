@@ -1083,7 +1083,7 @@ static int mtk_dsi_poweron(struct mtk_dsi *dsi)
 
 	DDPDBG("%s+\n", __func__);
 	if (++dsi->clk_refcnt != 1) {
-		DDPMSG("%s: clk_refcnt = %d, skip power on\n",
+		DDPDBG("%s: clk_refcnt = %d, skip power on\n",
 			__func__, dsi->clk_refcnt);
 		return 0;
 	}
@@ -1973,7 +1973,7 @@ static void mtk_dsi_poweroff(struct mtk_dsi *dsi)
 	}
 
 	if (--dsi->clk_refcnt != 0) {
-		DDPMSG("%s: clk_refcnt = %d, skip power off\n",
+		DDPDBG("%s: clk_refcnt = %d, skip power off\n",
 			__func__, dsi->clk_refcnt);
 		return;
 	}
