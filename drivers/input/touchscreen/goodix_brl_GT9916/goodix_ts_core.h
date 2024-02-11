@@ -517,8 +517,7 @@ struct goodix_ts_core {
 	unsigned char gesture_type;
 	bool finger_in_fod;
 	bool single_tap_pressed;
-	int fodx;
-	int fody;
+	bool double_tap_pressed;
 	int power_on;
 	int irq;
 	size_t irq_trig_cnt;
