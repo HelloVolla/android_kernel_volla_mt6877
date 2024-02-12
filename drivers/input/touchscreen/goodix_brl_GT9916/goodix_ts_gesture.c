@@ -345,6 +345,8 @@ static int gsx_gesture_ist(struct goodix_ts_core *cd,
 	case GOODIX_GESTURE_FOD_UP:
 		if (cd->gesture_type & GESTURE_FOD_PRESS) {
 			ts_info("get FOD-UP gesture");
+			cd->finger_in_fod = false;
+			sysfs_notify(&gsx_gesture->module.kobj, NULL, "fod_pressed");
 		} else {
 			ts_debug("not enable FOD-UP");
 		}
@@ -393,9 +395,7 @@ static int gsx_gesture_before_resume(struct goodix_ts_core *cd,
 
 	cd->single_tap_pressed = false;
 	cd->double_tap_pressed = false;
-
-	if (cd->gesture_type == 0)
-		return EVT_CONTINUE;
+	cd->finger_in_fod = false;
 
 	disable_irq_wake(cd->irq);
 	hw_ops->reset(cd, GOODIX_NORMAL_RESET_DELAY_MS);
