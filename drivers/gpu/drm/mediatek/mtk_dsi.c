@@ -6781,6 +6781,21 @@ static int mtk_dsi_io_cmd(struct mtk_ddp_comp *comp, struct cmdq_pkt *handle,
 	return 0;
 }
 
+// Misc
+extern int mtk_drm_setbacklight(struct drm_crtc *crtc, unsigned int level);
+
+static int hbm_stat(struct drm_crtc *crtc, bool stat) {
+	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	int ret = 0;
+
+	ret = mtk_drm_crtc_set_panel_hbm(crtc, stat);
+	if (ret)
+		return ret;
+	mtk_crtc->hbm_requested = stat;
+
+	return ret;
+}
+
 // Sysfs
 // HBM
 static ssize_t hbm_show(struct device *dev, struct device_attribute *attr,
@@ -6803,7 +6818,6 @@ static ssize_t hbm_store(struct device *dev, struct device_attribute *attr,
 {
 	struct mtk_dsi *dsi = dev_get_drvdata(dev);
 	struct drm_crtc *crtc = dsi->encoder.crtc;
-	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
 	bool hbm_en = false;
 	int ret = 0;
 
@@ -6811,8 +6825,7 @@ static ssize_t hbm_store(struct device *dev, struct device_attribute *attr,
 	if (ret)
 		return ret;
 
-	mtk_crtc->hbm_requested = hbm_en;
-	ret = mtk_drm_crtc_set_panel_hbm(crtc, hbm_en);
+	ret = hbm_stat(crtc, hbm_en);
 	if (ret)
 		return ret;
 
@@ -6821,9 +6834,52 @@ static ssize_t hbm_store(struct device *dev, struct device_attribute *attr,
 
 static DEVICE_ATTR_RW(hbm);
 
+// Fingerprint Calibration Node
+static ssize_t fcal_store(struct device *dev, struct device_attribute *attr,
+			 const char *buf, size_t count)
+{
+	struct mtk_dsi *dsi = dev_get_drvdata(dev);
+	struct drm_crtc *crtc = dsi->encoder.crtc;
+	int val, ret = 0;
+
+	if (kstrtoint(buf, 10, &val))
+		return ret;
+
+	switch (val) {
+		case 270: {
+			hbm_stat(crtc, false);
+			break;
+		}
+		case 260: {
+			hbm_stat(crtc, true);
+			break;
+		}
+		case 255: {
+			mtk_drm_setbacklight(crtc, 2047);
+			break;
+		}
+		case 150: {
+			mtk_drm_setbacklight(crtc, 1027);
+			break;
+		}
+		case 0: {
+			mtk_drm_setbacklight(crtc, 0);
+			break;
+		}
+		default:
+			break;
+	}
+//	DDPPR_ERR("%s: val is %d\n", __func__, val);
+
+	return count;
+}
+
+static DEVICE_ATTR_WO(fcal);
+
 // Initialization
 static struct attribute *mtk_dsi_attrs[] = {
 	&dev_attr_hbm.attr,
+	&dev_attr_fcal.attr,
 	NULL,
 };
 
