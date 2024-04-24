@@ -4014,6 +4014,8 @@ static int battery_callback(
 		{
 /* CHARGING FULL */
 			notify_fg_chr_full();
+			battery_main.BAT_STATUS = POWER_SUPPLY_STATUS_FULL;
+			battery_update(&battery_main);
 		}
 		break;
 	case CHARGER_NOTIFY_START_CHARGING:
