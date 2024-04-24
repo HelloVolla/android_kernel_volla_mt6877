@@ -659,15 +659,8 @@ int charger_manager_get_charger_temperature(struct charger_consumer *consumer,
 			return -EINVAL;
 		}
 
-		if (idx == MAIN_CHARGER)
-			pdata = &info->chg1_data;
-		else if (idx == SLAVE_CHARGER)
-			pdata = &info->chg2_data;
-		else if (idx == MAIN_DIVIDER_CHARGER)
-			pdata = &info->dvchg1_data;
-		else if (idx == SLAVE_DIVIDER_CHARGER)
-			pdata = &info->dvchg2_data;
-		else
+		pdata = charger_manager_get_charger_data(consumer, idx);
+		if (pdata == NULL)
 			return -ENOTSUPP;
 
 		*tchg_min = pdata->junction_temp_min;
