@@ -479,6 +479,114 @@ int charger_manager_enable_charging(struct charger_consumer *consumer,
 	return ret;
 }
 
+struct charger_data *charger_manager_get_charger_data(
+	struct charger_consumer *consumer, int idx)
+{
+	struct charger_manager *info = consumer->cm;
+	struct charger_data *pdata = NULL;
+
+	if (info != NULL) {
+		if (idx == MAIN_CHARGER)
+			pdata = &info->chg1_data;
+		else if (idx == SLAVE_CHARGER)
+			pdata = &info->chg2_data;
+		else if (idx == MAIN_DIVIDER_CHARGER)
+			pdata = &info->dvchg1_data;
+		else if (idx == SLAVE_DIVIDER_CHARGER)
+			pdata = &info->dvchg2_data;
+		else
+			return NULL;
+		return pdata;
+	}
+	return NULL;
+}
+
+int charger_manager_get_user_input_current_limit(struct charger_consumer *consumer,
+	int idx, int *input_current_uA)
+{
+	struct charger_manager *info = consumer->cm;
+
+	if (info != NULL) {
+		struct charger_data *pdata;
+
+		if (info->data.parallel_vbus) {
+			if (idx == TOTAL_CHARGER) {
+				// Although chg2 exists, it should be set to the same as chg1, so we get from chg1.
+				*input_current_uA = info->chg1_data.user_input_current_limit;
+			} else
+				return -ENOTSUPP;
+		} else {
+			pdata = charger_manager_get_charger_data(consumer, idx);
+			if (pdata == NULL)
+				return -ENOTSUPP;
+			*input_current_uA = pdata->user_input_current_limit;
+		}
+		chr_err("%s: dev:%s idx:%d en:%d\n", __func__,
+			dev_name(consumer->dev), idx, *input_current_uA);
+		return 0;
+	}
+	return -EBUSY;
+}
+
+int charger_manager_set_user_input_current_limit(struct charger_consumer *consumer,
+	int idx, int input_current)
+{
+	struct charger_manager *info = consumer->cm;
+
+	if (info != NULL) {
+		struct charger_data *pdata;
+
+		if (info->data.parallel_vbus) {
+			if (idx == TOTAL_CHARGER) {
+				info->chg1_data.user_input_current_limit =
+					input_current;
+				info->chg2_data.user_input_current_limit =
+					input_current;
+			} else
+				return -ENOTSUPP;
+		} else {
+			pdata = charger_manager_get_charger_data(consumer, idx);
+			if (pdata == NULL)
+				return -ENOTSUPP;
+			pdata->user_input_current_limit = input_current;
+		}
+
+		chr_err("%s: dev:%s idx:%d en:%d\n", __func__,
+			dev_name(consumer->dev), idx, input_current);
+		_mtk_charger_change_current_setting(info);
+		_wake_up_charger(info);
+		return 0;
+	}
+	return -EBUSY;
+}
+
+int charger_manager_get_input_current_limit(struct charger_consumer *consumer,
+	int idx, int *input_current_uA)
+{
+	struct charger_manager *info = consumer->cm;
+
+	if (info != NULL) {
+		struct charger_data *pdata;
+
+		if (info->data.parallel_vbus) {
+			if (idx == TOTAL_CHARGER) {
+				// Although chg2 exists, it should be set to the same as chg1, so we get from chg1.
+				*input_current_uA = info->chg1_data.thermal_input_current_limit;
+			} else
+				return -ENOTSUPP;
+		} else {
+			pdata = charger_manager_get_charger_data(consumer, idx);
+			if (pdata == NULL)
+				return -ENOTSUPP;
+			*input_current_uA = pdata->thermal_input_current_limit;
+		}
+		chr_err("%s: dev:%s idx:%d en:%d\n", __func__,
+			dev_name(consumer->dev), idx, *input_current_uA);
+		return 0;
+	}
+	return -EBUSY;
+}
+
 int charger_manager_set_input_current_limit(struct charger_consumer *consumer,
 	int idx, int input_current)
 {
@@ -496,15 +604,8 @@ int charger_manager_set_input_current_limit(struct charger_consumer *consumer,
 			} else
 				return -ENOTSUPP;
 		} else {
-			if (idx == MAIN_CHARGER)
-				pdata = &info->chg1_data;
-			else if (idx == SLAVE_CHARGER)
-				pdata = &info->chg2_data;
-			else if (idx == MAIN_DIVIDER_CHARGER)
-				pdata = &info->dvchg1_data;
-			else if (idx == SLAVE_DIVIDER_CHARGER)
-				pdata = &info->dvchg2_data;
-			else
+			pdata = charger_manager_get_charger_data(consumer, idx);
+			if (pdata == NULL)
 				return -ENOTSUPP;
 			pdata->thermal_input_current_limit = input_current;
 		}

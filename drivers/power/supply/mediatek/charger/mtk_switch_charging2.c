@@ -150,6 +150,12 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 		}
 	}
 
+	if (pdata->user_input_current_limit > 0) { // Make sure its microamps uA
+		pdata->input_current_limit = pdata->user_input_current_limit;
+		pdata->charging_current_limit = pdata->user_input_current_limit;
+		goto done;
+	}
+
 	if (pdata->force_charging_current > 0) {
 
 		pdata->charging_current_limit = pdata->force_charging_current;
@@ -809,7 +815,9 @@ static int mtk_switch_chr_cc(struct charger_manager *info)
 	bool chg_done = false;
 	struct switch_charging_alg_data *swchgalg = info->algorithm_data;
 	struct timespec time_now, charging_time;
+	struct charger_data *pdata = NULL;
 	int tmp = battery_get_bat_temperature();
+	bool leave = false;
 
 	/* check bif */
 	if (IS_ENABLED(CONFIG_MTK_BIF_SUPPORT)) {
@@ -836,6 +844,11 @@ static int mtk_switch_chr_cc(struct charger_manager *info)
 		info->data.low_temp_to_enter_pe40,
 		info->leave_pe5);
 
+	pdata = &info->chg1_data;
+	leave = pdata->user_input_current_limit > 0;
+	info->leave_pe5 = leave;
+	info->leave_pdc = leave;
+	info->leave_pe4 = leave;
 
 	if (info->enable_pe_5 && pe50_is_ready() && !info->leave_pe5) {
 		/*prize added by lvyuanchuan,X9-489,20221209*/

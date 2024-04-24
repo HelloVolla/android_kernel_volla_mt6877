@@ -280,6 +280,8 @@ struct charger_data {
 	int input_current_limit_by_aicl;
 	int junction_temp_min;
 	int junction_temp_max;
+	// Add for userland control
+	int user_input_current_limit;
 };
 
 enum charging_scenario_t {

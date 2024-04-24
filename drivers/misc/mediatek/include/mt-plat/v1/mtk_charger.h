@@ -60,6 +60,18 @@ extern int charger_manager_set_input_current_limit(
 	struct charger_consumer *consumer,
 	int idx,
 	int input_current_uA);
+extern int charger_manager_get_input_current_limit(
+	struct charger_consumer *consumer,
+	int idx,
+	int *input_current_uA);
+extern int charger_manager_set_user_input_current_limit(
+	struct charger_consumer *consumer,
+	int idx,
+	int input_current_uA);
+extern int charger_manager_get_user_input_current_limit(
+	struct charger_consumer *consumer,
+	int idx,
+	int *input_current_uA);
 extern int charger_manager_set_charging_current_limit(
 	struct charger_consumer *consumer,
 	int idx,

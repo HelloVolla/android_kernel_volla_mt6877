@@ -39,6 +39,7 @@
 #include <linux/of_irq.h>
 #include <linux/gpio.h>
 #include <linux/input.h>
+#include "../../../power/supply/mediatek/charger/mtk_charger_intf.h"
 #define COMMON_NODE_DEVNAME    "common_node_dev"
 enum node_idx{
 	GESTURE,
@@ -200,10 +201,68 @@ err:
 	return count;
 }
 
+static ssize_t charger_input_limit_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct charger_consumer *chg_consumer = NULL;
+	int input_current_uA = 0, ret = -1;
+	chg_consumer = charger_manager_get_by_name(dev, "charger");
+	if (!chg_consumer) {
+		dev_err(dev, "charger_input_limit_show: get charger consumer failed\n");
+		return -ENODEV;
+	}
+	ret = charger_manager_get_user_input_current_limit(chg_consumer, 0, &input_current_uA);
+	if (ret < 0) {
+		dev_info(dev, "charger_input_limit_show: get input current limit failed\n");
+		return ret;
+	}
+    return sysfs_emit(buf, "%d\n", input_current_uA);
+}
+
+static void toggle_chg(struct charger_manager *info) {
+	charger_dev_enable(info->chg1_dev, false);
+	if (info->chg1_consumer)
+		charger_manager_enable_high_voltage_charging(info->chg1_consumer, false);
+	mdelay(100);
+	charger_dev_enable(info->chg1_dev, true);
+	if (info->chg1_consumer)
+		charger_manager_enable_high_voltage_charging(info->chg1_consumer, true);
+}
+
+static ssize_t charger_input_limit_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+    struct charger_consumer *chg_consumer = NULL;
+	struct charger_manager *info = NULL;
+	int input_current_uA = 0, ret = -1;
+
+	chg_consumer = charger_manager_get_by_name(dev, "charger");
+	if (!chg_consumer) {
+		ret = -ENODEV;
+		goto fail;
+	}
+	info = chg_consumer->cm;
+
+	ret = kstrtouint(buf, 10, &input_current_uA);
+	if (ret < 0)
+		goto fail;
+
+	ret = charger_manager_set_user_input_current_limit(chg_consumer, 0, input_current_uA);
+	if (ret < 0)
+		goto fail;
+	toggle_chg(info);
+
+	dev_info(dev, "charger_input_limit_store: set input current limit success\n");
+	return count;
+
+fail:
+	dev_err(dev, "charger_input_limit_store: set input current limit failed, ret:%d\n", ret);
+	return ret;
+}
+
 static DEVICE_ATTR(gesture, S_IRUGO|S_IWUSR, gesture_show, gesture_store);
 static DEVICE_ATTR(finger, S_IRUGO|S_IWUSR, finger_show, finger_store);
 static DEVICE_ATTR(hbmstate, S_IRUGO|S_IWUSR, hbmstate_show, hbmstate_store);
 static DEVICE_ATTR(screentate, S_IRUGO|S_IWUSR, screentate_show, screentate_store);
+static DEVICE_ATTR(charger_input_limit, S_IRUGO|S_IWUSR, charger_input_limit_show, charger_input_limit_store);
 
 static const struct attribute *common_node_event_attr[] = {
         &dev_attr_gesture.attr,
@@ -214,6 +273,7 @@ static const struct attribute *common_node_event_attr[] = {
 /*
   new item ,add here
 */
+		&dev_attr_charger_input_limit.attr,
         NULL,
 };
 /*************************************************************************************************************************************************/
