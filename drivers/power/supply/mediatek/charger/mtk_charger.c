@@ -2907,6 +2907,18 @@ static ssize_t show_Pump_Express(struct device *dev,
 		pinfo->data.ta_start_battery_soc,
 		pinfo->data.ta_stop_battery_soc);
 
+	if (IS_ENABLED(CONFIG_MTK_PUMP_EXPRESS_50_SUPPORT)) {
+		/* Is PE+50 connect */
+		if (mtk_pe50_get_is_connect(pinfo))
+			is_ta_detected = 1;
+	}
+
+	if (IS_ENABLED(CONFIG_MTK_PUMP_EXPRESS_40_SUPPORT)) {
+		/* Is PE+40 connect */
+		if (mtk_pe40_get_is_connect(pinfo))
+			is_ta_detected = 1;
+	}
+
 	if (IS_ENABLED(CONFIG_MTK_PUMP_EXPRESS_PLUS_20_SUPPORT)) {
 		/* Is PE+20 connect */
 		if (mtk_pe20_get_is_connect(pinfo))
