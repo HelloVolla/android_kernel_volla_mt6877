@@ -386,12 +386,6 @@ struct mmc_host {
 #define MMC_VDD_34_35		0x00400000	/* VDD voltage 3.4 ~ 3.5 */
 #define MMC_VDD_35_36		0x00800000	/* VDD voltage 3.5 ~ 3.6 */
 
-#define MMC_VDD_EMMC		(MMC_VDD_165_195 |MMC_VDD_20_21| \
-	MMC_VDD_21_22|MMC_VDD_22_23|MMC_VDD_23_24|MMC_VDD_24_25| \
-	MMC_VDD_25_26|MMC_VDD_26_27|MMC_VDD_27_28| \
-	MMC_VDD_28_29 | MMC_VDD_29_30)
-#define MMC_VDD_SD		(MMC_VDD_28_29 | MMC_VDD_29_30)
-
 	u32			caps;		/* Host capabilities */
 
 #define MMC_CAP_4_BIT_DATA	(1 << 0)	/* Can the host do 4 bit transfers */
@@ -455,6 +449,7 @@ struct mmc_host {
 #define MMC_CAP2_CQE		(1 << 23)	/* Has eMMC command queue engine */
 #define MMC_CAP2_CQE_DCMD	(1 << 24)	/* CQE can issue a direct command */
 #define MMC_CAP2_AVOID_3_3V	(1 << 25)	/* Host must negotiate down from 3.3V */
+#define MMC_CAP2_NMCARD		(1 << 26)
 #define MMC_CAP2_CRYPTO		(1 << 27)	/* Host supports inline encryption */
 #define MMC_CAP2_SWCQ		(1 << 30)	/* CAP_SW_CMDQ */
 

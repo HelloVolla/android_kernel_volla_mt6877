@@ -1,0 +1,4 @@
+config PRIZE_TTM
+	bool "TTM for TTM"
+	help
+	  It support TTM control.

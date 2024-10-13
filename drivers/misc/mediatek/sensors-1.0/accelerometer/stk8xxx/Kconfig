@@ -1,0 +1,9 @@
+config MTK_STK8XXX
+	bool "MTK_STK8XXX for MediaTek package"
+	default n
+	help
+	  The STK8XXX is a highly integrated,
+	  low power internal measurement unit
+	  that provides precise acceleration
+	  measurement.
+	  this config will turn on accelerometer feature.

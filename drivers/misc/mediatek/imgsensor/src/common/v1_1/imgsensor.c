@@ -52,6 +52,13 @@
 #include "imgsensor_ca.h"
 #endif
 
+/*prize add by zhaopengge-20201113----start*/
+#if defined(CONFIG_PRIZE_HARDWARE_INFO)
+#include "../../../../hardware_info/hardware_info.h"
+extern struct hardware_info current_camera_info[5];
+#endif
+/*prize add by zhaopengge-20201113----end*/
+
 static DEFINE_MUTEX(gimgsensor_mutex);
 static DEFINE_MUTEX(gimgsensor_open_mutex);
 
@@ -527,6 +534,17 @@ static inline int imgsensor_check_is_alive(struct IMGSENSOR_SENSOR *psensor)
 	MUINT32 retLen = sizeof(MUINT32);
 	struct IMGSENSOR *pimgsensor = &gimgsensor;
 	struct IMGSENSOR_SENSOR_INST *psensor_inst = &psensor->inst;
+	
+	/* Prize HanJiuping added 20211110 for add cameras module info into hardwareinfo start */
+	#if defined(CONFIG_PRIZE_HARDWARE_INFO)
+	const char *cam_module[6] = {"TS-Precision Technology",
+				     "TS-Precision Technology",   
+				     "HeDaYuan Electronic", 
+				     "C&T Technology",
+					 "HeDaYuan Electronic",
+				     "HeDaYuan Electronic"};
+	#endif
+	/* Prize HanJiuping added 20211110 for add cameras module info into hardwareinfo end */
 
 	IMGSENSOR_PROFILE_INIT(&psensor_inst->profile_time);
 	ret = imgsensor_hw_power(&pimgsensor->hw,
@@ -545,6 +563,42 @@ static inline int imgsensor_check_is_alive(struct IMGSENSOR_SENSOR *psensor)
 		PK_DBG("Fail to get sensor ID %x\n", sensorID);
 		err = ERROR_SENSOR_CONNECT_FAIL;
 	} else {
+		/*prize add by zhaopengge-20201113----start*/
+	#if defined(CONFIG_PRIZE_HARDWARE_INFO)
+// prize modify by linchong 20210526 start 
+		if(psensor->inst.sensor_idx >= 0 && psensor->inst.sensor_idx < 5)
+// prize modify by linchong 20210526 end		
+		{
+			if (sensorID == 0x30a) {
+				strcpy(current_camera_info[2].chip,psensor_inst->psensor_list->name);
+				sprintf(current_camera_info[2].id,"0x%04x",sensorID);
+				strcpy(current_camera_info[2].vendor,"unknow");
+			}else {
+				strcpy(current_camera_info[psensor->inst.sensor_idx].chip,psensor_inst->psensor_list->name);
+				sprintf(current_camera_info[psensor->inst.sensor_idx].id,"0x%04x",sensorID);
+				/* Prize HanJiuping added 20211110 for add cameras module info into hardwareinfo start */
+				strcpy(current_camera_info[psensor->inst.sensor_idx].vendor, cam_module[psensor->inst.sensor_idx]);
+				/* Prize HanJiuping added 20211110 for add cameras module info into hardwareinfo end */
+			}
+			
+			 //prize modify by yantaotao for camera start
+			if (1){
+				MSDK_SENSOR_RESOLUTION_INFO_STRUCT sensorResolution;
+				imgsensor_sensor_get_resolution(psensor,&sensorResolution);
+				if (sensorID == 0x30a){
+					sprintf(current_camera_info[2].more,"%d*%d",sensorResolution.SensorFullWidth,sensorResolution.SensorFullHeight);
+				} else if (unlikely(0 == strcmp(psensor_inst->psensor_list->name, "ov16a1q_mipi_raw"))) {
+						/* ov16a1q_mipi_raw is 16MP sensor, effective resolution of 4608 x 3456 */
+							sprintf(current_camera_info[psensor->inst.sensor_idx].more,"%d*%d", 4608, 3456);
+				} else{
+				    sprintf(current_camera_info[psensor->inst.sensor_idx].more,"%d*%d",sensorResolution.SensorFullWidth,sensorResolution.SensorFullHeight);
+				}
+			}
+			
+
+		}
+		#endif
+/*prize add by zhaopengge-20201113----end*/
 		PK_DBG("Sensor found ID = 0x%x\n", sensorID);
 		err = ERROR_NONE;
 	}

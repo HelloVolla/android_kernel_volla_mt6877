@@ -19,4 +19,10 @@ obj-y   +=  barometer.o barometer_factory.o
 obj-$(CONFIG_MTK_BAROHUB) += barohub/
 ifneq ($(CONFIG_MTK_BAROHUB),y)
 obj-$(CONFIG_MTK_BMP280_NEW) += BMP280-new/
+# prize added by chenjiaxi, add BKTF_2ND_SPL07 drivers, 20220407-start
+obj-$(CONFIG_BKTF_2ND_SPL07) += BKTF_2ND_SPL07/
+# prize added by chenjiaxi, add BKTF_2ND_SPL07 drivers, 20220407-end
+# prize added by chenjiaxi, add icp201xx drivers, 20220606-start
+obj-$(CONFIG_MTK_ICP201XX) += icp201xx/
+# prize added by chenjiaxi, add icp201xx drivers, 20220606-end
 endif

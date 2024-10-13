@@ -443,3 +443,23 @@ config MTK_ULTRASND_PROXIMITY
 	  emulate physical proximity sensor. Using
 	  IPI interface to communicate with SCP side and
 	  be controlled by sensor hal.
+
+#prize add by zhaopengge 20211217 ---- start 
+config AW8736_SUPPORT
+    bool "AW8736_SUPPORT"
+	default n
+	help
+        If you say Y, enable AW8736_SUPPORT.
+
+config AW8736_MODE
+	depends on AW8736_SUPPORT
+	int "AW8736 extspeaker mode"
+	range 1 4
+	default 3
+	help
+		Use to set AW8736 audio amplifier mode.
+			1 => 1.2w
+		    2 => 1w
+		    3 => 0.8w
+#prize add by zhaopengge 20211217 ---- end
+

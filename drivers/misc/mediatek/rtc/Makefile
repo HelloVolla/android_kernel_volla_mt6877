@@ -48,3 +48,7 @@ MTK_MDI_IP_SRC:= $(MDI_IP_FOLDER)/
 obj-y += \
     $(MTK_MDI_IP_SRC)
 endif
+
+# prize added by chenjiaxi, emmc test, 20220518-start
+obj-$(CONFIG_PRIZE_EMMC_TEST) += prize_ddr_led.o
+# prize added by chenjiaxi, emmc test, 20220518-end

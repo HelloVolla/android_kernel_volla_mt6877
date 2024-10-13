@@ -1246,6 +1246,28 @@ static void dis_micbias_work_callback(struct work_struct *work)
 }
 #endif /* end of #if PMIC_ACCDET_KERNEL */
 
+//prize added by huangjiwu, headset support, 20230302-start
+#if defined(CONFIG_PRIZE_ENDOSCOPE_SM)
+extern  void  endoscope_work_wakeup(void);
+unsigned int accdet_val = 0;
+EXPORT_SYMBOL_GPL(accdet_val);
+
+int sm_typec_accdet_mic_detect(void){
+
+	mdelay(2);
+	accdet_val = accdet_get_auxadc(0);
+	printk(KERN_INFO"typec_accdet AccdetVolt(%d)\n",accdet_val);
+	endoscope_work_wakeup();
+	return 0;
+}
+#endif
+//prize added by huangjiwu, headset support, 20230302-end
+
+//prize added by huarui, headset support, 20190111-start
+#if defined(CONFIG_PRIZE_SWITCH_SGM3798_SUPPORT)
+extern int typec_accdet_mic_detect(void);
+#endif
+//prize added by huarui, headset support, 20190111-end
 #if PMIC_ACCDET_KERNEL
 static void eint_work_callback(struct work_struct *work)
 #else
@@ -1279,6 +1301,16 @@ static void eint_work_callback(void)
 #else
 		enable_accdet(ACCDET_PWM_EN);
 #endif
+//prize add by lipengpeng 20211118 start 
+//prize added by huarui, headset support, 20190111-start
+	#if defined(CONFIG_PRIZE_SWITCH_SGM3798_SUPPORT)
+		typec_accdet_mic_detect();
+	#endif
+//prize added by huarui, headset support, 20190111-end
+	#if defined(CONFIG_PRIZE_ENDOSCOPE_SM)
+		sm_typec_accdet_mic_detect();
+	#endif
+//prize add by lipengpeng 20211118 end 
 	} else {
 		pr_info("accdet cur:plug-out, cur_eint_state = %d\n",
 			cur_eint_state);
@@ -2545,3 +2577,83 @@ long mt_accdet_unlocked_ioctl(struct file *file, unsigned int cmd,
 	}
 	return 0;
 }
+
+//prize add by lipengpeng 20211118 start 
+//extern int set_mic_gpio(void);
+//prize add by lipengpeng 20211118 end 
+//prize added by huarui, headset support, 20190111-start
+#if defined(CONFIG_PRIZE_TYPEC_ACCDET)
+void accdet_eint_func_extern(int state)
+{
+	int ret = 0;
+
+	if (state == EINT_PIN_PLUG_OUT){	//OUT=0 IN=1
+	    
+		cur_eint_state = EINT_PIN_PLUG_OUT;
+//prize add by lipengpeng 20211118 start 
+		//mod_timer(&micbias_timer, jiffies + MICBIAS_DISABLE_TIMER);
+		printk(" typec close dump_register start\n");
+		//dump_register();
+		pwrap_write(ACCDET_CTRL, pmic_read(ACCDET_CTRL) | ACCDET_EINT0_EN_B2);
+		mdelay(5);
+		printk(" typec close dump_register end\n");
+		//dump_register();
+	//	set_mic_gpio();
+//prize add by lipengpeng 20211118 end  		
+	}else{
+//prize add by lipengpeng 20211118 start 	
+		printk(" typec open dump_register start\n");
+		//dump_register();
+		pwrap_write(ACCDET_CTRL, pmic_read(ACCDET_CTRL) & (~ACCDET_EINT0_EN_B2));
+		mdelay(5);
+		printk(" typec open dump_register end\n");
+	//	dump_register();
+//prize add by lipengpeng 20211118 end
+		cur_eint_state = EINT_PIN_PLUG_IN;
+	}
+
+	pr_info("accdet %s(), cur_eint_state=%d\n", __func__, cur_eint_state);
+	ret = queue_work(eint_workqueue, &eint_work);
+	return;
+}
+EXPORT_SYMBOL(accdet_eint_func_extern);
+#endif
+//drv huangjiwu 20230609 for sm nkj start
+#if defined(CONFIG_PRIZE_ENDOSCOPE_SM)
+void prize_sm_accdet_eint_func_extern(int state)
+{
+	int ret = 0;
+
+	if (state == EINT_PIN_PLUG_OUT){	//OUT=0 IN=1
+	    
+		cur_eint_state = EINT_PIN_PLUG_OUT;
+//prize add by lipengpeng 20211118 start 
+		//mod_timer(&micbias_timer, jiffies + MICBIAS_DISABLE_TIMER);
+		printk(" typec close dump_register start\n");
+		//dump_register();
+		pwrap_write(ACCDET_CTRL, pmic_read(ACCDET_CTRL) | ACCDET_EINT0_EN_B2);
+		mdelay(5);
+		printk(" typec close dump_register end\n");
+		//dump_register();
+	//	set_mic_gpio();
+//prize add by lipengpeng 20211118 end  		
+	}else{
+//prize add by lipengpeng 20211118 start 	
+		printk(" typec open dump_register start\n");
+		//dump_register();
+		pwrap_write(ACCDET_CTRL, pmic_read(ACCDET_CTRL) & (~ACCDET_EINT0_EN_B2));
+		mdelay(5);
+		printk(" typec open dump_register end\n");
+	//	dump_register();
+//prize add by lipengpeng 20211118 end
+		cur_eint_state = EINT_PIN_PLUG_IN;
+	}
+
+	pr_info("accdet %s(), cur_eint_state=%d\n", __func__, cur_eint_state);
+	ret = queue_work(eint_workqueue, &eint_work);
+	return;
+}
+EXPORT_SYMBOL(prize_sm_accdet_eint_func_extern);
+#endif
+//drv huangjiwu 20230609 for sm nkj end
+//prize added by huarui, headset support, 20190111-end

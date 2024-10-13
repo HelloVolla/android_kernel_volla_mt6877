@@ -229,14 +229,27 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 					TYPEC_ACCESSORY_NONE;
 				break;
 			}
-			rpmd->partner = typec_register_partner(rpmd->typec_port,
-					&rpmd->partner_desc);
-			if (IS_ERR(rpmd->partner)) {
-				ret = PTR_ERR(rpmd->partner);
-				dev_notice(rpmd->dev,
-				"%s typec register partner fail(%d)\n",
-					   __func__, ret);
+
+			/* prize modified for suppressing the following system notification
+			* when analog type-C headset inserted start:
+			* Analog audio accessory detected: The attached device is not
+			* compatible with this phone. bla...bla...*/
+			if (likely(new_state != TYPEC_ATTACHED_AUDIO)) {
+				rpmd->partner = typec_register_partner(rpmd->typec_port,
+						&rpmd->partner_desc);
+				if (IS_ERR(rpmd->partner)) {
+					ret = PTR_ERR(rpmd->partner);
+					dev_notice(rpmd->dev,
+					"%s typec register partner fail(%d)\n",
+						   __func__, ret);
+				}
 			}
+			else {
+				dev_notice(rpmd->dev,
+					"%s USB audio accessory attach, skip registering tcpc partner\n",
+					__func__);
+			}
+			/* prize modified for suppressing the above system notification end */
 		}
 		break;
 	case TCP_NOTIFY_PR_SWAP:
@@ -546,8 +559,17 @@ static int tcpc_typec_port_type_set(const struct typec_capability *cap,
 			return 0;
 		break;
 	case TYPEC_PORT_SRC:
+		/*prize LiuYong, Add usb state switching code in SRC mode, 20211122*/
 		if (!as_sink)
 			return 0;
+		else {
+			if (cap->prefer_role == TYPEC_SOURCE)
+				typec_role = TYPEC_ROLE_TRY_SNK;
+			else if (cap->prefer_role == TYPEC_SINK)
+				return 0;
+			return tcpm_typec_change_role(rpmd->tcpc, typec_role);
+		}
+		/*prize LiuYong, Add usb state switching code in SRC mode, 20211122*/
 		break;
 	case TYPEC_PORT_DRP:
 		if (cap->prefer_role == TYPEC_SOURCE)
@@ -747,7 +769,7 @@ static int __init rt_pd_manager_init(void)
 {
 	return platform_driver_register(&rt_pd_manager_driver);
 }
-late_initcall(rt_pd_manager_init);
+late_initcall_sync(rt_pd_manager_init);
 
 static void __exit rt_pd_manager_exit(void)
 {

@@ -12,11 +12,22 @@
 /* #define CONFIG_TYPEC_USE_DIS_VBUS_CTRL */
 #define CONFIG_TYPEC_POWER_CTRL_INIT
 
+//prize add by huarui, cc controller sgm7220
+#if !defined(CONFIG_TCPC_SGM7220)&&!defined(CONFIG_TCPC_WUSB3801)
 #define CONFIG_TYPEC_CAP_TRY_SOURCE
 #define CONFIG_TYPEC_CAP_TRY_SINK
+#endif
+//prize add by huarui, cc controller sgm7220
 
 #define CONFIG_TYPEC_CAP_DBGACC
+/*prize add by sunshuai for A-C 30w charge 20201109-start */
+#ifdef CONFIG_PRIZE_ATOC_TYPEC_CHARGE
+#define CONFIG_TYPEC_CAP_DBGACC_SNK
+#define CONFIG_TYPEC_WAIT_BC12
+#else
 /* #define CONFIG_TYPEC_CAP_DBGACC_SNK */
+#endif
+/*prize add by sunshuai for A-C 30w charge 20201109-end */
 #define CONFIG_TYPEC_CAP_CUSTOM_SRC
 #define CONFIG_TYPEC_CAP_NORP_SRC
 /* #define CONFIG_COMPATIBLE_APPLE_TA */
@@ -278,7 +289,13 @@
 #endif	/* CONFIG_USB_PD_CUSTOM_VDM */
 
 #ifdef CONFIG_TYPEC_CAP_DBGACC_SNK
+/*prize add by sunshuai for A-C 30w charge 20201109-start */
+#ifdef CONFIG_PRIZE_ATOC_TYPEC_CHARGE
+#define CONFIG_USB_PD_CUSTOM_DBGACC
+#else
 /* #define CONFIG_USB_PD_CUSTOM_DBGACC */
+#endif
+/*prize add by sunshuai for A-C 30w charge 20201109-end */
 #endif	/* CONFIG_TYPEC_CAP_DBGACC_SNK */
 
 /* S/W patch for ESD issue: repeat HReset Alert */
@@ -410,6 +427,10 @@
 /* #define CONFIG_WATER_CALIBRATION */
 #define CONFIG_WD_SBU_CALIB_INIT	1800 /* mV */
 #define CONFIG_WD_SBU_PL_BOUND		200 /* mV */
+#define CONFIG_WD_SBU_PL_LBOUND_C2C	1100 /* mV */
+#define CONFIG_WD_SBU_PL_UBOUND_C2C	2600 /* mV */
+#define CONFIG_WD_SBU_PL_RETRY		2
+#define CONFIG_WD_SBU_PH_RETRY		2
 #define CONFIG_WD_SBU_PH_AUDDEV		200 /* mV */
 #define CONFIG_WD_SBU_PH_LBOUND		1180 /* mV */
 #define CONFIG_WD_SBU_PH_LBOUND1_C2C	2850 /* mV */

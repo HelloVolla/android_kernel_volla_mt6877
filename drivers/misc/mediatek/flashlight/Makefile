@@ -4,6 +4,7 @@
 
 flashlight-y := flashlight-core.o
 flashlight-y += flashlight-device.o
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/
 
 obj-$(CONFIG_MTK_FLASHLIGHT)             += flashlight.o
 obj-$(CONFIG_MTK_V4L2_FLASHLIGHT)        += mtk-composite.o
@@ -18,8 +19,23 @@ obj-$(CONFIG_MTK_FLASHLIGHT_MT6370)      += flashlights-mt6370.o
 obj-$(CONFIG_MTK_FLASHLIGHT_MT6360)      += flashlights-mt6360.o
 obj-$(CONFIG_MTK_FLASHLIGHT_AW3644)      += flashlights-aw3644.o
 obj-$(CONFIG_MTK_FLASHLIGHT_SYWT78)      += flashlights-sywt78.o
+obj-$(CONFIG_MTK_FLASHLIGHT_AW36515)      += flashlights-aw36515.o
+# prize add by linchong 20220111 start
+obj-$(CONFIG_MTK_FLASHLIGHT_AW36518)      += flashlights-aw36518.o
+# prize add by linchong 20220111 start
+obj-$(CONFIG_MTK_FLASHLIGHT_OCP81375)    += flashlights-ocp81375.o
 obj-$(CONFIG_MTK_FLASHLIGHT_DUMMY)       += flashlights-dummy.o
 obj-$(CONFIG_MTK_FLASHLIGHT_DUMMY_GPIO)  += flashlights-dummy-gpio.o
+#/* prize add by zhuzhengjiang for flash ocp8111a 20211223 start*/
+obj-$(CONFIG_MTK_FLASHLIGHT_OCP8111A_GPIO)  += flashlights-ocp8111a-gpio.o
+#/* prize add by zhuzhengjiang for flash ocp8111a 20211223 end*/
+#/* prize add by zhuzhengjiang for flash aw3641e 20201224 start*/
+obj-$(CONFIG_MTK_FLASHLIGHT_AW3641E_GPIO)  += flashlights-aw3641e-gpio.o
+#/* prize add by zhuzhengjiang for flash aw3641e 20201224 end*/
+#/*prize add by zhuzhengjiang for IR FLASH aw36515 start*/
+obj-$(CONFIG_MTK_FLASHLIGHT_IR_AW36515)     += flashlights-ir-aw36515.o
+#/*prize add by zhuzhengjiang for IR FLASH aw36515 end*/
+
 
 ccflags-$(CONFIG_MTK_FLASHLIGHT_DEBUG)     := -DDEBUG
 ccflags-$(CONFIG_MTK_FLASHLIGHT_SYWT78)    += -DCONFIG_MTK_FLASHLIGHT_SYWT78
@@ -41,4 +57,13 @@ subdir-ccflags-y += \
 	-I$(MTK_CUSTOM_PATH)/pmic/include \
 	-I$(MTK_CUSTOM_PATH)/pmic \
 	-I$(MTK_CUSTOM_PATH)/power_throttling
-
+#prize add by lipengpeng 20210208 start 
+obj-$(CONFIG_MTK_FLASHLIGHT_SGM37895)      += flashlights-sgm37895.o
+obj-$(CONFIG_MTK_FLASHLIGHT_SGM37895A)      += flashlights-sgm37895a.o
+obj-$(CONFIG_MTK_FLASHLIGHT_AW36515B)     += flashlights-aw36515b.o
+#prize add by lipengpeng 20210208 end 
+obj-$(CONFIG_MTK_FLASHLIGHT_AW36515IR)     += flashlights-aw36515ir.o
+###prize
+obj-$(CONFIG_MTK_FLASHLIGHT_SGM3758)      += flashlights-sgm3758-gpio.o
+obj-$(CONFIG_MTK_FLASHLIGHT_AW3641_GPIO)     += flashlights-aw3641-gpio.o
+obj-$(CONFIG_MTK_FLASHLIGHT_ISINK)     += flashlights-isink.o

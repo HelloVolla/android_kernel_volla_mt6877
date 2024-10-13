@@ -27,6 +27,12 @@ endif
 ifeq ($(CONFIG_SND_SOC_MT6779_MT6359),m)
 subdir-ccflags-y += -DASOC_TEMP_BYPASS
 endif
+
+# prize modified by hanjiuping for foursemi fs1599N pa support start
+# include path for fs1599 driver headers
+subdir-ccflags-$(CONFIG_SND_SOC_FS1599) += -I$(srctree)/sound/soc/codecs/fs1599
+# prize modified by hanjiuping for foursemi fs1599N pa support end
+
 obj-$(CONFIG_SND_SOC_MTK_BTCVSD) += common/
 obj-$(CONFIG_SND_SOC_MEDIATEK) += common/
 obj-$(CONFIG_SND_SOC_MT2701) += mt2701/

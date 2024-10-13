@@ -22,3 +22,10 @@ source "drivers/misc/mediatek/sensors-1.0/accelerometer/accelhub/Kconfig"
 source "drivers/misc/mediatek/sensors-1.0/accelerometer/mc3410-i2c/Kconfig"
 #source "drivers/misc/mediatek/sensors-1.0/accelerometer/mc3433/Kconfig"
 #source "drivers/misc/mediatek/sensors-1.0/accelerometer/mpu6050g/Kconfig"
+
+#prize added by chenjiaxi, stk8xxx drivers, 20220408-start
+source "drivers/misc/mediatek/sensors-1.0/accelerometer/stk8xxx/Kconfig"
+#prize added by chenjiaxi, stk8xxx drivers, 20220408-end
+#prize added by chenjiaxi, mir3da drivers, 20220416-start
+source "drivers/misc/mediatek/sensors-1.0/accelerometer/mir3da/Kconfig"
+#prize added by chenjiaxi, mir3da drivers, 20220416-end

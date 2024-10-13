@@ -13,6 +13,8 @@ source "drivers/input/touchscreen/mediatek/Kconfig"
 
 source "drivers/input/touchscreen/NT36672C/Kconfig"
 
+source "drivers/input/touchscreen/omnivision_tcm/Kconfig"
+
 if INPUT_TOUCHSCREEN
 
 config TOUCHSCREEN_PROPERTIES
@@ -193,6 +195,19 @@ config TOUCHSCREEN_CHIPONE_ICN8318
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called chipone_icn8318.
+
+#prize add by zhaopengge 20210531 start
+config TOUCHSCREEN_GALAXYCORE_SPI
+	    tristate "gcore touchscreen for Mediatek package"
+        depends on SPI
+        default n
+        help
+          Say y here if you have gcore touch panel.
+          If unsure, say N.
+          To compile this driver as a module, choose M here: the
+          module will be called gcore.
+		  
+#prize add by zhaopengge 20210531 end
 
 config TOUCHSCREEN_CHIPONE_ICN8505
 	tristate "chipone icn8505 touchscreen controller"
@@ -1171,6 +1186,17 @@ config TOUCHSCREEN_ST1232
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called st1232_ts.
+	 
+#prize-add-pengzhipeng-20191029-start
+config TOUCHSCREEN_NT36xxx_HOSTDL_SPI
+	bool "Novatek NT36xxx host download SPI driver"
+	default n
+	help
+	  Say Y here if you have a Novatek NT36xxx no flash touchscreen connected
+	  to your system by SPI bus.
+
+	  If unsure, say N.
+#prize-add-pengzhipeng-20191029-end
 
 config TOUCHSCREEN_STMFTS
 	tristate "STMicroelectronics STMFTS touchscreen"
@@ -1327,6 +1353,112 @@ config TOUCHSCREEN_MTK_GT1151
 
 source "drivers/input/touchscreen/GT1151/Kconfig"
 
+config TOUCHSCREEN_MTK_NT36xxx_no_flash_spi
+        bool "NT36xxx for Mediatek package"
+        default n
+        help
+          Say Y here if you have NT36xxx touch panel.
+
+          If unsure, say N.
+
+          To compile this dirver as a module, choose M here: the
+          module will be called.
+
+config TOUCHSCREEN_CHSC5XXX
+	bool "CHSC5XXX for Mediatek package"
+	default n
+	help
+	  Say Y here if you have CHSC5XXX touch panel.
+	  If unsure, say N.
+	  To compile this dirver as a module, choose M here: the
+	  module will be called.
+
+#prize add by lipengpeng 20220824 start 
+config TOUCHSCREEN_MTK_HX83112A
+	bool "CONFIG_TOUCHSCREEN_MTK_HX83112A"
+	default n
+	help
+		HX83112A driver
+#prize add by lipengpeng 20220824 end
+
+#dvr add by huangyu ILI9882N 20230213 start 
+config TOUCHSCREEN_MTK_ILI9882N
+        bool "ILI9882N for Mediatek package"
+        default n
+        help
+          Say Y here if you have ILI9882N touch panel.
+
+          If unsure, say N.
+
+          To compile this dirver as a module, choose M here: the
+          module will be called.
+#dvr add by huangyu ILI9882N 20230213 end 
+
+#dvr add by wangwei1 ILI9882Q 20230424 start 
+config TOUCHSCREEN_MTK_ILI9882Q
+        bool "ILI9882Q for Mediatek package"
+        default n
+        help
+          Say Y here if you have ILI9882Q touch panel.
+
+          If unsure, say N.
+
+          To compile this dirver as a module, choose M here: the
+          module will be called.
+#dvr add by wangwei1 ILI9882Q 20230424 end
+
+#dvr add by wangwei1 CHSC5432 20230506 start 
+config TOUCHSCREEN_MTK_CHSC5432
+        bool "CHSC5432 for Mediatek package"
+        default n
+        help
+          Say Y here if you have CHSC5432 touch panel.
+
+          If unsure, say N.
+
+          To compile this dirver as a module, choose M here: the
+          module will be called.
+#dvr add by wangwei1 CHSC5432 20230506 end 
+source "drivers/input/touchscreen/chsc5xxx_v3.7.2/Kconfig"
+
+#dvr add by wangwei1 TXD ILI9882Q 20230505 start 
+config TOUCHSCREEN_MTK_ILI9882Q_TXD
+        bool "ILI9882Q for Mediatek package"
+        default n
+        help
+          Say Y here if you have ILI9882Q touch panel.
+
+          If unsure, say N.
+
+          To compile this dirver as a module, choose M here: the
+          module will be called.
+#dvr add by wangwei1 TXD ILI9882Q 20230505 end
+#dvr add by wangwei1 TXD ILI9882Q 20230517 start 
+source "drivers/input/touchscreen/ILITEK_V3.0.9.0/Kconfig"
+#dvr add by wangwei1 TXD ILI9882Q 20230517 end
+
+config TOUCHSCREEN_MTK_GT5688
+        bool "GT5688 for Mediatek package"
+        default n
+        help
+          Say Y here if you have GT1151 touch panel.
+
+          If unsure, say N.
+
+          To compile this dirver as a module, choose M here: the
+          module will be called.
+source "drivers/input/touchscreen/GT5688/Kconfig"
+
+#prize Added glove mode control macro-tangcong-20210624-start	  
+config PRIZE_SMART_COVER_COMMON_NODE
+	bool "prize smart cover common node"
+	default n
+	help
+	  Say Y here if you use smart cover common node.
+	  If unsure, say N.
+	  To compile this dirver as a module, choose M here: the
+	  module will be called.
+#prize Added glove mode control macro-tangcong-20210624-end*/		
 config TOUCHSCREEN_MTK_FOCALTECH_HD
 	bool "Focaltech Touchscreen"
 	depends on I2C
@@ -1336,6 +1468,14 @@ config TOUCHSCREEN_MTK_FOCALTECH_HD
 
 	  To compile this dirver as a module, choose M here: the
 	  module will be called.
+
+config TOUCHSCREEN_SYNAPTICS_TCM
+	tristate "SYNAPTICS TCM touchscreen"
+	help
+	  Say Y here if you have a SYNAPTICS TCM series touch controller
+	  to your system.
+	  If build module, say M.
+	  If unsure, say N.
 
 config TOUCHSCREEN_MTK_FOCALTECH_FHD
 	bool "Focaltech FHD Touchscreen"
@@ -1369,3 +1509,141 @@ config TOUCHSCREEN_MTK_TOUCH
 	  To compile this dirver for used touch IC.
 
 endif
+
+#prize-add galaxycore TP-pengzhipeng-20220322-start
+config TOUCHSCREEN_GC7302_SPI
+	bool "GALAXYCORE touchscreen"
+	default n
+	help
+	  Say Y here if you have a GALAXYCORE touchscreen connected
+	  to your system.
+
+	  If unsure, say N.
+#prize-add galaxycore TP-pengzhipeng-20220322-end
+# prize diliwu add tp 20191222 start
+config TOUCHSCREEN_CHIPONE_SPI
+        tristate "Chipone TDDI touchscreen for Mediatek package"
+        depends on I2C
+        default n
+        help
+          Say y here if you have chipone TDDI touch panel.
+          If unsure, say N.
+          To compile this driver as a module, choose M here: the
+          module will be called chipone-tddi.
+# prize diliwu add tp 20191222 end
+#prize add by zhaopengge 20211222 start
+config TOUCHSCREEN_FTS
+    bool "Focaltech Touchscreen"
+    default n
+    help
+      Say Y here if you have Focaltech touch panel.
+      If unsure, say N.
+#prize add by zhaopengge 20211222 end
+
+#prize add by lipengpeng 20220418 start 
+source "drivers/input/touchscreen/ILITEK_V2/Kconfig"
+source "drivers/input/touchscreen/hxchipset_hx83112/Kconfig"
+#prize add by lipengpeng 20220418 end
+
+#prize add by xuejian GT9916 20221024-start
+source "drivers/input/touchscreen/goodix_brl_GT9916/Kconfig"
+#prize add by xuejian GT9916 20221024-end
+
+source "drivers/input/touchscreen/focaltech_8006s_ab_touch_spi/Kconfig"
+
+#drv  add by pengzhipeng 20230615 start 
+source "drivers/input/touchscreen/focaltech_ft8057s_v4_1/Kconfig"
+#drv  add by pengzhipeng 20230615 end
+#prize-add-hxchipset spi-pzp-20210713-start
+config TOUCHSCREEN_HIMAX_IC_HX83112_SPI
+       bool "HIMAX chipset HX83112 function"
+		help
+		This enables support for HIMAX CHIPSET of HX83112.
+
+source "drivers/input/touchscreen/hxchipset_spi/Kconfig"
+
+#prize-add-hxchipset spi-pzp-20210713-end
+
+#drv add by pengzhipeng 20230316 start
+config TOUCHSCREEN_SYNA_TCM2
+	tristate "Synaptics TCM Touchscreen Driver Generation2"
+	depends on INPUT
+	help
+	  Say Y here if you have a Synaptics Touchscreen.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called synaptics_tcm.
+
+source "drivers/input/touchscreen/synaptics_tcm2/Kconfig"
+
+#dvr add by wangwei1 ST7123 20230425 end 
+config TOUCHSCREEN_MTK_ST7123
+       bool "ST7123 chipset function"
+		help
+		This enables support for ST7123 CHIPSET.
+#dvr add by wangwei1 ST7123 20230425 end
+#dvr add by wangwei1 ST7123 20230518 start
+source "drivers/input/touchscreen/sitronix_ts_v43.00.230509/Kconfig"
+#dvr add by wangwei1 ST7123 20230518 end
+
+#drv add by pengzhipeng 20230316 start
+config TOUCHSCREEN_SYNA_TCM2
+	tristate "Synaptics TCM Touchscreen Driver Generation2"
+	depends on INPUT
+	help
+	  Say Y here if you have a Synaptics Touchscreen.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called synaptics_tcm.
+
+source "drivers/input/touchscreen/synaptics_tcm2/Kconfig"
+#drv add by pengzhipeng 20230316 end
+#dvr add by huangyu NT36672N 202305018 end 
+config TOUCHSCREEN_MTK_NT36672N
+       bool "NT36672N chipset function"
+		help
+		This enables support for NT36672N CHIPSET.
+
+source "drivers/input/touchscreen/NT36672N/Kconfig"
+#dvr add by huangyu NT36672N 202305018 end 
+
+#dvr add by wangwei1 CHSC5432 20230512 end
+config PRIZE_SMART_COVER_COMMON_NODE
+       bool "CHSC5432 chipset glove function"
+		help
+		This enables support glove for CHSC5432 CHIPSET.
+#dvr add by wangwei1 CHSC5432 20230512 end
+
+config TOUCHSCREEN_GT9886_TOUCH
+	tristate "Goodix I2C touchscreen"
+	depends on I2C
+	depends on GPIOLIB || COMPILE_TEST
+	help
+	  Say Y here if you have the Goodix touchscreen (such as one
+	  installed in Onda v975w tablets) connected to your
+	  system. It also supports 5-finger chip models, which can be
+	  found on ARM tablets, like Wexler TAB7200 and MSI Primo73.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called goodix.
+
+#prize add by zhaopengge 20201022 start
+config TOUCHSCREEN_MTK_GT9XX
+        bool "GT9XX for Mediatek package"
+        default n
+        help
+          Say Y here if you have GT1151 touch panel.
+
+          If unsure, say N.
+
+          To compile this dirver as a module, choose M here: the
+          module will be called.
+		  
+source "drivers/input/touchscreen/GT917S/Kconfig"
+#prize add by zhaopengge 20201022 end

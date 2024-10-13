@@ -62,6 +62,23 @@
 
 #include "mtk_charger.h"
 
+/*prize-zhaopengge-20211230, add fuel gauge cw2017  start*/
+#if defined(CONFIG_MTK_CW2017_SUPPORT)
+extern int g_cw2017_capacity;
+extern int g_cw2017_vol;
+extern int cw2017_exit_flag;
+extern int g_cw2017_bat_temperature_val;
+#endif
+/* prize-zhaopengge-20211230, add fuel gauge cw2017  end */
+
+/*prize-sunshuai-20201224, add fuel gauge cw2015  start*/
+#if defined(CONFIG_MTK_CW2015_SUPPORT)
+extern int g_cw2015_capacity;
+extern int g_cw2015_vol;
+extern int cw2015_exit_flag;
+#endif
+/* prize-sunshuai-20201224, add fuel gauge cw2015  end */
+
 int get_uisoc(struct mtk_charger *info)
 {
 	union power_supply_propval prop;
@@ -84,6 +101,38 @@ int get_uisoc(struct mtk_charger *info)
 			POWER_SUPPLY_PROP_CAPACITY, &prop);
 		ret = prop.intval;
 	}
+	
+	/*prize-zhaopengge-20211230, add fuel gauge cw2017  start*/
+#if defined(CONFIG_MTK_CW2017_SUPPORT)
+	if(cw2017_exit_flag==1)
+	{
+		ret= g_cw2017_capacity;
+//prize add by lipengpeng 20210819 start 
+	}else{
+		ret = power_supply_get_property(bat_psy,POWER_SUPPLY_PROP_CAPACITY, &prop);
+		ret = prop.intval;
+	    printk("lpp---cw2015 Not loaded ret=%d\n",ret);
+	}
+//prize add by lipengpeng 20210819 end 
+	chr_err("%s cw2015  g_cw2015_capacity  =%d\n", __func__,ret);
+#endif
+/*prize-zhaopengge-20211230, add fuel gauge cw2017  end*/
+
+/* prize-sunshuai-20201224, add fuel gauge cw2015  start*/
+#if defined(CONFIG_MTK_CW2015_SUPPORT)
+	if(cw2015_exit_flag==1)
+	{
+		ret= g_cw2015_capacity;
+//prize add by lipengpeng 20210819 start 
+	}else{
+		ret = power_supply_get_property(bat_psy,POWER_SUPPLY_PROP_CAPACITY, &prop);
+		ret = prop.intval;
+	    printk("lpp---cw2015 Not loaded ret=%d\n",ret);
+	}
+//prize add by lipengpeng 20210819 end 
+	chr_err("%s cw2015  g_cw2015_capacity  =%d\n", __func__,ret);
+#endif
+/* prize-sunshuai-20201224, add fuel gauge cw2015  end*/
 
 	chr_debug("%s:%d\n", __func__,
 		ret);
@@ -112,6 +161,38 @@ int get_battery_voltage(struct mtk_charger *info)
 			POWER_SUPPLY_PROP_VOLTAGE_NOW, &prop);
 		ret = prop.intval / 1000;
 	}
+	
+	/*prize-zhaopengge-20211230, add fuel gauge cw2017  start*/
+#if defined(CONFIG_MTK_CW2017_SUPPORT)
+		if(cw2017_exit_flag==1)
+		{
+			ret = g_cw2017_vol;
+//prize add by lipengpeng 20210819 start 
+		}else{
+				ret = power_supply_get_property(bat_psy,POWER_SUPPLY_PROP_VOLTAGE_NOW, &prop);
+				ret = prop.intval / 1000;
+		        printk("lpp----cw2015 not loader ret=%d\n",ret);
+		}
+//prize add by lipengpeng 20210819 end 
+		chr_err("%s cw2015	g_cw2015_vol  =%d\n", __func__,ret);
+#endif
+/*prize-zhaopengge-20211230, add fuel gauge cw2017  end*/
+
+/* prize-sunshuai-20201224, add fuel gauge cw2015  start*/
+#if defined(CONFIG_MTK_CW2015_SUPPORT)
+		if(cw2015_exit_flag==1)
+		{
+			ret= g_cw2015_vol;
+//prize add by lipengpeng 20210819 start 
+		}else{
+				ret = power_supply_get_property(bat_psy,POWER_SUPPLY_PROP_VOLTAGE_NOW, &prop);
+				ret = prop.intval / 1000;
+		        printk("lpp----cw2015 not loader ret=%d\n",ret);
+		}
+//prize add by lipengpeng 20210819 end 
+		chr_err("%s cw2015	g_cw2015_vol  =%d\n", __func__,ret);
+#endif
+/* prize-sunshuai-20201224, add fuel gauge cw2015  end*/
 
 	chr_debug("%s:%d\n", __func__,
 		ret);
@@ -140,6 +221,21 @@ int get_battery_temperature(struct mtk_charger *info)
 			POWER_SUPPLY_PROP_TEMP, &prop);
 		ret = prop.intval / 10;
 	}
+	/*prize-zhaopengge-20211230, add fuel gauge cw2017  start*/
+#if defined(CONFIG_MTK_CW2017_SUPPORT)
+		if(cw2017_exit_flag==1)
+		{
+			ret = g_cw2017_bat_temperature_val / 10;
+//prize add by lipengpeng 20210819 start 
+		}else{
+				ret = power_supply_get_property(bat_psy,POWER_SUPPLY_PROP_TEMP, &prop);
+				ret = prop.intval / 10;
+		        printk("lpp----cw2015 not loader ret=%d\n",ret);
+		}
+//prize add by lipengpeng 20210819 end 
+		chr_err("%s cw2015	g_cw2015_vol  =%d\n", __func__,ret);
+#endif
+/*prize-zhaopengge-20211230, add fuel gauge cw2017  end*/
 
 	chr_debug("%s:%d\n", __func__,
 		ret);
@@ -195,6 +291,20 @@ static int get_pmic_vbus(struct mtk_charger *info, int *vchr)
 		prop.intval);
 	return ret;
 }
+
+//prize add by huarui, cc controller sgm7220, start
+#if defined(CONFIG_TCPC_SGM7220)||defined(CONFIG_TCPC_WUSB3801)
+int battery_get_vbus(void)
+{
+	int ret  = 0;
+	int vbus = 0;
+
+	ret = get_pmic_vbus(NULL, &vbus);
+
+	return (ret < 0) ? ret : vbus;
+}
+#endif
+//prize add by huarui, cc controller sgm7220, end
 
 int get_vbus(struct mtk_charger *info)
 {

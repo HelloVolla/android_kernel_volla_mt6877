@@ -41,7 +41,7 @@
 
 #define PFX "OV8856"
 
-#define LOG_INF(fmt, args...)   pr_debug(PFX "[%s] " fmt, __func__, ##args)
+#define LOG_INF(fmt, args...)   pr_err(PFX "[%s] " fmt, __func__, ##args)
 
 static DEFINE_SPINLOCK(imgsensor_drv_lock);
 
@@ -58,6 +58,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_height = 1224,
 		.mipi_data_lp2hs_settle_dc = 85,
 		/*	 following for GetDefaultFramerateByScenario()	*/
+		.mipi_pixel_rate = 288600000,
 		.max_framerate = 300,
 	},
 	.cap = {
@@ -69,6 +70,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width  = 3264,
 		.grabwindow_height = 2448,
 		.mipi_data_lp2hs_settle_dc = 85,
+		.mipi_pixel_rate = 288600000,
 		.max_framerate = 300,
 	},
 	.cap1 = {	/*capture for 15fps*/
@@ -80,6 +82,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width  = 3264,
 		.grabwindow_height = 2448,
 		.mipi_data_lp2hs_settle_dc = 85,
+		.mipi_pixel_rate = 288600000,
 		.max_framerate = 150,
 	},
 	.normal_video = { /* cap*/
@@ -91,6 +94,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width  = 3264,
 		.grabwindow_height = 2448,
 		.mipi_data_lp2hs_settle_dc = 85,
+		.mipi_pixel_rate = 288600000,
 		.max_framerate = 300,
 	},
 	.hs_video = {
@@ -102,6 +106,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width  = 640,
 		.grabwindow_height = 480,
 		.mipi_data_lp2hs_settle_dc = 30,
+		.mipi_pixel_rate = 288600000,
 		.max_framerate = 1200,
 	},
 	.slim_video = {/*pre*/
@@ -113,6 +118,7 @@ static struct imgsensor_info_struct imgsensor_info = {
 		.grabwindow_width  = 1632,
 		.grabwindow_height = 1224,
 		.mipi_data_lp2hs_settle_dc = 85,
+		.mipi_pixel_rate = 288600000,
 		/*	 following for GetDefaultFramerateByScenario()	*/
 		.max_framerate = 300,
 	},
@@ -1752,6 +1758,73 @@ static kal_uint32 feature_control(MSDK_SENSOR_FEATURE_ENUM feature_id,
 
 	LOG_INF("feature_id = %d\n", feature_id);
 	switch (feature_id) {
+		//add start
+	case SENSOR_FEATURE_GET_MIPI_PIXEL_RATE:
+	{
+		switch (*feature_data) {
+		case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.cap.mipi_pixel_rate;
+			break;
+		case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.normal_video.mipi_pixel_rate;
+			break;
+		case MSDK_SCENARIO_ID_HIGH_SPEED_VIDEO:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.hs_video.mipi_pixel_rate;
+			break;
+		case MSDK_SCENARIO_ID_SLIM_VIDEO:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.slim_video.mipi_pixel_rate;
+			break;
+		case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
+		default:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+				imgsensor_info.pre.mipi_pixel_rate;
+			break;
+		}
+	}
+	break;
+
+	/*only for Android R (Android 11)/ISP 5.0
+	delete SENSOR_FEATURE_GET_PIXEL_RATE in Android Q (Android 10) & earlier versions*/
+	case SENSOR_FEATURE_GET_PIXEL_RATE:
+		switch (*feature_data) {
+		case MSDK_SCENARIO_ID_CAMERA_CAPTURE_JPEG:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+			(imgsensor_info.cap.pclk /
+			(imgsensor_info.cap.linelength - 80))*
+			imgsensor_info.cap.grabwindow_width;
+			break;
+		case MSDK_SCENARIO_ID_VIDEO_PREVIEW:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+			(imgsensor_info.normal_video.pclk /
+			(imgsensor_info.normal_video.linelength - 80))*
+			imgsensor_info.normal_video.grabwindow_width;
+			break;
+		case MSDK_SCENARIO_ID_HIGH_SPEED_VIDEO:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+			(imgsensor_info.hs_video.pclk /
+			(imgsensor_info.hs_video.linelength - 80))*
+			imgsensor_info.hs_video.grabwindow_width;
+			break;
+		case MSDK_SCENARIO_ID_SLIM_VIDEO:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+			(imgsensor_info.slim_video.pclk /
+			(imgsensor_info.slim_video.linelength - 80))*
+			imgsensor_info.slim_video.grabwindow_width;
+			break;
+		case MSDK_SCENARIO_ID_CAMERA_PREVIEW:
+		default:
+			*(MUINT32 *)(uintptr_t)(*(feature_data + 1)) =
+			(imgsensor_info.pre.pclk /
+			(imgsensor_info.pre.linelength - 80))*
+			imgsensor_info.pre.grabwindow_width;
+			break;
+		}
+		break;
+//add end
 	case SENSOR_FEATURE_GET_PERIOD:
 		*feature_return_para_16++ = imgsensor.line_length;
 		*feature_return_para_16 = imgsensor.frame_length;

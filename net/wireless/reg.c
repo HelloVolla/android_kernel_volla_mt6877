@@ -1058,10 +1058,12 @@ static int query_regdb_file(const char *alpha2)
 	alpha2 = kmemdup(alpha2, 2, GFP_KERNEL);
 	if (!alpha2)
 		return -ENOMEM;
-
-	return request_firmware_nowait(THIS_MODULE, true, "regulatory.db",
+//prize add by wangfei for X9-225 20230227 start 
+/*	return request_firmware_nowait(THIS_MODULE, true, "regulatory.db",
 				       &reg_pdev->dev, GFP_KERNEL,
-				       (void *)alpha2, regdb_fw_cb);
+				       (void *)alpha2, regdb_fw_cb);*/
+    return 0;
+//prize add by wangfei for X9-225 20230227 end
 }
 
 int reg_reload_regdb(void)

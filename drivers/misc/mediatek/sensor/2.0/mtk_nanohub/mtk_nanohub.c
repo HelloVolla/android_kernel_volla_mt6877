@@ -30,6 +30,39 @@
 #include "mtk_nanohub_ipi.h"
 
 extern int __init nanohub_init(void);
+//prize add by wangfei for sar usb cail 20220221  start
+#define AW_USB_PLUG_CAIL
+
+#ifdef AW_USB_PLUG_CAIL
+
+#include <linux/notifier.h>
+#include <linux/usb.h>
+#include <linux/power_supply.h>
+#include <linux/regulator/consumer.h>
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0)
+#define USB_POWER_SUPPLY_NAME   "charger"
+#else
+#define USB_POWER_SUPPLY_NAME   "usb"
+#endif
+
+#define AW_SAR_CONFIG_MTK_CHARGER
+
+#endif
+//prize add by wangfei for sar usb cail 20220221  end
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#if defined(CONFIG_PRIZE_HARDWARE_INFO)
+#include "../../../prize/hardware_info/hardware_info.h"
+extern struct hardware_info current_msensor_info;
+extern struct hardware_info current_alsps_info;
+extern struct hardware_info current_gsensor_info;
+extern struct hardware_info current_barosensor_info;
+/* prize modified by gongtaitao for sarsensor hardware info 20221026 start */
+extern struct hardware_info current_sarsensor_info;
+/* prize modified by gongtaitao for sarsensor hardware info 20221026 end */
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 
 /* ALGIN TO SCP SENSOR_IPI_SIZE AT FILE CONTEXTHUB_FW.H, ALGIN
  * TO SCP_SENSOR_HUB_DATA UNION, ALGIN TO STRUCT DATA_UNIT_T
@@ -38,14 +71,34 @@ extern int __init nanohub_init(void);
  * 44 BYTES DATA_UNIT_T, THERE ARE 4 BYTES HEADER IN SCP_SENSOR_HUB_DATA
  * HEAD
  */
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO_SIZE
+#define SENSOR_IPI_SIZE 72
+#else
 #define SENSOR_IPI_SIZE 48
+#endif
+#else
+#define SENSOR_IPI_SIZE 48
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 /*
  * experience number for delay_count per DELAY_COUNT sensor input delay 10ms
  * msleep(10) system will schedule to hal process then read input node
  */
 #define SENSOR_IPI_HEADER_SIZE 4
 #define SENSOR_IPI_PACKET_SIZE (SENSOR_IPI_SIZE - SENSOR_IPI_HEADER_SIZE)
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO_SIZE
+#define SENSOR_DATA_SIZE 68
+#else
 #define SENSOR_DATA_SIZE 44
+#endif
+#else
+#define SENSOR_DATA_SIZE 44
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 
 #if SENSOR_DATA_SIZE > SENSOR_IPI_PACKET_SIZE
 #error "SENSOR_DATA_SIZE > SENSOR_IPI_PACKET_SIZE, out of memory"
@@ -71,6 +124,10 @@ struct mtk_nanohub_device {
 	struct hf_device hf_dev;
 	struct timer_list sync_time_timer;
 	struct work_struct sync_time_worker;
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 start */
+	struct timer_list send_lcm_param_timer;
+	struct work_struct send_lcm_param_worker;
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 end */
 	struct wakeup_source *time_sync_wakeup_src;
 	struct wakeup_source *data_notify_wakeup_src;
 
@@ -87,7 +144,9 @@ struct mtk_nanohub_device {
 	int32_t acc_config_data[6];
 	int32_t gyro_config_data[12];
 	int32_t mag_config_data[9];
-	int32_t light_config_data[1];
+	/* prize liuyong, LIGHT-Sensor config Calibration value, 20221212 -start*/
+	int32_t light_config_data[11];
+	/* prize liuyong, LIGHT-Sensor config Calibration value, 20221212 -end*/
 	int32_t proximity_config_data[2];
 	int32_t pressure_config_data[2];
 	int32_t sar_config_data[4];
@@ -111,6 +170,17 @@ static DEFINE_SPINLOCK(config_data_lock);
 static uint8_t scp_system_ready;
 static uint8_t scp_chre_ready;
 static struct mtk_nanohub_device *mtk_nanohub_dev;
+
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 start */
+#define SEND_LCM_PARAM_CYCLC 440 //500 //1000 /* prize modified by gongtaitao for X9-530 */
+#define LCD_NAME "lcd-backlight"
+#define MAX_RETRY_TIMES 5
+#define ALS_ENABLE_FLAG 0X88
+#define DELAY_MSECONDS 200
+extern unsigned short led_level_disp_get(char *name);
+extern void get_pix_rgb(int16_t *R, int16_t *G, int16_t *B);
+extern void reset_pix_rgb(void);
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 end */
 
 static int mtk_nanohub_send_timestamp_to_hub(void);
 static int mtk_nanohub_server_dispatch_data(uint32_t *currWp);
@@ -676,7 +746,7 @@ static void mtk_nanohub_init_sensor_info(void)
 
 	p = &sensor_state[SENSOR_TYPE_OIS];
 	p->sensorType = SENSOR_TYPE_OIS;
-	p->gain = 1000000;
+	p->gain = 100000;
 	strlcpy(p->name, "ois", sizeof(p->name));
 	strlcpy(p->vendor, "mtk", sizeof(p->vendor));
 
@@ -909,6 +979,93 @@ static int mtk_nanohub_send_timestamp_wake_locked(void)
 	return err;
 }
 
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 start */
+static int mtk_nanohub_send_lcm_brightness_and_rgb(void)
+{
+	union SCP_SENSOR_HUB_DATA req;
+	int len;
+	int err = 0;
+	int16_t R = 0;
+	int16_t G = 0;
+	int16_t B = 0;
+	uint8_t retry_times = 0;
+	/* prize modified by gongtaitao for X9-530 start */
+	static int16_t last_R = -1;
+	static int16_t last_G = -1;
+	static int16_t last_B = -1;
+	static int16_t last_brightness = -1;
+	/* prize modified by gongtaitao for X9-530 end */
+
+	if (!sensor_state[SENSOR_TYPE_LIGHT].sensorType || !sensor_state[SENSOR_TYPE_LIGHT].enable) {
+		return 0;
+	}
+
+	get_pix_rgb(&R, &G, &B);
+	if (R == -1 || G == -1 || B == -1) {
+		while (retry_times < MAX_RETRY_TIMES) {
+			mdelay(DELAY_MSECONDS);
+			get_pix_rgb(&R, &G, &B);
+			if (R != -1 && G != -1 && B != -1) {
+				break;
+			}
+			retry_times++;
+		}
+
+		if (retry_times >= MAX_RETRY_TIMES && (R == -1 || G == -1 || B == -1)) {
+			R = 0;
+			G = 0;
+			B = 0;
+		}
+	}
+
+	req.set_cust_req.sensorType = ID_LIGHT;
+	req.set_cust_req.action = SENSOR_HUB_SET_CUST;
+	req.set_cust_req.setAlsData.action = CUST_ACTION_SET_ALS_PARAM;
+	req.set_cust_req.setAlsData.lcm_param[0] = led_level_disp_get(LCD_NAME);
+	req.set_cust_req.setAlsData.lcm_param[1] = R;
+	req.set_cust_req.setAlsData.lcm_param[2] = G;
+	req.set_cust_req.setAlsData.lcm_param[3] = B;
+
+	/* prize modified by gongtaitao for X9-530 start */
+	if (req.set_cust_req.setAlsData.lcm_param[0] == last_brightness && R == last_R &&
+		G == last_G && B == last_B) {
+		return 0;
+	}
+
+	pr_info("mtk_nanohub_send_lcm_brightness_and_rgb light is enable, send param\n");
+	last_brightness = req.set_cust_req.setAlsData.lcm_param[0];
+	last_R = R;
+	last_G = G;
+	last_B = B;
+	/* prize modified by gongtaitao for X9-530 end */
+	len = sizeof(req.set_config_req);
+	err = mtk_nanohub_req_send(&req);
+	if (ID_LIGHT != req.set_cust_rsp.sensorType
+		|| SENSOR_HUB_SET_CUST != req.set_cust_rsp.action
+		|| 0 != req.set_cust_rsp.errCode) {
+		pr_err("error : %d\n", req.set_cust_rsp.errCode);
+		return req.set_cust_rsp.errCode;
+	}
+
+	return 0;
+}
+
+static void mtk_nanohub_send_lcm_param_work(struct work_struct *work)
+{
+	(void)mtk_nanohub_send_lcm_brightness_and_rgb();
+}
+
+static void mtk_nanohub_send_lcm_param_func(struct timer_list *list)
+{
+	struct mtk_nanohub_device *device = mtk_nanohub_dev;
+
+	schedule_work(&device->send_lcm_param_worker);
+
+	mod_timer(&device->send_lcm_param_timer,
+		jiffies +  msecs_to_jiffies(SEND_LCM_PARAM_CYCLC));
+}
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 end */
+
 static int mtk_nanohub_send_timestamp_to_hub(void)
 {
 	int err = 0;
@@ -955,8 +1112,12 @@ static void mtk_nanohub_disable_report_flush(uint8_t sensor_id)
 int mtk_nanohub_enable_to_hub(uint8_t sensor_id, int enabledisable)
 {
 	uint8_t sensor_type = id_to_type(sensor_id);
-	struct ConfigCmd cmd;
+	struct ConfigCmd *cmd = NULL;
 	int ret = 0;
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 start */
+	int len = 0;
+	send_pixel_data *lcm_param = NULL;
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 end */
 
 	if (enabledisable == 1 && (READ_ONCE(scp_system_ready)))
 		scp_register_feature(SENS_FEATURE_ID);
@@ -972,15 +1133,53 @@ int mtk_nanohub_enable_to_hub(uint8_t sensor_id, int enabledisable)
 		return -1;
 	}
 	sensor_state[sensor_type].enable = enabledisable;
-	init_sensor_config_cmd(&cmd, sensor_type);
+
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 start */
+	if (enabledisable == 0 && sensor_type == SENSOR_TYPE_LIGHT) {
+		reset_pix_rgb();
+	}
+
+	if (enabledisable == 1 && sensor_type == SENSOR_TYPE_LIGHT) {
+		len = sizeof(struct ConfigCmd) + sizeof(int16_t) * 4;
+	} else {
+		len = sizeof(struct ConfigCmd);
+	}
+
+	cmd = kmalloc(len, GFP_KERNEL);
+	if (!cmd) {
+		return ERROR_BUSY;
+	}
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 end */
+
+	init_sensor_config_cmd(cmd, sensor_type);
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 start */
+	if (enabledisable == 1 && sensor_type == SENSOR_TYPE_LIGHT) {
+		lcm_param = (send_pixel_data *)(cmd->data);
+		lcm_param->brightness = led_level_disp_get(LCD_NAME);
+		get_pix_rgb(&(lcm_param->pixelR), &(lcm_param->pixelG), &(lcm_param->pixelB));
+		if (lcm_param->pixelR == -1 || lcm_param->pixelG == -1 || lcm_param->pixelB == -1 || lcm_param->brightness == 0) {
+			lcm_param->pixelR = 0;
+			lcm_param->pixelG = 0;
+			lcm_param->pixelB = 0;
+		}
+		cmd->flags = ALS_ENABLE_FLAG;
+	}
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 end */
+
 	if (atomic_read(&power_status) == SENSOR_POWER_UP) {
-		ret = nanohub_external_write((const uint8_t *)&cmd,
-			sizeof(struct ConfigCmd));
+		ret = nanohub_external_write((const uint8_t *)cmd, len);
 		if (ret < 0)
-			pr_err("fail enable: [%d,%d]\n", sensor_id, cmd.cmd);
+			pr_err("fail enable: [%d,%d]\n", sensor_id, cmd->cmd);
 	}
 	if (!enabledisable)
 		mtk_nanohub_disable_report_flush(sensor_id);
+
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 start */
+	if (cmd) {
+		kfree(cmd);
+	}
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 end */
+
 	mutex_unlock(&sensor_state_mtx);
 	return ret < 0 ? ret : 0;
 }
@@ -1302,6 +1501,16 @@ int mtk_nanohub_set_cmd_to_hub(uint8_t sensor_id,
 			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ,
 				custData) + sizeof(req.set_cust_req.getInfo);
 			break;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+		case CUST_ACTION_GET_PRIZE_HARDWARE_INFO:
+			req.set_cust_req.gethardwareInfo.action =
+				CUST_ACTION_GET_PRIZE_HARDWARE_INFO;
+			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ, custData)
+				+ sizeof(req.set_cust_req.gethardwareInfo);
+			break;
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 		default:
 			return -1;
 		}
@@ -1353,6 +1562,16 @@ int mtk_nanohub_set_cmd_to_hub(uint8_t sensor_id,
 			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ,
 				custData) + sizeof(req.set_cust_req.getInfo);
 			break;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+		case CUST_ACTION_GET_PRIZE_HARDWARE_INFO:
+			req.set_cust_req.gethardwareInfo.action =
+				CUST_ACTION_GET_PRIZE_HARDWARE_INFO;
+			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ, custData)
+				+ sizeof(req.set_cust_req.gethardwareInfo);
+			break;
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 		default:
 			return -1;
 		}
@@ -1427,6 +1646,16 @@ int mtk_nanohub_set_cmd_to_hub(uint8_t sensor_id,
 			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ,
 				custData) + sizeof(req.set_cust_req.getInfo);
 			break;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+		case CUST_ACTION_GET_PRIZE_HARDWARE_INFO:
+			req.set_cust_req.gethardwareInfo.action =
+				CUST_ACTION_GET_PRIZE_HARDWARE_INFO;
+			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ, custData)
+				+ sizeof(req.set_cust_req.gethardwareInfo);
+			break;
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 		default:
 			return -1;
 		}
@@ -1453,6 +1682,16 @@ int mtk_nanohub_set_cmd_to_hub(uint8_t sensor_id,
 			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ,
 				custData) + sizeof(req.set_cust_req.getInfo);
 			break;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+		case CUST_ACTION_GET_PRIZE_HARDWARE_INFO:
+			req.set_cust_req.gethardwareInfo.action =
+				CUST_ACTION_GET_PRIZE_HARDWARE_INFO;
+			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ, custData)
+				+ sizeof(req.set_cust_req.gethardwareInfo);
+			break;
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 		default:
 			return -1;
 		}
@@ -1513,6 +1752,16 @@ int mtk_nanohub_set_cmd_to_hub(uint8_t sensor_id,
 			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ,
 				custData) + sizeof(req.set_cust_req.getInfo);
 			break;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+		case CUST_ACTION_GET_PRIZE_HARDWARE_INFO:
+			req.set_cust_req.gethardwareInfo.action =
+				CUST_ACTION_GET_PRIZE_HARDWARE_INFO;
+			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ, custData)
+				+ sizeof(req.set_cust_req.gethardwareInfo);
+			break;
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 		default:
 			return -1;
 		}
@@ -1547,6 +1796,16 @@ int mtk_nanohub_set_cmd_to_hub(uint8_t sensor_id,
 			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ,
 				custData) + sizeof(req.set_cust_req.getInfo);
 			break;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+		case CUST_ACTION_GET_PRIZE_HARDWARE_INFO:
+			req.set_cust_req.gethardwareInfo.action =
+				CUST_ACTION_GET_PRIZE_HARDWARE_INFO;
+			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ, custData)
+				+ sizeof(req.set_cust_req.gethardwareInfo);
+			break;
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 		default:
 			return -1;
 		}
@@ -1561,6 +1820,14 @@ int mtk_nanohub_set_cmd_to_hub(uint8_t sensor_id,
 			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ,
 				custData) + sizeof(req.set_cust_req.getInfo);
 			break;
+		/* prize modified by gongtaitao for sarsensor hardware info 20221026 start */
+		case CUST_ACTION_GET_PRIZE_HARDWARE_INFO:
+			req.set_cust_req.gethardwareInfo.action =
+				CUST_ACTION_GET_PRIZE_HARDWARE_INFO;
+			len = offsetof(struct SCP_SENSOR_HUB_SET_CUST_REQ, custData)
+				+ sizeof(req.set_cust_req.gethardwareInfo);
+			break;			
+		/* prize modified by gongtaitao for sarsensor hardware info 20221026 end */
 		default:
 			return -1;
 		}
@@ -1619,6 +1886,20 @@ int mtk_nanohub_set_cmd_to_hub(uint8_t sensor_id,
 			&req.set_cust_rsp.getInfo.sensorInfo,
 			sizeof(struct sensorInfo_t));
 		break;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+	case CUST_ACTION_GET_PRIZE_HARDWARE_INFO:
+		if (req.set_cust_rsp.gethardwareInfo.action !=
+			CUST_ACTION_GET_PRIZE_HARDWARE_INFO) {
+			pr_info("scp_sensorHub_req_send failed action!\n");
+			return -1;
+		}
+		memcpy((struct sensor_hardware_info_t *)data,
+			&req.set_cust_rsp.gethardwareInfo.hardwareInfo,
+			sizeof(struct sensor_hardware_info_t));
+		break;
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 	default:
 		break;
 	}
@@ -1690,6 +1971,77 @@ static void mtk_nanohub_get_devinfo(void)
 			mtk_nanohub_set_sensor_info(&info, find_sensor);
 	}
 }
+
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+static void sensorHub_get_hardware_info(void)
+{
+	int err = 0;
+	int id = 0, sensor = 0;
+	struct sensor_hardware_info_t info;
+	for (id = 0; id < ID_SENSOR_MAX; ++id) {
+		sensor = id_to_type(id);
+		if (sensorlist_sensor_to_handle(sensor) < 0)
+		{
+			pr_err("create attribute err continue id=%d  %s %d \n",id,__func__,__LINE__);
+			continue;
+		}
+	memset(&info, 0, sizeof(struct sensor_hardware_info_t));
+	//printk("sensorHub_get_hardware_info start_1 \n");
+	err = mtk_nanohub_set_cmd_to_hub(id,
+		CUST_ACTION_GET_PRIZE_HARDWARE_INFO, &info);
+	if (err < 0) {
+		printk("sensor(%d) not register\n", sensor);
+		//return err;
+	}
+	else
+	{
+		pr_err("sensor:%x chip:%s id:%s more:%s vendor:%s \n", sensor, info.chip, info.id, info.more, info.vendor);
+		switch(id)
+		{	
+		  #if defined(CONFIG_PRIZE_HARDWARE_INFO)
+			case ID_ACCELEROMETER:
+			strlcpy(current_gsensor_info.chip, info.chip, sizeof(current_gsensor_info.chip));
+			strlcpy(current_gsensor_info.vendor, info.vendor, sizeof(current_gsensor_info.vendor));
+			strlcpy(current_gsensor_info.id, info.id, sizeof(current_gsensor_info.id));
+			strlcpy(current_gsensor_info.more, info.more, sizeof(current_gsensor_info.more));
+			break;
+			case ID_LIGHT:
+			strlcpy(current_alsps_info.chip, info.chip, sizeof(current_alsps_info.chip));
+			strlcpy(current_alsps_info.vendor, info.vendor, sizeof(current_alsps_info.vendor));
+			strlcpy(current_alsps_info.id, info.id, sizeof(current_alsps_info.id));
+			strlcpy(current_alsps_info.more, info.more, sizeof(current_alsps_info.more));
+			break;
+			case ID_MAGNETIC_FIELD:
+			strlcpy(current_msensor_info.chip, info.chip, sizeof(current_msensor_info.chip));
+			strlcpy(current_msensor_info.vendor, info.vendor, sizeof(current_msensor_info.vendor));
+			strlcpy(current_msensor_info.id, info.id, sizeof(current_msensor_info.id));
+			strlcpy(current_msensor_info.more, info.more, sizeof(current_msensor_info.more));
+			break;
+			case ID_PRESSURE:
+			strlcpy(current_barosensor_info.chip, info.chip, sizeof(current_alsps_info.chip));
+			strlcpy(current_barosensor_info.vendor, info.vendor, sizeof(current_alsps_info.vendor));
+			strlcpy(current_barosensor_info.id, info.id, sizeof(current_alsps_info.id));
+			strlcpy(current_barosensor_info.more, info.more, sizeof(current_alsps_info.more));
+			break;
+			/* prize modified by gongtaitao for sarsensor hardware info 20221026 start */
+			case ID_SAR:
+			strlcpy(current_sarsensor_info.chip, info.chip, sizeof(current_sarsensor_info.chip));
+			strlcpy(current_sarsensor_info.vendor, info.vendor, sizeof(current_sarsensor_info.vendor));
+			strlcpy(current_sarsensor_info.id, info.id, sizeof(current_sarsensor_info.id));
+			strlcpy(current_sarsensor_info.more, info.more, sizeof(current_sarsensor_info.more));
+			break;
+			/* prize modified by gongtaitao for sarsensor hardware info 20221026 end */
+		 #endif
+			default:
+			break;
+		 }
+  	   }
+	}
+	//return err;
+}
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 
 static void mtk_nanohub_restoring_config(void)
 {
@@ -1835,6 +2187,13 @@ void mtk_nanohub_power_up_loop(void *data)
 	mtk_nanohub_send_dram_info_to_hub();
 	/* 4. get device info for mag lib and dynamic list */
 	mtk_nanohub_get_devinfo();
+
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+	sensorHub_get_hardware_info();
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
+
 	/* 5. start timesync */
 	mtk_nanohub_start_timesync();
 	/* 6. we restore sensor calibration data when scp reboot */
@@ -2161,6 +2520,10 @@ static int mtk_nanohub_custom_cmd(struct hf_device *hfdev,
 	return ret;
 }
 
+//prize add by wangfei for sar usb cail 20220221  start
+extern uint32_t awinic_debug_data[3];
+//prize add by wangfei for sar usb cail 20220221  end
+
 static int mtk_nanohub_report_to_manager(struct data_unit_t *data)
 {
 	struct mtk_nanohub_device *device = mtk_nanohub_dev;
@@ -2293,6 +2656,18 @@ static int mtk_nanohub_report_to_manager(struct data_unit_t *data)
 			event.word[0] = data->sar_event.data[0];
 			event.word[1] = data->sar_event.data[1];
 			event.word[2] = data->sar_event.data[2];
+			//prize add by wangfei for sar usb cail 20220221  start
+			pr_info("sar timestamp1:%lld, action:%d, word[0]:0x%x, word[1]:0x%x, word[2]:0x%x\n",
+				event.timestamp, event.action,  (uint32_t)event.word[0], (uint32_t)event.word[1],  (uint32_t)event.word[2]);
+			if (event.word[0] == 0xff) {
+				pr_info("sar %s\n", __func__);
+                        	awinic_debug_data[0] = event.word[0];
+				awinic_debug_data[1] = event.word[1];
+				awinic_debug_data[2] = event.word[2];
+				return 0;
+                        }
+			//prize add by wangfei for sar usb cail 20220221  end
+
 			break;
 		default:
 			event.timestamp = data->time_stamp;
@@ -2385,7 +2760,21 @@ static int mtk_nanohub_report_to_manager(struct data_unit_t *data)
 			event.timestamp = data->time_stamp;
 			event.sensor_type = id_to_type(data->sensor_type);
 			event.action = data->flush_action;
+			/* prize liuyong, LIGHT-Sensor config Calibration value, 20221212 -start*/
 			event.word[0] = data->data[0];
+			event.word[1] = data->data[1];
+			event.word[2] = data->data[2];
+			event.word[3] = data->data[3];
+			event.word[4] = data->data[4];
+			event.word[5] = data->data[5];
+			event.word[6] = data->data[6];
+			event.word[7] = data->data[7];
+			event.word[8] = data->data[8];
+			event.word[9] = data->data[9];
+			event.word[10] = data->data[10];
+			pr_notice("%s [%d] CALI_ACTION\n",
+						__func__, event.sensor_type);
+			/* prize liuyong, LIGHT-Sensor config Calibration value, 20221212 -start*/
 			break;
 		case ID_PRESSURE:
 			event.timestamp = data->time_stamp;
@@ -2611,7 +3000,105 @@ static int mtk_nanohub_delete_attr(struct device_driver *driver)
 
 	return err;
 }
+//prize add by wangfei for sar usb cail 20220221  start
+#ifdef AW_USB_PLUG_CAIL
 
+struct aw_sar_ps {
+	bool ps_is_present;
+	struct work_struct ps_notify_work;
+	struct notifier_block ps_notif;
+};
+
+static void aw_sar_ps_notify_callback_work(struct work_struct *work)
+{
+	pr_info("sar Usb insert,going to force calibrate\n");
+	mtk_nanohub_calibration_to_hub(ID_SAR);
+
+}
+
+static int aw_sar_ps_get_state(struct power_supply *psy, bool *present)
+{
+	union power_supply_propval pval = { 0 };
+	int retval;
+
+#ifdef AW_SAR_CONFIG_MTK_CHARGER
+	retval = power_supply_get_property(psy, POWER_SUPPLY_PROP_ONLINE,
+			&pval);
+#else
+	retval = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT,
+			&pval);
+#endif
+	if (retval) {
+		pr_err("sar %s psy get property failed\n", psy->desc->name);
+		return retval;
+	}
+	if (strcmp(psy->desc->name, "usb") == 0 || strcmp(psy->desc->name, "charger")) {
+		*present = (pval.intval) ? true : false;
+		pr_info("sar %s is %s\n", psy->desc->name,
+				(*present) ? "present" : "not present");
+	}
+
+	return 0;
+}
+
+static int aw_sar_ps_notify_callback(struct notifier_block *self,
+		unsigned long event, void *p)
+{
+	struct aw_sar_ps *aw_sar_ps_to_cail = container_of(self, struct aw_sar_ps, ps_notif);
+	struct power_supply *psy = p;
+	bool present;
+	int retval;
+	pr_info("sar %s\n", __func__);
+	if ((event == PSY_EVENT_PROP_CHANGED)
+		&& psy && psy->desc->get_property && psy->desc->name){
+		pr_info("sar1 %s\n", __func__);
+		retval = aw_sar_ps_get_state(psy, &present);
+		if (retval) {
+			return retval;
+		}
+		if (event == PSY_EVENT_PROP_CHANGED) {
+			if (aw_sar_ps_to_cail->ps_is_present == present) {
+				pr_err("sar ps present state not change\n");
+				return 0;
+			}
+		}
+		aw_sar_ps_to_cail->ps_is_present = present;
+		schedule_work(&aw_sar_ps_to_cail->ps_notify_work);
+	}
+
+	return 0;
+}
+
+static int aw_sar_ps_notify_init(struct aw_sar_ps *aw_sar_ps_to_cail)
+{
+	struct power_supply *psy = NULL;
+	int ret = 0;
+
+	pr_info("%s enter\n", __func__);
+	INIT_WORK(&aw_sar_ps_to_cail->ps_notify_work, aw_sar_ps_notify_callback_work);
+	aw_sar_ps_to_cail->ps_notif.notifier_call = aw_sar_ps_notify_callback;
+	ret = power_supply_reg_notifier(&aw_sar_ps_to_cail->ps_notif);
+	if (ret) {
+		pr_err("sar Unable to register ps_notifier: %d\n", ret);
+		return -1;
+	}
+	psy = power_supply_get_by_name(USB_POWER_SUPPLY_NAME);
+	if (psy) {
+		ret = aw_sar_ps_get_state(psy, &aw_sar_ps_to_cail->ps_is_present);
+		if (ret) {
+			pr_err("sar psy get property failed rc=%d\n", ret);
+			goto free_ps_notifier;
+		}
+	}
+	return 0;
+
+free_ps_notifier:
+	power_supply_unreg_notifier(&aw_sar_ps_to_cail->ps_notif);
+
+	return -1;
+}
+#endif
+//prize add by wangfei for sar usb cail 20220221  end
 static int mtk_nanohub_probe(struct platform_device *pdev)
 {
 	int err = 0, index;
@@ -2619,6 +3106,17 @@ static int mtk_nanohub_probe(struct platform_device *pdev)
 	struct task_struct *task = NULL, *task_power_reset = NULL;
 	struct sched_param param = { .sched_priority = MAX_RT_PRIO - 1 };
 
+//prize add by wangfei for sar usb cail 20220221  start
+#ifdef AW_USB_PLUG_CAIL
+	int ret = 0;
+	struct aw_sar_ps *aw_sar_ps_to_cail = NULL;
+	aw_sar_ps_to_cail = kzalloc(sizeof(*aw_sar_ps_to_cail), GFP_KERNEL);
+	if (!aw_sar_ps_to_cail) {
+		err = -ENOMEM;
+		goto exit_aw_kfree;
+	}
+#endif
+//prize add by wangfei for sar usb cail 20220221  end
 	mtk_nanohub_init_sensor_info();
 	device = kzalloc(sizeof(*device), GFP_KERNEL);
 	if (!device) {
@@ -2671,6 +3169,13 @@ static int mtk_nanohub_probe(struct platform_device *pdev)
 	timer_setup(&device->sync_time_timer, mtk_nanohub_sync_time_func, 0);
 	mod_timer(&device->sync_time_timer,
 			  jiffies + msecs_to_jiffies(SYNC_TIME_START_CYCLC));
+
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 start */
+	INIT_WORK(&device->send_lcm_param_worker, mtk_nanohub_send_lcm_param_work);
+	timer_setup(&device->send_lcm_param_timer, mtk_nanohub_send_lcm_param_func, 0);
+	mod_timer(&device->send_lcm_param_timer,
+			  jiffies + msecs_to_jiffies(SEND_LCM_PARAM_CYCLC));
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 end */
 
 	/* init wakeup source */
 	device->time_sync_wakeup_src = wakeup_source_register(NULL, "synctime");
@@ -2734,12 +3239,26 @@ static int mtk_nanohub_probe(struct platform_device *pdev)
 		pr_err("register PM notifier fail, err:%d\n", err);
 		goto exit_attr;
 	}
-
+//prize add by wangfei for sar usb cail 20220221  start
+#ifdef AW_USB_PLUG_CAIL
+	pr_err("sar usb_plug_cail\n");
+	ret = aw_sar_ps_notify_init(aw_sar_ps_to_cail);
+	if (ret < 0) {
+		pr_err("sar error creating power supply notify\n");
+		goto exit_ps_notify;
+	}
+#endif
+//prize add by wangfei for sar usb cail 20220221  end
 	pr_info("init done, data_unit_t:%d, SCP_SENSOR_HUB_DATA:%d\n",
 		(int)sizeof(struct data_unit_t),
 		(int)sizeof(union SCP_SENSOR_HUB_DATA));
 	return 0;
-
+//prize add by wangfei for sar usb cail 20220221  start
+#ifdef AW_USB_PLUG_CAIL
+exit_ps_notify:
+	power_supply_unreg_notifier(&aw_sar_ps_to_cail->ps_notif);
+#endif
+//prize add by wangfei for sar usb cail 20220221  end
 exit_attr:
 	mtk_nanohub_delete_attr(pdev->dev.driver);
 exit_scp_ipi_reg:
@@ -2755,6 +3274,13 @@ exit_device:
 	hf_device_unregister(&device->hf_dev);
 exit_kfree:
 	kfree(device);
+//prize add by wangfei for sar usb cail 20220221  start
+#ifdef AW_USB_PLUG_CAIL
+exit_aw_kfree:
+	kfree(aw_sar_ps_to_cail);
+	aw_sar_ps_to_cail = NULL;
+#endif
+//prize add by wangfei for sar usb cail 20220221  end
 exit:
 	pr_err("%s fail.err = %d\n", __func__, err);
 	return err;
@@ -2765,6 +3291,10 @@ static int mtk_nanohub_remove(struct platform_device *pdev)
 	struct mtk_nanohub_device *device = mtk_nanohub_dev;
 
 	del_timer_sync(&device->sync_time_timer);
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 start */
+	del_timer_sync(&device->send_lcm_param_timer);
+	reset_pix_rgb();
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 end */
 	hf_manager_destroy(device->hf_dev.manager);
 	unregister_pm_notifier(&mtk_nanohub_pm_notifier_func);
 	mtk_nanohub_delete_attr(pdev->dev.driver);

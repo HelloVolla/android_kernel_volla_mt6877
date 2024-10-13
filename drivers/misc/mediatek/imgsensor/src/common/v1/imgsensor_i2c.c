@@ -271,5 +271,16 @@ void imgsensor_i2c_set_device(struct IMGSENSOR_I2C_CFG *pi2c_cfg)
 {
 	pgi2c_cfg_legacy = pi2c_cfg;
 }
+//drv add by lipengpeng 20230415 start 
+int scan_i2c_transfer(struct i2c_msg *msg, int msg_num, u32 timing)
+{
+	int ret = 0;
+	if(pgi2c_cfg_legacy != NULL){
+		ret = mtk_i2c_transfer(pgi2c_cfg_legacy->pinst->pi2c_client->adapter, msg, msg_num, 0, timing);
+	}
+	
+	return ret;
+}
+//drv add by lipengpeng 20230415 start 
 #endif
 

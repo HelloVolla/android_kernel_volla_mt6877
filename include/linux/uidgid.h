@@ -30,6 +30,12 @@ typedef struct {
 #define KUIDT_INIT(value) (kuid_t){ value }
 #define KGIDT_INIT(value) (kgid_t){ value }
 
+/* begin , prize-lifenfen-20180227, add for kill permission check */
+#define AID_READPROC     KGIDT_INIT(3009)
+/* begin, prize-lifenfen-20180327, add for resmon read real data */
+#define AID_RESMONREAD     KGIDT_INIT(5000)
+ /* end, prize-lifenfen-20180327, add for resmon read real data */
+
 #ifdef CONFIG_MULTIUSER
 static inline uid_t __kuid_val(kuid_t uid)
 {

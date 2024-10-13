@@ -53,4 +53,6 @@ extern int set_charger_manager(struct charger_manager *info);
 extern int enable_vbus_ovp(bool en);
 extern int wake_up_charger(void);
 
+/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129*/
+extern int charger_is_screenBlank(void);
 #endif /* __MTK_INTF_H */

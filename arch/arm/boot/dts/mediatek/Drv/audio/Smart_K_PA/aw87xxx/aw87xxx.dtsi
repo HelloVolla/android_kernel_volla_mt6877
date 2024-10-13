@@ -1,0 +1,16 @@
+#define i2c_x i2c6
+#define i2c_addr 0x58
+#define i2c_idx 58
+#define rst_gpio 152
+
+&i2c_x { /*x 表示对应的总线号*/
+	/* AWINIC AW87XXX Smart K PA */
+	aw87xxx_pa@i2c_idx {
+	compatible = "awinic,aw87xxx_pa";
+	reg = <i2c_addr>;
+	reset-gpio = <&pio rst_gpio 0>; /*带 reset 引脚的配置*/
+	dev_index = < 0 >;
+	status = "okay";
+	};
+	/* AWINIC AW87XXX Smart K PA End */
+};

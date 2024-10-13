@@ -252,7 +252,17 @@ struct data_unit_t {
 		struct in_pocket_event_t inpocket_event;
 		struct geofence_event_t geofence_data_t;
 		struct sar_event_t sar_event;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO_SIZE
+		int32_t data[14];
+#else
 		int32_t data[8];
+#endif
+#else
+		int32_t data[8];
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 	};
 } __packed;
 
@@ -268,7 +278,17 @@ struct SCP_SENSOR_HUB_REQ {
 	uint8_t sensorType;
 	uint8_t action;
 	uint8_t reserve[2];
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO_SIZE
+	uint32_t data[17];
+#else
 	uint32_t data[11];
+#endif
+#else
+	uint32_t data[11];
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 };
 
 struct SCP_SENSOR_HUB_RSP {
@@ -362,6 +382,14 @@ enum CUST_ACTION {
 	CUST_ACTION_SHOW_ALSVAL,
 	CUST_ACTION_SET_FACTORY,
 	CUST_ACTION_GET_SENSOR_INFO,
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info,begin */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+	CUST_ACTION_GET_PRIZE_HARDWARE_INFO,
+#endif
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info,end */
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 start */
+	CUST_ACTION_SET_ALS_PARAM,
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 end */
 };
 
 struct SCP_SENSOR_HUB_CUST {
@@ -447,6 +475,39 @@ struct scp_sensor_hub_get_sensor_info {
 		struct sensorInfo_t sensorInfo;
 	};
 };
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info*/
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO_SIZE
+struct sensor_hardware_info_t {
+	char chip[16];
+	char vendor[16];
+	char id[16];
+	char more[16];
+};
+#else
+struct sensor_hardware_info_t {
+	char chip[8];
+	char vendor[8];
+	char id[8];
+	char more[8];
+};
+#endif
+struct scp_sensor_hub_get_sensor_hardware_info {
+	enum CUST_ACTION action;
+	union {
+		int32_t int32_data[0];
+		struct sensor_hardware_info_t hardwareInfo;
+	};
+};
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
+
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 start */
+struct SCP_SENSOR_HUB_SET_ALS_PARAM {
+	enum CUST_ACTION action;
+	uint16_t lcm_param[4];
+};
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 end */
 
 enum {
 	USE_OUT_FACTORY_MODE = 0,
@@ -472,6 +533,14 @@ struct SCP_SENSOR_HUB_SET_CUST_REQ {
 		struct SCP_SENSOR_HUB_SHOW_ALSVAL showAlsval;
 		struct SCP_SENSOR_HUB_SET_FACTORY setFactory;
 		struct scp_sensor_hub_get_sensor_info getInfo;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+		struct scp_sensor_hub_get_sensor_hardware_info gethardwareInfo;
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info*/
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 start */
+		struct SCP_SENSOR_HUB_SET_ALS_PARAM setAlsData;
+/* prize modified by gongtaitao for send lcm param to light sensor 20221031 end */
 	};
 };
 
@@ -484,6 +553,11 @@ struct SCP_SENSOR_HUB_SET_CUST_RSP {
 		uint32_t custData[11];
 		struct SCP_SENSOR_HUB_GET_RAW_DATA getRawData;
 		struct scp_sensor_hub_get_sensor_info getInfo;
+/* begin, prize-lifenfen-20181126, add for sensorhub hardware info */
+#ifdef CONFIG_SENSORHUB_PRIZE_HARDWARE_INFO
+		struct scp_sensor_hub_get_sensor_hardware_info gethardwareInfo;
+#endif
+/* end, prize-lifenfen-20181126, add for sensorhub hardware info */
 	};
 };
 
@@ -521,4 +595,13 @@ union SCP_SENSOR_HUB_DATA {
 	struct SCP_SENSOR_HUB_SET_CUST_RSP set_cust_rsp;
 	struct SCP_SENSOR_HUB_NOTIFY_RSP notify_rsp;
 };
+
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 start */
+typedef struct {
+    int16_t brightness;
+    int16_t pixelR;
+    int16_t pixelG;
+    int16_t pixelB;
+} send_pixel_data;
+/* prize modified by gongtaitao for send lcm param to light sensor 20221207 end */
 #endif

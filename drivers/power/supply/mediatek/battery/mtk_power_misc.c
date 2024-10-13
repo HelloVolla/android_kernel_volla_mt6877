@@ -79,11 +79,17 @@ int get_shutdown_cond(void)
 {
 	int ret = 0;
 	int vbat = battery_get_bat_voltage();
-
+#if defined(CONFIG_MTK_CW2217_SUPPORT)
+	int soc = battery_get_soc();
+	if(soc == 1 || soc == 0){
+		ret |= 1;
+	}
+#else
 	if (sdc.shutdown_status.is_soc_zero_percent)
 		ret |= 1;
 	if (sdc.shutdown_status.is_uisoc_one_percent)
 		ret |= 1;
+#endif
 	if (sdc.lowbatteryshutdown)
 		ret |= 1;
 	bm_err("%s ret:%d %d %d %d vbat:%d\n",

@@ -6604,10 +6604,10 @@ int find_best_idle_cpu(struct task_struct *p, bool prefer_idle)
 	int prefer_big = prefer_idle && (task_util(p) > min_cap);
 	struct perf_order_domain *domain;
 	struct list_head *pos;
-
-	if (!pod_is_ready())
-		return best_idle_cpu;
-
+	 //prize add by tangcong for emmc test fail 20220716 start
+        if (!pod_is_ready())    
+       return best_idle_cpu;     
+     //prize add by tangcong for emmc test fail 20220716 end
 	list_for_each(pos, &perf_order_domains) {
 		domain = list_entry(pos, struct perf_order_domain,
 					perf_order_domains);
@@ -6680,9 +6680,10 @@ int select_max_spare_capacity(struct task_struct *p, int target)
 	int cid = arch_cpu_cluster_id(target); /* cid of target CPU */
 	int cpu = task_cpu(p);
 	struct cpumask *tsk_cpus_allow = &p->cpus_allowed;
-
-	if (!pod_is_ready())
-		return target;
+	 //prize add by tangcong for emmc test fail 20220716 start
+    if (!pod_is_ready())  
+       return target;    
+	    //prize add by tangcong for emmc test fail 20220716 end 
 	/* If the prevous cpu is cache affine and idle, choose it first. */
 	if (cpu != target &&
 		cpus_share_cache(cpu, target) &&
@@ -7742,7 +7743,7 @@ SELECT_TASK_RQ_FAIR(struct task_struct *p, int prev_cpu, int sd_flag,
 			new_cpu = prev_cpu;
 		}
 
-		want_affine =!READ_ONCE(rd->overutilized) && !wake_wide(p, sibling_count_hint) &&
+		want_affine = !wake_wide(p, sibling_count_hint) &&
 			      !wake_cap(p, cpu, prev_cpu) &&
 			      cpumask_test_cpu(cpu, &p->cpus_allowed);
 	}
@@ -7776,12 +7777,18 @@ sd_loop:
 	if (unlikely(sd)) {
 		/* Slow path */
 		//new_cpu = find_idlest_cpu(sd, p, cpu, prev_cpu, sd_flag);
+		//prize add by tangcong for emmc test fail 20220716 start
+		//___select_idle_sibling(p, prev_cpu, new_cpu);
 		new_cpu = ___select_idle_sibling(p, prev_cpu, new_cpu);
+		//prize add by tangcong for emmc test fail 20220716 end
 		select_reason = LB_IDLEST;
 	} else if (sd_flag & SD_BALANCE_WAKE) { /* XXX always ? */
 		/* Fast path */
-		new_cpu = ___select_idle_sibling(p, prev_cpu, new_cpu);
+		//prize add by tangcong for emmc test fail 20220716 start
+		//___select_idle_sibling(p, prev_cpu, new_cpu);
 		//new_cpu = select_idle_sibling(p, prev_cpu, new_cpu);
+		new_cpu = ___select_idle_sibling(p, prev_cpu, new_cpu);
+		//prize add by tangcong for emmc test fail 20220716  end 
 		select_reason = LB_IDLE_SIBLING;
 
 		if (want_affine)

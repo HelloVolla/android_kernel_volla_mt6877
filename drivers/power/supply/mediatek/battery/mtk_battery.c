@@ -454,9 +454,13 @@ static int battery_get_property(struct power_supply *psy,
 	int ret = 0;
 	int fgcurrent = 0;
 	bool b_ischarging = 0;
-
 	struct battery_data *data =
 		container_of(psy->desc, struct battery_data, psd);
+#if defined(CONFIG_MTK_CW2217_SUPPORT)
+	int ui_soc = 0;
+	union power_supply_propval value;
+	struct power_supply *cwfg_psy = power_supply_get_by_name("cw-bat");
+#endif
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
@@ -472,7 +476,17 @@ static int battery_get_property(struct power_supply *psy,
 		val->intval = data->BAT_TECHNOLOGY;
 		break;
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
+#if defined(CONFIG_MTK_CW2217_SUPPORT)
+	if (cwfg_psy) {
+		power_supply_get_property(cwfg_psy, POWER_SUPPLY_PROP_CYCLE_COUNT, &value);
+		pr_info("%s:get cw-bat success, curr(%d)\n",__func__, value.intval);
+		val->intval = value.intval;
+	}else{
+		val->intval = 0;	 //invalid
+	}
+#else
 		val->intval = gm.bat_cycle;
+#endif
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
 		/* 1 = META_BOOT, 4 = FACTORY_BOOT 5=ADVMETA_BOOT */
@@ -487,6 +501,9 @@ static int battery_get_property(struct power_supply *psy,
 			val->intval = gm.fixed_uisoc;
 		else
 			val->intval = data->BAT_CAPACITY;
+	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+    val->intval = battery_get_uisoc();
+	#endif
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		b_ischarging = gauge_get_current(&fgcurrent);
@@ -494,9 +511,12 @@ static int battery_get_property(struct power_supply *psy,
 			fgcurrent = 0 - fgcurrent;
 
 		val->intval = fgcurrent * 100;
+	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+    val->intval = battery_get_bat_current()*1000;
+	#endif
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_AVG:
-		val->intval = battery_get_bat_avg_current() * 100;
+		val->intval = battery_get_bat_avg_current()*1000;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 		val->intval =
@@ -510,12 +530,22 @@ static int battery_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		val->intval = data->BAT_batt_vol * 1000;
+	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+		val->intval = battery_get_bat_voltage()* 1000;
+	#endif
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
 		val->intval = gm.tbat_precise;
+	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+		val->intval = battery_get_bat_temperature()*10;
+	#endif
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY_LEVEL:
 		val->intval = check_cap_level(data->BAT_CAPACITY);
+	#if defined(CONFIG_MTK_CW2217_SUPPORT)
+		ui_soc = battery_get_uisoc();
+    val->intval = check_cap_level(ui_soc);
+	#endif
 		break;
 	case POWER_SUPPLY_PROP_TIME_TO_FULL_NOW:
 		/* full or unknown must return 0 */
@@ -659,14 +689,15 @@ void battery_update(struct battery_data *bat_data)
 	bat_data->BAT_TECHNOLOGY = POWER_SUPPLY_TECHNOLOGY_LION;
 	bat_data->BAT_HEALTH = POWER_SUPPLY_HEALTH_GOOD;
 	bat_data->BAT_PRESENT = 1;
-
+/*prize del by lvyuanchuan for disable-fg,20221026*/
+#if 0
 #if defined(CONFIG_MTK_DISABLE_GAUGE)
 	return;
 #endif
 
 	if (is_fg_disabled())
 		bat_data->BAT_CAPACITY = 50;
-
+#endif
 	power_supply_changed(bat_psy);
 }
 
@@ -4434,7 +4465,8 @@ static int __init battery_probe(struct platform_device *dev)
 	mtk_battery_init(dev);
 
 	/* Power supply class */
-#if !defined(CONFIG_MTK_DISABLE_GAUGE)
+	/*prize del by lvyuanchuan for disable-fg,20221026*/
+//#if !defined(CONFIG_MTK_DISABLE_GAUGE)
 	battery_main.psy =
 		power_supply_register(
 			&(dev->dev), &battery_main.psd, NULL);
@@ -4444,7 +4476,7 @@ static int __init battery_probe(struct platform_device *dev)
 		return ret;
 	}
 	bm_err("[BAT_probe] power_supply_register Battery Success !!\n");
-#endif
+//#endif
 	ret = device_create_file(&(dev->dev), &dev_attr_Battery_Temperature);
 	ret = device_create_file(&(dev->dev), &dev_attr_UI_SOC);
 
@@ -4562,7 +4594,7 @@ static int __init battery_probe(struct platform_device *dev)
 		IS_ENABLED(CONFIG_MTK_DISABLE_GAUGE)) {
 		bm_err("disable GM 3.0\n");
 		disable_fg();
-	} else if (is_recovery_mode())
+	}else if (is_recovery_mode())
 		battery_recovery_init();
 
 	mtk_battery_last_init(dev);

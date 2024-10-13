@@ -66,6 +66,13 @@
 #include <mt-plat/v1/mtk_charger.h>
 #endif
 
+/* prize added by chenjiaxi, EMMC TEST, 20220518-start */
+#ifdef CONFIG_PRIZE_EMMC_TEST
+#include "prize_ddr_led.h"
+#include <mach/upmu_hw.h>
+#endif
+/* prize added by chenjiaxi, EMMC TEST, 20220518-end */
+
 #define RTC_NAME	"mt-rtc"
 #define RTC_RELPWR_WHEN_XRST	1	/* BBPU = 0 when xreset_rstb goes low */
 
@@ -915,6 +922,89 @@ static const struct rtc_class_ops rtc_ops = {
 	.ioctl = rtc_ops_ioctl,
 };
 
+/* prize added by chenjiaxi, EMMC TEST, 20220518-start */
+#ifdef CONFIG_PRIZE_EMMC_TEST
+static struct kobject *rtc_ddr_sign_kobj = NULL;
+int rtc_read_ddr_sign(void)
+{
+	u32 ddr_sign,new_spare2;
+	
+	new_spare2 = rtc_read(MT6357_RTC_AL_DOW);
+	ddr_sign = new_spare2 >> 8;
+	printk("[%s]ddr_sign:%d",__func__,ddr_sign);
+	return ddr_sign;
+}
+static void rtc_write_ddr_sign(int ddr_value)
+{
+	u32 ddr_sign,new_spare2;
+	ddr_sign = ddr_value << 8;
+	
+	new_spare2 = rtc_read(MT6357_RTC_AL_DOW);
+	new_spare2 = (new_spare2 & PMIC_AL_DOW_MASK);
+	rtc_write(MT6357_RTC_AL_DOW, ddr_sign | new_spare2);
+	rtc_write_trigger();
+	return;
+}
+const int ddr_test_pass = 255;
+const int ddr_test_fail = 0;
+const int ddr_test_factory_mode = 1;
+const int ddr_emmc_test_quit = 17;
+extern int rtc_read_emmc_mode(void);
+int rtc_read_emmc_mode(void){
+	int ddr_test_sign = -1;
+	int emmc_mode = -1;
+	ddr_test_sign = rtc_read_ddr_sign();
+	if( (ddr_test_sign == ddr_emmc_test_quit) || (ddr_test_sign == ddr_test_factory_mode) || (ddr_test_sign == ddr_test_fail)){
+		emmc_mode = 0;
+	}else{
+		emmc_mode = 1;
+	}	
+	return emmc_mode;
+}
+static ssize_t show_rtc_ddr_sign_value(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+{
+	int ddr_sign;
+	ddr_sign =rtc_read_ddr_sign();
+	return sprintf(buf, "%d\n", ddr_sign);
+}
+static ssize_t store_rtc_ddr_sign_value(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	unsigned long ddr_value,led_sign;
+
+	printk("lsw_ddr_sign %s %d\n)",__func__,__LINE__);
+	if (kstrtoul(buf, 10, &ddr_value)) {
+		return -EINVAL;
+	}
+	led_sign = ddr_value;
+	printk("lsw_ddr_sign %s %d   led_sign:%d\n)",__func__,__LINE__,led_sign);
+	rtc_write_ddr_sign(ddr_value);
+
+	if (led_sign < 0) {
+		return -EINVAL;
+	}
+	if ( led_sign == ddr_test_pass ){
+		prize_ddr_led_pass();
+	}else if( led_sign == ddr_test_fail ){
+		prize_ddr_led_fail();
+	}else if( led_sign == ddr_test_factory_mode ){
+		prize_ddr_led_high();
+	}else{
+		prize_ddr_led_low();
+	}
+		
+	return count;
+}
+static struct kobj_attribute rtc_ddr_sign_attr = {
+	.attr = {
+		 .name = "rtc_ddr_value",
+		 .mode = 0666,
+		 },
+	.show = show_rtc_ddr_sign_value,
+	.store = store_rtc_ddr_sign_value,
+};
+#endif
+/* prize added by chenjiaxi, EMMC TEST, 20220518-end */
+
 static int rtc_pdrv_probe(struct platform_device *pdev)
 {
 	unsigned long flags;
@@ -941,6 +1031,20 @@ static int rtc_pdrv_probe(struct platform_device *pdev)
 
 	pmic_register_interrupt_callback(INT_RTC, rtc_irq_handler);
 	pmic_enable_interrupt(INT_RTC, 1, "RTC");
+	
+/* prize added by chenjiaxi, EMMC TEST, 20220518-start */
+#ifdef CONFIG_PRIZE_EMMC_TEST
+	rtc_ddr_sign_kobj = kobject_create_and_add("rtc_ddr_sign", kernel_kobj);
+	if (!rtc_ddr_sign_kobj) {
+		pr_err(" kernel kobject_create_and_add error \r\n"); 
+		return -1;
+	} else {	
+		ret = sysfs_create_file(rtc_ddr_sign_kobj, &rtc_ddr_sign_attr.attr);
+		if (ret)
+			pr_err(" kernel sysfs_create_file error \r\n"); 
+	}
+#endif
+/* prize added by chenjiaxi, EMMC TEST, 20220518-end */
 
 	return 0;
 }

@@ -165,8 +165,12 @@ int seninf_clk_set(struct SENINF_CLK *pclk,
 
 	seninf_clk_check(pclk);
 
-	for (i = 0; pmclk->freq != gseninf_clk_freq[i]; i++)
+	for (i = 0; ((i < SENINF_CLK_IDX_FREQ_IDX_NUM) &&
+			(pmclk->freq != gseninf_clk_freq[i])); i++)
 		;
+
+	if (i >= SENINF_CLK_IDX_FREQ_IDX_NUM)
+		return -EFAULT;
 
 	idx_tg = pmclk->TG + SENINF_CLK_IDX_TG_MIN_NUM;
 	idx_freq = i + SENINF_CLK_IDX_FREQ_MIN_NUM;
@@ -195,12 +199,38 @@ int seninf_clk_set(struct SENINF_CLK *pclk,
 
 		ret = clk_set_parent(
 			pclk->mclk_sel[idx_tg], pclk->mclk_sel[idx_freq]);
+		// prize add by linchong 20220309 start
+		#ifdef CONFIG_PRIZE_DUAL_CAMERA_ENABLE
+		if(pmclk->TG == 1){// main sensor TG
+			PK_PR_ERR("[CAMERA SENSOR] CCF kdSetSensorMclk for TG 2 on\n");
+			if (clk_prepare_enable(pclk->mclk_sel[idx_tg+3]))// TG 2 for dual camera
+				PK_PR_ERR("[CAMERA SENSOR] failed tg=%d\n", pclk->mclk_sel[idx_tg+3]);
+			else
+				atomic_inc(&pclk->enable_cnt[idx_tg+3]);
+			// if (clk_prepare_enable(pclk->mclk_sel[idx_freq]))
+				// PK_PR_ERR("[CAMERA SENSOR] failed freq idx= %d\n", i);
+			// else
+				// atomic_inc(&pclk->enable_cnt[idx_freq]);
+			ret = clk_set_parent(pclk->mclk_sel[idx_tg+3], pclk->mclk_sel[idx_freq]);
+		}
+		#endif
+		// prize add by linchong 20220309 end
 	} else {
 		if (atomic_read(&pclk->enable_cnt[idx_freq]) > 0) {
 			clk_disable_unprepare(pclk->mclk_sel[idx_freq]);
 			atomic_dec(&pclk->enable_cnt[idx_freq]);
 		}
-
+		// prize add by linchong 20220309 start
+		#ifdef CONFIG_PRIZE_DUAL_CAMERA_ENABLE
+		if(pmclk->TG == 1){
+			PK_PR_ERR("[CAMERA SENSOR] CCF kdSetSensorMclk for TG 2 off\n");
+			if (atomic_read(&pclk->enable_cnt[idx_tg+3]) > 0) {
+				clk_disable_unprepare(pclk->mclk_sel[idx_tg+3]);
+				atomic_dec(&pclk->enable_cnt[idx_tg+3]);
+			}
+		}
+		#endif
+		// prize add by linchong 20220309 end
 		if (atomic_read(&pclk->enable_cnt[idx_tg]) > 0) {
 			clk_disable_unprepare(pclk->mclk_sel[idx_tg]);
 			atomic_dec(&pclk->enable_cnt[idx_tg]);

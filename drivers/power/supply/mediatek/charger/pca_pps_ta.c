@@ -10,7 +10,8 @@
 #include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
-#include <mt-plat/prop_chgalgo_class.h>
+#include <mt-plat/v1/prop_chgalgo_class.h>
+#include <mt-plat/v1/mtk_battery.h>
 #include <tcpm.h>
 
 #define PCA_PPS_TA_VERSION	"2.0.0_G"
@@ -49,9 +50,13 @@ static struct apdo_pps_range apdo_pps_tbl[] = {
 	{20000, 3300, 21000},	/* 20VProg */
 };
 
+int check_pps_pwrlmt_support = false;
+
 static inline int check_typec_attached_snk(struct tcpc_device *tcpc)
 {
-	if (tcpm_inquire_typec_attach_state(tcpc) != TYPEC_ATTACHED_SNK)
+	int typec_state = tcpm_inquire_typec_attach_state(tcpc);
+	PCA_DBG("check_typec_attached_snk typec_state = %d ,[%d][%d]\n",typec_state,TYPEC_ATTACHED_DBGACC_SNK,TYPEC_ATTACHED_SNK);
+	if ((typec_state != TYPEC_ATTACHED_SNK) && (typec_state != TYPEC_ATTACHED_DBGACC_SNK))
 		return -EINVAL;
 	return 0;
 }
@@ -226,6 +231,15 @@ static int pca_pps_send_hardreset(struct prop_chgalgo_device *pca)
 	return ret > 0 ? -ret : ret;
 }
 
+int mt_is_pps_pwrlmt_support(void)
+{
+	return check_pps_pwrlmt_support;
+}
+int mt_set_pps_pwrlmt_support(bool en)
+{
+	check_pps_pwrlmt_support = en;
+	return 0;
+}
 static int pca_pps_authenticate_ta(struct prop_chgalgo_device *pca,
 				   struct prop_chgalgo_ta_auth_data *data)
 {
@@ -339,9 +353,12 @@ static int pca_pps_authenticate_ta(struct prop_chgalgo_device *pca,
 			goto out;
 		if (info->desc->force_cv)
 			data->support_cc = false;
+
+		mt_set_pps_pwrlmt_support(true);
 		PCA_INFO("select cap_idx[%d], power limit[%d,%dW]\n",
 			 apdo_idx, data->pwr_lmt, data->pdp);
 	} else {
+		mt_set_pps_pwrlmt_support(false);
 		PCA_ERR("cannot find apdo for pps algo\n");
 		return -EINVAL;
 	}

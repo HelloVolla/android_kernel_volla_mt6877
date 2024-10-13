@@ -182,6 +182,18 @@ int (*set_hp_impedance_ctl)(bool enable) = NULL;
 #define SOC_HIGH_USE_RATE (\
 				SNDRV_PCM_RATE_CONTINUOUS |\
 				SNDRV_PCM_RATE_8000_192000)
+
+//modify by yantaotao for audio PA start				
+#ifdef CONFIG_SND_SOC_AW87XXX
+extern int aw87xxx_set_profile(int dev_index, char *profile);
+
+static char *aw_profile[] = {"Music", "Off"};
+enum aw87xxx_dev_index {
+ AW_DEV_0 = 0,
+};
+#endif
+//modify by yantaotao for audio PA end				
+				
 static void Audio_Amp_Change(int channels, bool enable);
 static void SavePowerState(void)
 {
@@ -3611,6 +3623,11 @@ static void Speaker_Amp_Change(bool enable)
 		Ana_Set_Reg(AUDDEC_ANA_CON6, 0x0201, 0xffff);
 		/* Switch LOL MUX to audio DAC */
 		Ana_Set_Reg(AUDDEC_ANA_CON4, 0x011b, 0xffff);
+		//modify by yantaotao for audio PA start
+//		#ifdef CONFIG_SND_SOC_AW87XXX
+//		aw87xxx_set_profile(AW_DEV_0, aw_profile[0]);
+//		#endif
+		//modify by yantaotao for audio PA end
 		/* disable Pull-down HPL/R to AVSS28_AUD */
 		hp_pull_down(false);
 
@@ -3648,6 +3665,11 @@ static void Speaker_Amp_Change(bool enable)
 			Ana_Set_Reg(AUDDEC_ANA_CON12, 0x0, 0x1055);
 			/* Disable NCP */
 			Ana_Set_Reg(AUDNCP_CLKDIV_CON3, 0x1, 0x1);
+			//modify by yantaotao for audio PA start
+//			#ifdef CONFIG_SND_SOC_AW87XXX
+//			aw87xxx_set_profile(AW_DEV_0, aw_profile[1]);
+//			#endif
+			//modify by yantaotao for audio PA end
 			TurnOffDacPower();
 		}
 	}
@@ -3693,9 +3715,19 @@ static void Ext_Speaker_Amp_Change(bool enable)
 		usleep_range(1 * 1000, 2 * 1000);
 		AudDrv_GPIO_EXTAMP_Select(true, 3);
 		usleep_range(5 * 1000, 10 * 1000);
+		//modify by yantaotao for audio PA start
+		#ifdef CONFIG_SND_SOC_AW87XXX
+		aw87xxx_set_profile(AW_DEV_0, aw_profile[0]);
+		#endif
+		//modify by yantaotao for audio PA end
 	} else {
 		AudDrv_GPIO_EXTAMP_Select(false, 3);
 		udelay(500);
+		//modify by yantaotao for audio PA start
+		#ifdef CONFIG_SND_SOC_AW87XXX
+		aw87xxx_set_profile(AW_DEV_0, aw_profile[1]);
+		#endif
+		//modify by yantaotao for audio PA end
 	}
 }
 static int Ext_Speaker_Amp_Get(struct snd_kcontrol *kcontrol,
@@ -4497,6 +4529,51 @@ static bool GetAdcStatus(void)
 	}
 	return false;
 }
+
+static int mt6357_rc_reset(int ch)
+{
+	unsigned int reg = 0, reg_shift = 0, reg_reset = 0;
+	unsigned int reg_value = 0, rc = 0;
+
+	switch (ch) {
+	case AUDIO_ANALOG_CHANNELS_LEFT1:
+		reg = AUDENC_ANA_CON11;
+		reg_shift = 0;
+		reg_reset = AUDENC_ANA_CON0;
+		/* [12] RG_AUDADCLPWRUP */
+		break;
+	case AUDIO_ANALOG_CHANNELS_RIGHT1:
+		reg = AUDENC_ANA_CON11;
+		reg_shift = 8;
+		reg_reset = AUDENC_ANA_CON1;
+		/* [12] RG_AUDADCRPWRUP */
+		break;
+	default:
+		break;
+	}
+	pr_debug("%s(), reg: 0x%x(reg_shift), reg_reset: 0x%x\n",
+		__func__, reg, reg_shift, reg_reset);
+	usleep_range(500, 520);
+	reg_value = Ana_Get_Reg(reg);
+	rc = (reg_value >> reg_shift) & 0x1f;
+	pr_debug("%s(), reg(rc) = 0x%x(0x%x)\n",
+		__func__, reg, reg_value, rc);
+	if ((rc == 0) || (rc == 0x1f)) {
+		/* Disable audio x ADC */
+		Ana_Set_Reg(reg_reset,
+			    0x0 << 12, 0x1 << 12);
+		/* Enable audio x ADC */
+		Ana_Set_Reg(reg_reset,
+			    0x1 << 12, 0x1 << 12);
+		reg_value = Ana_Get_Reg(reg);
+		pr_info("%s(), final: AUDENC_ANA_CON11 = 0x%x\n",
+			__func__, reg_value);
+	}
+	usleep_range(500, 520);
+	return 0;
+
+}
+
 static bool TurnOnADcPowerACC(int ADCType, bool enable)
 {
 	pr_debug("%s ADCType = %d enable = %d\n", __func__, ADCType, enable);
@@ -4539,7 +4616,8 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
 				/* Audio L preamplifier input sel :
 				 * AIN0. Enable audio L PGA
 				 */
-				Ana_Set_Reg(AUDENC_ANA_CON0, 0x0041, 0xf0ff);
+				Ana_Set_Reg(AUDENC_ANA_CON0, 0x0041, 0x00c1);
+				usleep_range(1000, 1020);
 				/* Audio L ADC input sel :
 				 * L PGA. Enable audio L ADC
 				 */
@@ -4550,20 +4628,24 @@ static bool TurnOnADcPowerACC(int ADCType, bool enable)
 				/* Audio L preamplifier input sel :
 				 * AIN1. Enable audio L PGA
 				 */
-				Ana_Set_Reg(AUDENC_ANA_CON0, 0x0081, 0xf0ff);
+				Ana_Set_Reg(AUDENC_ANA_CON0, 0x0081, 0x00c1);
+				usleep_range(1000, 1020);
 				/* Audio L ADC input sel :
 				 * L PGA. Enable audio L ADC
 				 */
 				Ana_Set_Reg(AUDENC_ANA_CON0, 0x5081, 0xf000);
 			}
+			mt6357_rc_reset(AUDIO_ANALOG_CHANNELS_LEFT1);
 		} else if (ADCType == AUDIO_ANALOG_DEVICE_IN_ADC2) {
 			/* ref mic */
 			/* Audio R preamplifier input sel :
 			 * AIN2. Enable audio R PGA
 			 */
-			Ana_Set_Reg(AUDENC_ANA_CON1, 0x00c1, 0xf0ff);
+			Ana_Set_Reg(AUDENC_ANA_CON1, 0x00c1, 0x00c1);
+			usleep_range(1000, 1020);
 			/* Audio R ADC input sel : R PGA. Enable audio R ADC */
 			Ana_Set_Reg(AUDENC_ANA_CON1, 0x50c1, 0xf000);
+			mt6357_rc_reset(AUDIO_ANALOG_CHANNELS_RIGHT1);
 		}
 		if (GetAdcStatus() == false) {
 			/* here to set digital part */
@@ -4799,17 +4881,15 @@ static bool TurnOnADcPowerDCC(int ADCType, bool enable, int ECMmode)
 		if (ADCType == AUDIO_ANALOG_DEVICE_IN_ADC1) {
 			/* main and headset mic */
 			/* Audio L preamplifier DCC precharge */
-			Ana_Set_Reg(AUDENC_ANA_CON0, 0x0004, 0xf8ff);
+			Ana_Set_Reg(AUDENC_ANA_CON0, 0x0004, 0x1 << 2);
 			if (mCodec_data->mAudio_Ana_Mux
 				[AUDIO_MICSOURCE_MUX_IN_1] == 0) {
 				/* "ADC1", main_mic */
 				/* Audio L preamplifier input sel :
 				 * AIN0. Enable audio L PGA
 				 */
-				Ana_Set_Reg(AUDENC_ANA_CON0, 0x0041, 0xf0ff);
-				/* Audio L preamplifier DCCEN */
-				Ana_Set_Reg(AUDENC_ANA_CON0,
-					    0x1 << 1, 0x1 << 1);
+				Ana_Set_Reg(AUDENC_ANA_CON0, 0x0041, 0x00c1);
+				usleep_range(1000, 1020);
 				/* Audio L ADC input sel :
 				 * L PGA. Enable audio L ADC
 				 */
@@ -4820,34 +4900,32 @@ static bool TurnOnADcPowerDCC(int ADCType, bool enable, int ECMmode)
 				/* Audio L preamplifier input sel :
 				 * AIN1. Enable audio L PGA
 				 */
-				Ana_Set_Reg(AUDENC_ANA_CON0, 0x0081, 0xf0ff);
-				/* Audio L preamplifier DCCEN */
-				Ana_Set_Reg(AUDENC_ANA_CON0,
-					    0x1 << 1, 0x1 << 1);
+				Ana_Set_Reg(AUDENC_ANA_CON0, 0x0081, 0x00c1);
+				usleep_range(1000, 1020);
 				/* Audio L ADC input sel :
 				 * L PGA. Enable audio L ADC
 				 */
 				Ana_Set_Reg(AUDENC_ANA_CON0, 0x5081, 0xf000);
 			}
+			mt6357_rc_reset(AUDIO_ANALOG_CHANNELS_LEFT1);
+			/* Audio L preamplifier DCC precharge off */
+			Ana_Set_Reg(AUDENC_ANA_CON0, 0x0, 0x1 << 2);
 		} else if (ADCType == AUDIO_ANALOG_DEVICE_IN_ADC2) {
 			/* Audio R preamplifier DCC precharge */
-			Ana_Set_Reg(AUDENC_ANA_CON1, 0x0004, 0xf8ff);
+			Ana_Set_Reg(AUDENC_ANA_CON1, 0x0004, 0x1 << 2);
 			/* ref mic */
 			/* Audio R preamplifier input sel :
 			 * AIN2. Enable audio R PGA
 			 */
-			Ana_Set_Reg(AUDENC_ANA_CON1, 0x00c1, 0xf0ff);
-			/* Audio R preamplifier DCCEN */
-			Ana_Set_Reg(AUDENC_ANA_CON1, 0x1 << 1, 0x1 << 1);
+			Ana_Set_Reg(AUDENC_ANA_CON1, 0x00c1, 0x00c1);
+			usleep_range(1000, 1020);
 			/* Audio R ADC input sel : R PGA Enable audio R ADC */
 			Ana_Set_Reg(AUDENC_ANA_CON1, 0x50c1, 0xf000);
-		}
-		if (GetAdcStatus() == false) {
+			mt6357_rc_reset(AUDIO_ANALOG_CHANNELS_RIGHT1);
 			/* Audio R preamplifier DCC precharge off */
 			Ana_Set_Reg(AUDENC_ANA_CON1, 0x0, 0x1 << 2);
-			/* Audio L preamplifier DCC precharge off */
-			Ana_Set_Reg(AUDENC_ANA_CON0, 0x0, 0x1 << 2);
-
+		}
+		if (GetAdcStatus() == false) {
 			/* here to set digital part */
 			/* power on clock */
 			Ana_Set_Reg(PMIC_AUDIO_TOP_CON0, 0x8000, 0xdfbf);
@@ -4884,24 +4962,20 @@ static bool TurnOnADcPowerDCC(int ADCType, bool enable, int ECMmode)
 		if (ADCType == AUDIO_ANALOG_DEVICE_IN_ADC1) {
 			/* Audio L ADC input sel : off, disable audio L ADC */
 			Ana_Set_Reg(AUDENC_ANA_CON0, 0x0000, 0xf000);
-			/* Audio L preamplifier DCCEN */
-			Ana_Set_Reg(AUDENC_ANA_CON0, 0x0 << 1, 0x1 << 1);
 			/* Audio L preamplifier input sel :
 			 * off, Audio L PGA 0 dB gain
 			 */
-			Ana_Set_Reg(AUDENC_ANA_CON0, 0x0000, 0xfffb);
+			Ana_Set_Reg(AUDENC_ANA_CON0, 0x0000, 0x0ff9);
 			/* Disable audio L PGA */
 			/* disable Audio L preamplifier DCC precharge */
 			Ana_Set_Reg(AUDENC_ANA_CON0, 0x0, 0x1 << 2);
 		} else if (ADCType == AUDIO_ANALOG_DEVICE_IN_ADC2) {
 			/* Audio R ADC input sel : off, disable audio R ADC */
 			Ana_Set_Reg(AUDENC_ANA_CON1, 0x0000, 0xf000);
-			/* Audio r preamplifier DCCEN */
-			Ana_Set_Reg(AUDENC_ANA_CON1, 0x0 << 1, 0x1 << 1);
 			/* Audio R preamplifier input sel :
 			 * off, Audio R PGA 0 dB gain
 			 */
-			Ana_Set_Reg(AUDENC_ANA_CON1, 0x0000, 0x0ffb);
+			Ana_Set_Reg(AUDENC_ANA_CON1, 0x0000, 0x0ff9);
 			/* Disable audio R PGA */
 			/* disable Audio R preamplifier DCC precharge */
 			Ana_Set_Reg(AUDENC_ANA_CON1, 0x0, 0x1 << 2);
@@ -5482,6 +5556,14 @@ static int Audio_Mic1_Mode_Select_Set(struct snd_kcontrol *kcontrol,
 	/* pr_debug("%s() mAudio_Analog_Mic1_mode = %d\n",
 	 * __func__, mAudio_Analog_Mic1_mode);
 	 */
+	if (mAudio_Analog_Mic1_mode != AUDIO_ANALOGUL_MODE_ACC) {
+		/* Audio L preamplifier DCCEN */
+		Ana_Set_Reg(AUDENC_ANA_CON0,
+			    0x1 << 1, 0x1 << 1);
+	} else {
+		Ana_Set_Reg(AUDENC_ANA_CON0,
+			    0x1 << 0, 0x1 << 1);
+	}
 	return 0;
 }
 static int Audio_Mic2_Mode_Select_Get(struct snd_kcontrol *kcontrol,
@@ -5503,6 +5585,14 @@ static int Audio_Mic2_Mode_Select_Set(struct snd_kcontrol *kcontrol,
 	/* pr_debug("%s() mAudio_Analog_Mic2_mode = %d\n",
 	 * __func__, mAudio_Analog_Mic2_mode);
 	 */
+	if (mAudio_Analog_Mic2_mode != AUDIO_ANALOGUL_MODE_ACC)  {
+		/* Audio R preamplifier DCCEN */
+		Ana_Set_Reg(AUDENC_ANA_CON1,
+			    0x1 << 1, 0x1 << 1);
+	} else {
+		Ana_Set_Reg(AUDENC_ANA_CON1,
+			    0x1 << 0, 0x1 << 1);
+	}
 	return 0;
 }
 static int Audio_Mic3_Mode_Select_Get(struct snd_kcontrol *kcontrol,
@@ -5912,6 +6002,8 @@ static void mt6357_codec_init_reg(struct snd_soc_component *component)
 	Ana_Set_Reg(AUDDEC_ANA_CON3, 0x1 << 4, 0x1 << 4);
 	/* disable LO buffer left short circuit protection */
 	Ana_Set_Reg(AUDDEC_ANA_CON4, 0x1 << 4, 0x1 << 4);
+	/* AUDENC_ANA_CON10 bit12 EINTHIRENB 0:2M 1:500k */
+	Ana_Set_Reg(AUDENC_ANA_CON10, 0x1c07, 0xffff);
 	/* set gpio */
 	set_playback_gpio(false);
 	set_capture_gpio(false);

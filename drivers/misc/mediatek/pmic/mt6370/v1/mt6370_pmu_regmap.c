@@ -183,6 +183,7 @@ RT_REG_DECL(MT6370_PMU_LDOMASK, 1, RT_NORMAL_WR_ONCE, {});
 RT_REG_DECL(MT6370_PMU_RGBMASK, 1, RT_NORMAL_WR_ONCE, {});
 RT_REG_DECL(MT6370_PMU_BLMASK, 1, RT_NORMAL_WR_ONCE, {});
 RT_REG_DECL(MT6370_PMU_DBMASK, 1, RT_NORMAL_WR_ONCE, {});
+RT_REG_DECL(MT6370_PMU_REG_CHGHIDDENCTRL22, 1, RT_VOLATILE, {});  //drv huangjiwu 20230721 for cv failed
 
 static const rt_register_map_t mt6370_pmu_regmap[] = {
 	RT_REG(MT6370_PMU_REG_DEVINFO),
@@ -358,6 +359,7 @@ static const rt_register_map_t mt6370_pmu_regmap[] = {
 	RT_REG(MT6370_PMU_RGBMASK),
 	RT_REG(MT6370_PMU_BLMASK),
 	RT_REG(MT6370_PMU_DBMASK),
+	RT_REG(MT6370_PMU_REG_CHGHIDDENCTRL22), //drv huangjiwu 20230721 for cv failed
 };
 
 static struct rt_regmap_properties mt6370_pmu_regmap_props = {

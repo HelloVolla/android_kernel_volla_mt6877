@@ -1,0 +1,4 @@
+config SWITCH_BATTERY
+	bool "SWITCH for BATTERY"
+	help
+	  It support Battery Switch status.

@@ -59,6 +59,29 @@
 
 #include "mtk_charger.h"
 
+//prize-add-pengzhipeng-20220706-start
+//#ifdef CONFIG_BAT_LOW_TEMP_PROTECT_ENABLE
+#define BAT_LOW_TEMP_PROTECT_ENABLE
+//#endif
+//#prize-add-pengzhipeng-20220706-end
+//prize add by lipengpeng 20210621 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W_NEW)
+extern int reset_mt5725_info(void);
+extern int get_MT5725_status(void);
+extern void En_Dis_add_current(int i);
+struct mtk_charger *mt5725_info;
+extern int get_wireless_charge_current(struct charger_data *pdata);
+#endif
+//prize add by lipengpeng 20210621 end 
+#if defined(CONFIG_PRIZE_CHARGE_CTRL_POLICY)
+#include <linux/fb.h>
+
+int g_charge_is_screen_on = 1;
+EXPORT_SYMBOL(g_charge_is_screen_on);
+#endif
+
+static bool is_module_init_done;
+
 struct tag_bootmode {
 	u32 size;
 	u32 tag;
@@ -1433,6 +1456,7 @@ static int mtk_charger_plug_out(struct mtk_charger *info)
 	chr_err("%s\n", __func__);
 	info->chr_type = POWER_SUPPLY_TYPE_UNKNOWN;
 	info->charger_thread_polling = false;
+	info->pd_reset = false;
 
 	pdata1->disable_charging_count = 0;
 	pdata1->input_current_limit_by_aicl = -1;
@@ -1444,6 +1468,16 @@ static int mtk_charger_plug_out(struct mtk_charger *info)
 		alg = info->alg[i];
 		chg_alg_notifier_call(alg, &notify);
 	}
+
+//prize add by lipengpeng 20210621 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W_NEW)
+	   reset_mt5725_info();
+#ifdef CONFIG_PRIZE_WIRELESS_OTG_CHECK
+	   wireless_flag=0;
+#endif
+	   printk("lpp--- plug out enable add current\n");
+#endif
+//prize add by lipengpeng 20210621 end 
 
 	charger_dev_set_input_current(info->chg1_dev, 100000);
 	charger_dev_set_mivr(info->chg1_dev, info->data.min_charger_voltage);
@@ -1472,6 +1506,15 @@ static int mtk_charger_plug_in(struct mtk_charger *info,
 
 	chr_err("mtk_is_charger_on plug in, type:%d\n", chr_type);
 
+//prize add by lipengpeng 20210621 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W_NEW)
+    if((info->chr_type == POWER_SUPPLY_TYPE_USB_FLOAT) && (get_MT5725_status() == 0))
+	{
+		printk("lpp--- plug in enable add current\n");
+		En_Dis_add_current(0x00);
+	}
+#endif
+//prize add by lipengpeng 20210621 end 
 	notify.evt = EVT_PLUG_IN;
 	notify.value = 0;
 	for (i = 0; i < MAX_ALG_NO; i++) {
@@ -1556,7 +1599,6 @@ static int charger_routine_thread(void *arg)
 {
 	struct mtk_charger *info = arg;
 	unsigned long flags;
-	static bool is_module_init_done;
 	bool is_charger_on;
 
 	while (1) {
@@ -1679,6 +1721,34 @@ static enum alarmtimer_restart
 	return ALARMTIMER_NORESTART;
 }
 
+//drv add by huangjiwu  2022093 start 
+#if defined(CONFIG_MTK_DUAL_CHARGER_SUPPORT) || defined(CONFIG_MTK_PUMP_EXPRESS_50_SUPPORT)
+int is_chg2_exist = 0;
+EXPORT_SYMBOL_GPL(is_chg2_exist);
+///sys/devices/platform/charger/chg2_exist
+static ssize_t show_chg2_exist(struct device *dev, struct device_attribute *attr, char *buf)
+{
+  	int chg_cnt = 0;
+  
+  	if (is_chg2_exist){
+  		return sprintf(buf, "%u\n", is_chg2_exist);
+ 	}else{
+ 		if (get_charger_by_name("secondary_chg") != NULL){
+  			chg_cnt++;
+ 		}
+  		if (get_charger_by_name("primary_divider_chg") != NULL){
+  			chg_cnt++;
+  		}
+  		if (get_charger_by_name("secondary_divider_chg") != NULL){
+ 			chg_cnt++;
+  		}
+  	}
+  	return sprintf(buf, "%u\n", chg_cnt);
+
+}
+static DEVICE_ATTR(chg2_exist, 0664, show_chg2_exist, NULL);
+#endif
+//drv add by huangjiwu  2022093 end 
 static void mtk_charger_init_timer(struct mtk_charger *info)
 {
 	alarm_init(&info->charger_timer, ALARM_BOOTTIME,
@@ -1729,6 +1799,13 @@ static int mtk_charger_setup_files(struct platform_device *pdev)
 	ret = device_create_file(&(pdev->dev), &dev_attr_BatteryNotify);
 	if (ret)
 		goto _out;
+//drv add by huangjiwu  2022093 start 
+#if defined(CONFIG_MTK_DUAL_CHARGER_SUPPORT) || defined(CONFIG_MTK_PUMP_EXPRESS_50_SUPPORT)
+	ret = device_create_file(&(pdev->dev), &dev_attr_chg2_exist);
+	if (ret)
+		goto _out;
+#endif
+//drv add by huangjiwu  2022093 end 
 
 	battery_dir = proc_mkdir("mtk_battery_cmd", NULL);
 	if (!battery_dir) {
@@ -1914,12 +1991,28 @@ int psy_charger_set_property(struct power_supply *psy,
 			info->enable_hv_charging = false;
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX:
+	//prize huangjiwu 20230525 for close thermal charger start
+	#if defined(CONFIG_PRIZE_NOT_LIMIT_THERMAL_CHARGER)
+		info->chg_data[idx].thermal_input_current_limit = -1;
+	#else
+	//prize huangjiwu 20230525 for close thermal charger end
 		info->chg_data[idx].thermal_charging_current_limit =
 			val->intval;
+	//prize huangjiwu 20230525 for close thermal charger start
+	#endif
+	//prize huangjiwu 20230525 for close thermal charger end
 		break;
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+	//prize huangjiwu 20230525 for close thermal charger start
+	#if defined(CONFIG_PRIZE_NOT_LIMIT_THERMAL_CHARGER)
+		info->chg_data[idx].thermal_input_current_limit = -1;
+	#else
+	//prize huangjiwu 20230525 for close thermal charger end
 		info->chg_data[idx].thermal_input_current_limit =
 			val->intval;
+	//prize huangjiwu 20230525 for close thermal charger start
+	#endif
+	//prize huangjiwu 20230525 for close thermal charger end
 		break;
 	default:
 		return -EINVAL;
@@ -1955,7 +2048,8 @@ static void mtk_charger_external_power_changed(struct power_supply *psy)
 		psy->desc->name, prop.intval, prop2.intval,
 		get_vbus(info));
 
-	mtk_is_charger_on(info);
+	if(is_module_init_done)
+		mtk_is_charger_on(info);
 	_wake_up_charger(info);
 }
 
@@ -2043,12 +2137,51 @@ int chg_alg_event(struct notifier_block *notifier,
 }
 
 
+//prize add by lipengpeng 20210621 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W_NEW)
+int MT5725_init(struct mtk_charger *info){
+    mt5725_info = info;
+	return 0;
+}
+#endif
+//prize add by lipengpeng 20210621 end  
+#if defined(CONFIG_PRIZE_CHARGE_CTRL_POLICY)
+static int charge_fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data)
+{
+	struct fb_event *evdata = NULL;
+	int blank;
+	//int err = 0;
+	evdata = data;
+	/* If we aren't interested in this event, skip it immediately ... */
+	if (event != FB_EVENT_BLANK)
+		return 0;
+
+	blank = *(int *)evdata->data;
+	switch (blank) {
+		case FB_BLANK_UNBLANK:
+			g_charge_is_screen_on = 1;
+			break;
+		case FB_BLANK_POWERDOWN:
+			g_charge_is_screen_on = 0;
+			break;
+		default:
+			break;
+	}
+	chr_err("%s: g_charge_is_screen_on[%d]\n", __func__,g_charge_is_screen_on);
+	return 0;
+}
+static struct notifier_block charge_fb_notifier = {
+	.notifier_call = charge_fb_notifier_callback,
+};
+#endif
 static int mtk_charger_probe(struct platform_device *pdev)
 {
 	struct mtk_charger *info = NULL;
 	int i;
 	char *name = NULL;
-
+#if defined(CONFIG_PRIZE_CHARGE_CTRL_POLICY)
+	int ret = 0;
+#endif
 	chr_err("%s: starts\n", __func__);
 
 	info = devm_kzalloc(&pdev->dev, sizeof(*info), GFP_KERNEL);
@@ -2141,9 +2274,16 @@ static int mtk_charger_probe(struct platform_device *pdev)
 	}
 
 	info->chg_alg_nb.notifier_call = chg_alg_event;
-
+//prize add by lipengpeng 20210621 start 	
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W_NEW)
+    MT5725_init(info);
+#endif
 	kthread_run(charger_routine_thread, info, "charger_thread");
-
+#if defined(CONFIG_PRIZE_CHARGE_CTRL_POLICY)
+		ret = fb_register_client(&charge_fb_notifier);
+		if (ret)
+			pr_debug("[%s] failed to register charger_fb_notifier_block %d\n", __func__, ret);
+#endif
 	return 0;
 }
 

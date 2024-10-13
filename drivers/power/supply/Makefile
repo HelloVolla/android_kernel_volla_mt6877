@@ -126,7 +126,7 @@ obj-$(CONFIG_CHARGER_BQ24190)	+= bq24190_charger.o
 obj-$(CONFIG_CHARGER_BQ24257)	+= bq24257_charger.o
 obj-$(CONFIG_CHARGER_BQ24735)	+= bq24735-charger.o
 obj-$(CONFIG_CHARGER_BQ25890)	+= bq25890_charger.o
-obj-$(CONFIG_CHARGER_SC8551)	+= sc8551.o
+
 obj-$(CONFIG_CHARGER_SMB347)	+= smb347-charger.o
 obj-$(CONFIG_CHARGER_TPS65090)	+= tps65090-charger.o
 obj-$(CONFIG_CHARGER_TPS65217)	+= tps65217_charger.o
@@ -136,3 +136,5 @@ obj-$(CONFIG_AXP288_CHARGER)	+= axp288_charger.o
 ifeq ($(CONFIG_CUSTOM_BATTERY_EXTERNAL_CHANNEL),y)
 	obj-y += k6885v1_64_alpha/
 endif
+#prize add by lvyuanchuan for fg 20221019
+obj-$(CONFIG_MTK_CW2217_SUPPORT) += cw221x_fuel_gauge.o

@@ -1,0 +1,54 @@
+#include "../../drv_common.h"
+
+#if PRI_PLATFORM_MT6891
+#include "./mt6891/custom.h"
+#endif
+
+
+
+&odm {
+	accdet_auxadc: accdet_auxadc {
+		compatible = "prize,accdet_auxadc";
+		io-channels =<&pmic_auxadc PMIC_AUXADC_CHANNEL>;
+		io-channel-names ="pmic_accdet";
+	};
+};
+
+&pio {
+	typec_accdet_default: typec_accdet_default {
+		pins_cmd_dat {
+			pinmux = <TYPEC_EAR_ALP_SEL>;
+			slew-rate = <1>;
+			bias-pull-down = <00>;
+			output-low;
+		};
+	};
+	typec_accdet_alp_h: typec_accdet_alp_h {	//audio/low power
+		pins_cmd_dat {
+			pinmux = <TYPEC_EAR_ALP_SEL>;
+			slew-rate = <1>;
+			bias-pull-down = <00>;
+			output-high;
+		};
+	};
+	typec_accdet_alp_l: typec_accdet_alp_l {
+		pins_cmd_dat {
+			pinmux = <TYPEC_EAR_ALP_SEL>;
+			slew-rate = <1>;
+			bias-pull-down = <00>;
+			output-low;
+		};
+	};
+};
+&odm{
+	typec_accdet: typec_accdet {
+		compatible = "prize,typec_accdet";
+		mic_select_pin = <&pio TYPEC_EAR_MIC_GND_EN 0>;
+		mic_detect_thr = <230>;
+		pinctrl-names = "typec_accdet_default", 
+						"typec_accdet_alp_h","typec_accdet_alp_l";
+		pinctrl-0 = <&typec_accdet_default>;
+		pinctrl-1 = <&typec_accdet_alp_h>;
+		pinctrl-2 = <&typec_accdet_alp_l>;
+	};
+};

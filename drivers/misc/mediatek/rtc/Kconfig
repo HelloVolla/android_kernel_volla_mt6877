@@ -7,3 +7,11 @@ config MTK_RTC
 	  clock (most often in the form of an
 	  integrated circuit) that keeps track
 	  of the current time.
+
+# prize added by chenjiaxi, emmc test, 20220518-start
+config PRIZE_EMMC_TEST
+	bool "prize emmc test"
+ 	default n
+	help
+	  prize emmc test
+# prize added by chenjiaxi, emmc test, 20220518-end

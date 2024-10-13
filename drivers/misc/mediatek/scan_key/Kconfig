@@ -1,0 +1,4 @@
+config PRIZE_SCAN_HANDSHANK_KEY
+	bool "KEY for SCAN_HANDSHANK"
+	help
+	  It support SCAN_HANDSHANK control.

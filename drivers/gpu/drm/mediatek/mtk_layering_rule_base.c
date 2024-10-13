@@ -58,6 +58,7 @@ static DEFINE_MUTEX(layering_info_lock);
 #endif
 #define RSZ_IN_MAX_HEIGHT 4096
 #define DISP_RSZ_LAYER_NUM 2
+#define DISP_LAYER_RULE_MAX_NUM 1024
 
 static struct {
 	enum LYE_HELPER_OPT opt;
@@ -2050,7 +2051,8 @@ _copy_layer_info_by_disp(struct drm_mtk_layering_info *disp_info_user,
 	unsigned long int layer_size = 0;
 	int ret = 0;
 
-	if (l_info->layer_num[disp_idx] <= 0) {
+	if (l_info->layer_num[disp_idx] <= 0 ||
+			l_info->layer_num[disp_idx] > DISP_LAYER_RULE_MAX_NUM) {
 		/* direct skip */
 		return -EFAULT;
 	}
@@ -3157,19 +3159,21 @@ int mtk_layering_rule_ioctl(struct drm_device *dev, void *data,
 
 #if IS_ENABLED(CONFIG_COMPAT)
 struct drm_mtk_layering_info_32 {
-	compat_uptr_t input_config[3];
-	int disp_mode[3];
+	compat_uptr_t input_config[LYE_CRTC];
+	int disp_mode[LYE_CRTC];
 	/* index of crtc display mode including resolution, fps... */
-	int disp_mode_idx[3];
-	int layer_num[3];
-	int gles_head[3];
-	int gles_tail[3];
+	int disp_mode_idx[LYE_CRTC];
+	int layer_num[LYE_CRTC];
+	int gles_head[LYE_CRTC];
+	int gles_tail[LYE_CRTC];
 	int hrt_num;
+	uint32_t disp_idx;
+	uint32_t disp_list;
 	/* res_idx: SF/HWC selects which resolution to use */
 	int res_idx;
 	uint32_t hrt_weight;
 	uint32_t hrt_idx;
-	compat_uptr_t mml_frame_info[3];
+	compat_uptr_t mml_frame_info[LYE_CRTC];
 };
 
 int mtk_layering_rule_ioctl_compat(struct file *file, unsigned int cmd,
@@ -3181,7 +3185,7 @@ int mtk_layering_rule_ioctl_compat(struct file *file, unsigned int cmd,
 
 	if (copy_from_user(&data32, (void __user *)arg, sizeof(data32)))
 		return -EFAULT;
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < LYE_CRTC; i++) {
 		data.input_config[i] = compat_ptr(data32.input_config[i]);
 		data.disp_mode[i] = data32.disp_mode[i];
 		data.disp_mode_idx[i] = data32.disp_mode_idx[i];
@@ -3190,6 +3194,8 @@ int mtk_layering_rule_ioctl_compat(struct file *file, unsigned int cmd,
 		data.gles_tail[i] = data32.gles_tail[i];
 	}
 	data.hrt_num = data32.hrt_num;
+	data.disp_idx = data32.disp_idx;
+	data.disp_list = data32.disp_list;
 	data.res_idx = data32.res_idx;
 	data.hrt_weight = data32.hrt_weight;
 	data.hrt_idx = data32.hrt_idx;
@@ -3199,7 +3205,7 @@ int mtk_layering_rule_ioctl_compat(struct file *file, unsigned int cmd,
 	if (err)
 		return err;
 
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < LYE_CRTC; i++) {
 		//data32.input_config[i] = ptr_to_compat(data.input_config[i]);
 		data32.disp_mode[i] = data.disp_mode[i];
 		data32.disp_mode_idx[i] = data.disp_mode_idx[i];
@@ -3208,6 +3214,8 @@ int mtk_layering_rule_ioctl_compat(struct file *file, unsigned int cmd,
 		data32.gles_tail[i] = data.gles_tail[i];
 	}
 	data32.hrt_num = data.hrt_num;
+	data32.disp_idx = data.disp_idx;
+	data32.disp_list = data.disp_list;
 	data32.res_idx = data.res_idx;
 	data32.hrt_weight = data.hrt_weight;
 	data32.hrt_idx = data.hrt_idx;

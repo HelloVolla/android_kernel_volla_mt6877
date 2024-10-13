@@ -19,6 +19,22 @@
 #include "mtk_battery.h"
 #include "mtk_gauge.h"
 
+/*prize add by zhaopengge 20201117-----start*/
+#if defined(CONFIG_PRIZE_HARDWARE_INFO)
+#include "../../misc/mediatek/hardware_info/hardware_info.h"
+extern struct hardware_info current_coulo_info;
+#endif
+/*prize add by zhaopengge 20201117-----end*/
+
+
+/*prize-sunshuai-20201231, add fuel gauge cw2015  start*/
+#if defined(CONFIG_MTK_CW2015_SUPPORT)
+extern int g_cw2015_capacity;
+extern int g_cw2015_vol;
+extern int cw2015_exit_flag;
+#endif
+/* prize-sunshuai-20201231 add fuel gauge cw2015  end */
+
 
 /* ============================================================ */
 /* pmic control start*/
@@ -495,7 +511,7 @@ void set_rtc_spare_fg_value(struct mtk_gauge *gauge, u8 val)
 }
 
 static int fgauge_set_info(struct mtk_gauge *gauge,
-	enum gauge_property ginfo, unsigned int value)
+	enum gauge_property ginfo, int value)
 {
 	int value_mask = 0;
 	int sign_bit = 0;
@@ -2283,6 +2299,23 @@ static int bat_vol_get(struct mtk_gauge *gauge,
 		ret = -ENOTSUPP;
 	}
 
+
+//prize-add cw2015-sunshuai-20201231-start
+ #if defined(CONFIG_MTK_CW2015_SUPPORT)
+    if(cw2015_exit_flag == 1)
+	{
+	   *val = g_cw2015_vol;
+//prize add by lipengpeng 20210819 start 
+	}else{
+		ret = iio_read_channel_processed(gauge->chan_bat_voltage, val);
+		if (ret < 0)
+			bm_err("[%s] iio_read_channel_processed read fail,ret=%d\n", __func__, ret);
+	}
+//prize add by lipengpeng 20210819 end 
+    //bm_err("[%s]g_cw2015_vol =%d\n", __func__,*val);
+ #endif
+//prize-add cw2015-sunshuai-20201231-end
+
 	return ret;
 }
 
@@ -2982,7 +3015,18 @@ static long adc_cali_ioctl(
 		break;
 	case Get_META_BAT_SOC:
 		adc_out_data[0] = gm->ui_soc;
-
+/*prize add by anhengxuan 20210506-----start*/
+	#if defined(CONFIG_MTK_CW2015_SUPPORT)
+			 if(cw2015_exit_flag==1){
+	    adc_out_data[0] =g_cw2015_capacity;
+//prize add by lipengpeng 20210819 start 
+		}else{
+		adc_out_data[0] = gm->ui_soc;
+		printk("lpp--cw2015 not loader adc_out_data[0]=%d\n",adc_out_data[0]);
+		}
+//prize add by lipengpeng 20210819 end 
+	#endif
+/*prize add by anhengxuan 20210506-----end*/
 		if (copy_to_user(user_data_addr, adc_out_data,
 			sizeof(adc_out_data))) {
 			mutex_unlock(&gm->gauge->fg_mutex);
@@ -3246,6 +3290,15 @@ static int mt6357_gauge_probe(struct platform_device *pdev)
 	bat_create_netlink(pdev);
 	battery_init(pdev);
 	adc_cali_cdev_init(pdev);
+	
+/*prize add by zhaopengge 20201117-----start*/
+#if defined(CONFIG_PRIZE_HARDWARE_INFO)
+		strcpy(current_coulo_info.chip,"mt6357-gauge");
+		strcpy(current_coulo_info.id,"0x0");
+		strcpy(current_coulo_info.vendor,"mediatek");
+		strcpy(current_coulo_info.more,"coulombmeter");
+#endif
+/*prize add by zhaopengge 20201117-----end*/
 
 	bm_err("%s: done\n", __func__);
 

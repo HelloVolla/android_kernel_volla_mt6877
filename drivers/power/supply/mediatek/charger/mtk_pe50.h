@@ -23,6 +23,8 @@ struct pe50 {
 
 #ifdef CONFIG_MTK_PUMP_EXPRESS_50_SUPPORT
 extern int pe50_init(void);
+/*Prize add by lvyuanchuan,X9LAVA-1250,20230608*/
+extern int pe50_init_state(void);
 extern bool pe50_is_ready(void);
 extern int pe50_stop(void);
 extern int pe50_run(void);

@@ -1,5 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0
 
+#prize added by hanwei, headset support, 20210414-start
+MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
+subdir-ccflags-y += -Werror -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
+subdir-ccflags-y += -Werror -I$(srctree)/drivers/misc/mediatek/typec/tcpc/inc
+subdir-ccflags-y += -Werror -I$(srctree)/sound/soc/codecs
+subdir-ccflags-y += -Werror -I$(srctree)/drivers/misc/mediatek/pmic/mt6370/inc
+#prize added by hanwei, headset support, 20210414-end
+
 ifeq ($(CONFIG_SND_SOC_MT6359),y)
   MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
   subdir-ccflags-y += -Werror -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
@@ -545,6 +553,9 @@ obj-$(CONFIG_SND_SOC_ZX_AUD96P22) += snd-soc-zx-aud96p22.o
 obj-$(CONFIG_SND_SOC_TFA9874)	+= tfa98xx/
 obj-$(CONFIG_SND_SOC_CS35L43)	+= cs35l43/
 
+#for AWINIC AW883XXSmart PA
+obj-$(CONFIG_SND_SMARTPA_AW883XX)	+= aw883xx/
+
 # Amp
 obj-$(CONFIG_SND_SOC_MAX9877)	+= snd-soc-max9877.o
 obj-$(CONFIG_SND_SOC_MAX98504)	+= snd-soc-max98504.o
@@ -561,3 +572,31 @@ ifneq (, $(filter y,$(CONFIG_SND_SOC_MT6358) $(CONFIG_SND_SOC_MT6366)))
   subdir-ccflags-y += -Werror -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
   subdir-ccflags-y += -Werror -I$(srctree)/drivers/misc/mediatek/accdet/mt6358
 endif
+#prize-add smartpa aw883xx-pengzhipeng-20211206-start
+obj-$(CONFIG_SND_SMARTPA_AW883XX)    += aw883xx/
+#prize-add smartpa aw883xx-pengzhipeng-20211206-end
+#prize add by anhengxuan for HAC gpio driver 20220406 start
+obj-$(CONFIG_MTK_HAC_SUPPORT)	+= hac_gpio.o
+#prize add by anhengxuan for HAC gpio driver 20220406 end
+#prize-add smartpa aw87xxx-anhengxuan-20220402-start
+obj-$(CONFIG_SND_SOC_AW87XXX)	+= aw87xxx/
+#prize-add smartpa aw87xxx-anhengxuan-20220402-end
+
+#prize add by lipengpeng 20210330 start 
+obj-$(CONFIG_SND_SMARTPA_AW881XX_V2)    += aw881xx_v2/
+obj-$(CONFIG_SND_SMARTPA_AW881XX)    += aw881xx/
+obj-$(CONFIG_SND_SOC_AW8898)    += aw8898/
+obj-$(CONFIG_SND_SMARTPA_AW88194A_NEW)    += aw88194a/
+#prize add by lipengpeng 20210330 end 
+
+# prize add by wuhui aw881xx, 20210623 start
+obj-$(CONFIG_SND_SMARTPA_AW881XX_V1_3_0)    += aw881xx_v1_3_0/
+# prize add by wuhui aw881xx, 20210623 end
+
+# prize added by hanjiuping for awinic aw88394 v1.3.0 driver start
+obj-$(CONFIG_SND_SMARTPA_AW883XX_V1_3_0)       += aw883xx_v1_3_0/
+# prize added by hanjiuping for awinic aw88394 v1.3.0 driver end
+
+# prize added by hanjiuping for foursemi fs1599N pa support start
+obj-$(CONFIG_SND_SOC_FS1599)  += fs1599/
+# prize added by hanjiuping for foursemi fs1599N pa support end

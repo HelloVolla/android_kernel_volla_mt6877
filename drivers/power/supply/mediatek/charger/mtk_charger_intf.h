@@ -132,6 +132,7 @@ struct sw_jeita_data {
 	int cv;
 	bool charging;
 	bool error_recovery_flag;
+	bool error_cp_recovery_flag;
 };
 
 /* battery thermal protection */
@@ -281,6 +282,13 @@ struct charger_data {
 	int junction_temp_max;
 };
 
+enum charging_scenario_t {
+	CHARING_DEFAULT = 0,
+	CHARING_VIDEO,
+	CHARING_GAME,
+	CHARING_SC_MAX
+};
+
 struct charger_manager {
 	bool init_done;
 	const char *algorithm_name;
@@ -373,7 +381,9 @@ struct charger_manager {
 	bool enable_pe_5;
 	bool leave_pe5;
 	struct mtk_pe50 pe5;
-
+	/*pe5.0 done*/
+	bool finish_pe5;
+	
 	/* type-C*/
 	bool enable_type_c;
 
@@ -427,6 +437,10 @@ struct charger_manager {
 	bool force_disable_pp[TOTAL_CHARGER];
 	bool enable_pp[TOTAL_CHARGER];
 	struct mutex pp_lock[TOTAL_CHARGER];
+	
+	/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129*/
+	bool is_screenon;
+	enum charging_scenario_t chg_scenario;
 };
 
 /* charger related module interface */

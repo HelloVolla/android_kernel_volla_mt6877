@@ -825,7 +825,13 @@ config CUSTOM_BATTERY_EXTERNAL_CHANNEL
 	  Say Yes to enable support for Customer external gauge.
           It depends on MTK_PMIC_CHIP_MT6359P
           Added for Battery System test
-
+#prize add by lvyuanchuan for fg ,20221018 start
+config MTK_CW2217_SUPPORT          
+	bool "customer external gauge cw2217"
+	default n
+	help
+	  Set to Yes if cw2217 is used.
+#prize add by lvyuanchuan for fg ,20221018 end
 if MACH_MT6768
 source "drivers/power/supply/mediatek/battery/Kconfig"
 source "drivers/power/supply/mediatek/charger/Kconfig"

@@ -22,6 +22,9 @@
 #include <linux/timer.h>
 #include <uapi/linux/uleds.h>
 #include "leds.h"
+//prize durunshen, modify hbm invalid X9LAVA-1451-20230828 start
+#include <linux/delay.h>
+//prize durunshen, modify hbm invalid X9LAVA-1451-20230828 end
 
 static struct class *leds_class;
 
@@ -46,13 +49,20 @@ static ssize_t brightness_store(struct device *dev,
 	mutex_lock(&led_cdev->led_access);
 
 	if (led_sysfs_is_disabled(led_cdev)) {
+//prize durunshen, modify hbm invalid X9LAVA-1451-20230828 start
+                printk("[%s] buf : %s line: %d\n", __func__, buf, __LINE__);
+//prize durunshen, modify hbm invalid X9LAVA-1451-20230828 end
 		ret = -EBUSY;
 		goto unlock;
 	}
 
 	ret = kstrtoul(buf, 10, &state);
-	if (ret)
+	if (ret) {
+//prize durunshen, modify hbm invalid X9LAVA-1451-20230828 start
+                printk("[%s] buf : %s line: %d\n", __func__, buf, __LINE__);
+//prize durunshen, modify hbm invalid X9LAVA-1451-20230828 end
 		goto unlock;
+	}
 
 	if (state == LED_OFF)
 		led_trigger_remove(led_cdev);
@@ -61,6 +71,9 @@ static ssize_t brightness_store(struct device *dev,
 	ret = size;
 unlock:
 	mutex_unlock(&led_cdev->led_access);
+//prize durunshen, modify hbm invalid X9LAVA-1451-20230828 start
+	msleep(5);
+//prize durunshen, modify hbm invalid X9LAVA-1451-20230828 end
 	return ret;
 }
 static DEVICE_ATTR_RW(brightness);

@@ -1,0 +1,10 @@
+#include "../drv_common.h"
+
+#if PRI_SMART_PA_K_I2C  
+#include "./smart_pa_K_i2c/smart_pa_K_i2c.dtsi"
+#endif
+
+#if PRI_SMART_PA_I2S 
+#include "./smart_pa_i2s/smart_pa_i2s.dtsi"
+#endif
+

@@ -1,0 +1,7 @@
+#include "../../drv_common.h"
+
+#if PRI_PLATFORM_MT6789
+&utos {
+ 	microtrust,real-drv = <1>;
+};
+#endif

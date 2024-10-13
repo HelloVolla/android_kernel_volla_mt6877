@@ -11,11 +11,11 @@
 
 #include "imgsensor_sensor.h"
 #include "imgsensor_hw.h"
-
+int curr_sensor_id;// prize add by zhuzhengjiang for camera 20220110 start
 /*the index is consistent with enum IMGSENSOR_HW_PIN*/
 char * const imgsensor_hw_pin_names[] = {
 	"none",
-	"pdn",
+	"pnd",
 	"rst",
 	"vcama",
 #ifdef CONFIG_REGULATOR_RT5133
@@ -176,7 +176,7 @@ static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 		return IMGSENSOR_RETURN_SUCCESS;
 	}
 #endif
-
+    curr_sensor_id = sensor_idx; // prize add by zhuzhengjiang for camera 20220110 start
 	while (ppwr_seq < ppower_sequence + IMGSENSOR_HW_SENSOR_MAX_NUM &&
 		ppwr_seq->name != NULL) {
 		if (!strcmp(ppwr_seq->name, PLATFORM_POWER_SEQ_NAME)) {

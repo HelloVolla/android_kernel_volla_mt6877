@@ -20,6 +20,13 @@
 #include <linux/sched_clock.h>
 #include <linux/log2.h>
 
+/*prize add by wangfei 20220224 start*/
+#include <linux/unistd.h>
+#include <linux/delay.h>
+#include <linux/time.h>
+#include <linux/vmalloc.h>
+/*prize add by wangfei 20220224 end*/
+
 #include "hf_manager.h"
 
 
@@ -150,6 +157,16 @@ static int hf_manager_report_event(struct hf_client *client,
 		 */
 		return 0;
 	}
+
+	/*prize add by wangfei 20220224 start*/
+	if (event->sensor_type == SENSOR_TYPE_SAR) {
+		if (event->word[0] == 0xff) {
+			pr_info("sar %s event->byte[0] == 0xff\n", __func__);
+			return 0;
+		}
+	}
+	/*prize add by wangfei 20220224 end*/
+
 	hf_fifo->buffer[hf_fifo->head++] = *event;
 	hf_fifo->head &= hf_fifo->bufsize - 1;
 	/* remain 1 count */
@@ -1028,6 +1045,10 @@ err_out:
 	return ret;
 }
 
+/*prize add by wangfei 20220224 start*/
+volatile uint32_t awinic_debug_data[3];
+/*prize add by wangfei 20220224 end*/
+
 static int hf_manager_drive_device(struct hf_client *client,
 		struct hf_manager_cmd *cmd)
 {
@@ -1078,6 +1099,12 @@ static int hf_manager_drive_device(struct hf_client *client,
 	case HF_MANAGER_SENSOR_CONFIG_CALI:
 		err = hf_manager_device_config_cali(device,
 			sensor_type, cmd->data, cmd->length);
+
+		/*prize add  by wangfei for sar start*/	
+		pr_info("sar data[0]:0x%x, data[1]:0x%x, data[2]:0x%x\n",
+				awinic_debug_data[0], awinic_debug_data[1], awinic_debug_data[2]);
+		/*prize add  by wangfei for sar end*/	
+
 		break;
 	case HF_MANAGER_SENSOR_SELFTEST:
 		err = hf_manager_device_selftest(device, sensor_type);
@@ -1369,6 +1396,31 @@ static unsigned int hf_manager_poll(struct file *filp,
 	return mask;
 }
 
+/*prize add by wangfei 20220224 start*/
+void *aw_memdup_user(const void __user *src, size_t len)
+{
+	void *p = NULL;
+
+	/*
+	 * Always use GFP_KERNEL, since copy_from_user() can sleep and
+	 * cause pagefault, which makes it pointless to use GFP_NOFS
+	 * or GFP_ATOMIC.
+	 */
+	p = vzalloc(len);
+	if (!p) {
+		pr_err("sar vzalloc err!");
+		return p;
+	}
+
+	if (copy_from_user(p, src, len)) {
+		pr_err("sar copy_from_user src err!");
+		vfree(p);
+	}
+
+	return p;
+}
+/*prize add by wangfei 20220224 end*/
+
 static long hf_manager_ioctl(struct file *filp,
 			unsigned int cmd, unsigned long arg)
 {
@@ -1381,12 +1433,34 @@ static long hf_manager_ioctl(struct file *filp,
 	struct custom_cmd *cust_cmd = NULL;
 	struct hf_device *device = NULL;
 
+	/*prize add by wangfei 20220224 start*/
+	struct SAR_SENSOR_DATA aw_sar_sensor_data;
+    struct aw_i2c_data *i2c_data;
+    unsigned char __user **data_ptrs;
+    int i = 0;
+    int err = 0;
+    int j = 0;
+	uint8_t buf[50] = { 0 };
+	
+
 	memset(&packet, 0, sizeof(packet));
 
+	/*awinic bob add start*/
+	if (cmd != HF_AW_MANAGER_REQUEST_READ_STATUS) {
+		if (size != sizeof(struct ioctl_packet))
+			return -EINVAL;
+
+		if (copy_from_user(&packet, ubuf, sizeof(packet)))
+			return -EFAULT;
+	}
+	/*
 	if (size != sizeof(struct ioctl_packet))
 		return -EINVAL;
+
 	if (copy_from_user(&packet, ubuf, sizeof(packet)))
 		return -EFAULT;
+	*/
+	/*prize add by wangfei 20220224 end*/
 	sensor_type = packet.sensor_type;
 	if (unlikely(sensor_type >= SENSOR_TYPE_SENSOR_MAX))
 		return -EINVAL;
@@ -1447,6 +1521,91 @@ static long hf_manager_ioctl(struct file *filp,
 		if (copy_to_user(ubuf, &packet, sizeof(packet)))
 			return -EFAULT;
 		break;
+	/*prize add by wangfei 20220224 start*/
+	case HF_AW_MANAGER_REQUEST_READ_STATUS:
+		pr_info("sar HF_AW_MANAGER_REQUEST_READ_STATUS enter\n");
+		if (copy_from_user(&aw_sar_sensor_data,
+				(struct SAR_SENSOR_DATA __user *)arg,
+				sizeof(aw_sar_sensor_data))) {
+			pr_err("sar copy_from_user err!\n");
+			return -EFAULT;
+		}
+		pr_info("sar sensor_data->len = %d\n", aw_sar_sensor_data.num);
+
+		i2c_data = (struct aw_i2c_data *)aw_memdup_user(aw_sar_sensor_data.data,
+				aw_sar_sensor_data.num * sizeof(struct aw_i2c_data));
+		if (i2c_data == NULL) {
+			pr_err("sar aw_memdup_user err!\n");
+			return -1;
+		}
+
+		data_ptrs = vzalloc(aw_sar_sensor_data.num * sizeof(u8 __user *));
+		if (data_ptrs == NULL) {
+			pr_err("sar vzalloc err\n");
+			vfree(i2c_data);
+			return -1;
+		}
+
+		for (i = 0; i < aw_sar_sensor_data.num; i++) {
+			if (i2c_data[i].len > 256) {
+				pr_err("sar i2c_data[i].len > 256 err!\n");
+				goto free_cfg_data_hanld;
+			}
+
+			data_ptrs[i] = (unsigned char __user *)i2c_data[i].buf;
+			i2c_data[i].buf = aw_memdup_user(data_ptrs[i], i2c_data[i].len);
+			if (i2c_data[i].buf == NULL) {
+				goto free_cfg_data_hanld;
+				break;
+			}
+		}
+
+		pr_info("sar sensor_data: %d", i2c_data[0].buf[0]);
+		pr_info("sar sensor_data len: %d", i2c_data[0].len);
+
+		if (aw_sar_sensor_data.num == 2) {
+			struct hf_manager *manager = NULL;
+			struct hf_core *core = client->core;
+			mutex_lock(&core->manager_lock);
+			manager = hf_manager_find_manager(core, SENSOR_TYPE_SAR);
+			if (!manager) {
+				mutex_unlock(&core->manager_lock);
+				return -EINVAL;
+			}
+			device = manager->hf_dev;
+			err = hf_manager_device_config_cali(device,
+				SENSOR_TYPE_SAR, &i2c_data[0].buf[0], i2c_data[0].len);
+			mutex_unlock(&core->manager_lock);
+
+			for (i = 0; i < 1000; i++) {
+				if (awinic_debug_data[0] == 0xff) {
+					awinic_debug_data[0] = 0;
+					break;
+				}
+				usleep_range(1000, 2000);
+			}
+			pr_err("sar awinic_debug_data[0]:0x%x awinic_debug_data[1]:0x%x awinic_debug_data[2]:0x%x",
+				awinic_debug_data[0], awinic_debug_data[1], awinic_debug_data[2]);
+			snprintf(buf, 50, "0x%02x 0x%02x 0x%02x 0x%02x ",
+								(awinic_debug_data[1] >> 8) & 0xff,
+								(awinic_debug_data[1] >> 0) & 0xff,
+								(awinic_debug_data[2] >> 8) & 0xff,
+								(awinic_debug_data[2] >> 0) & 0xff);
+			pr_info("sar %s", buf);
+			if (copy_to_user(data_ptrs[1], buf, strlen(buf) + 1)) {
+				pr_err("sar copy_to_user err");
+			}
+		}
+free_cfg_data_hanld:
+		for (j = 0; j < i; j++) {
+			if (i2c_data[i].buf != NULL) {
+				vfree(i2c_data[i].buf);
+			}
+		}
+		vfree(data_ptrs);
+		vfree(i2c_data);
+		return 0;
+/*prize add by wangfei 20220224 end*/
 	default:
 		pr_err("Unknown command %u\n", cmd);
 		return -EINVAL;

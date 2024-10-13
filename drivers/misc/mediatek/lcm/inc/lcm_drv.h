@@ -11,6 +11,12 @@
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
 
+//prize-add prize-lishuwen-20191226-start
+#if defined(CONFIG_PRIZE_HARDWARE_INFO)
+#include "../../hardware_info/hardware_info.h"
+#endif
+//prize-add prize-lishuwen-20191226-end
+
 #ifndef ARY_SIZE
 #define ARY_SIZE(x) (sizeof((x)) / sizeof((x[0])))
 #endif
@@ -1008,6 +1014,13 @@ enum LCM_DRV_IOCTL_CMD {
 
 struct LCM_DRIVER {
 	const char *name;
+
+//prize-add prize-lishuwen-20191226-start	
+    #if defined(CONFIG_PRIZE_HARDWARE_INFO)
+	struct hardware_info lcm_info;
+    #endif
+//prize-add prize-lishuwen-20191226-end
+
 	void (*set_util_funcs)(const struct LCM_UTIL_FUNCS *util);
 	void (*get_params)(struct LCM_PARAMS *params);
 
@@ -1087,5 +1100,16 @@ extern int display_bias_disable(void);
 extern int display_bias_regulator_init(void);
 
 
+//prize added by huarui, add lcm driver, 20190327-start
+extern int display_bias_enable_v(unsigned int mv);
+extern int display_bias_vpos_enable(int enable);
+extern int display_bias_vneg_enable(int enable);
+extern int display_bias_vpos_set(int mv);
+extern int display_bias_vneg_set(int mv);
+extern int display_ldo18_enable(int enable);
+extern int display_ldo28_enable(int enable);
+extern int display_fd_enable(int enable);
+extern int display_tpd_rst_enable(int enable);
+//prize added by huarui, add lcm driver, 20190327-end
 
 #endif /* __LCM_DRV_H__ */

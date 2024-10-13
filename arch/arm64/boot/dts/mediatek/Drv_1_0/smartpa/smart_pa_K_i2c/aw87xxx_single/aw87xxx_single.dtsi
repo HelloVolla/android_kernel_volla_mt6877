@@ -1,0 +1,19 @@
+#include "../../../drv_common.h"
+
+#if PRI_PLATFORM_MT6789
+#include "./mt6789/custom.h"
+#endif
+
+&pa_1_i2c_bus_x { /*x 表示对应的总线号*/
+	/* AWINIC AW87XXX Smart K PA */
+	aw87xxx_pa@pa_1_i2c_idx {
+		compatible = "awinic,aw87xxx_pa";
+		reg = <pa_1_i2c_addr>;
+#if PRI_AW87XXX_NEED_RESET_PIN
+		reset-gpio = <&pio pa_1_reset_gpio 0>; /*带 reset 引脚的配置*/
+#endif
+		dev_index = < 0 >;
+		status = "okay";
+	};
+	/* AWINIC AW87XXX Smart K PA End */
+};

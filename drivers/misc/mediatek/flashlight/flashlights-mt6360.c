@@ -43,9 +43,10 @@
 #define MT6360_ENABLE 1
 #define MT6360_ENABLE_TORCH 1
 #define MT6360_ENABLE_FLASH 2
-
-#define MT6360_LEVEL_NUM 32
-#define MT6360_LEVEL_TORCH 16
+// prize modify by zhuzhengjiang for flash current start
+#define MT6360_LEVEL_NUM 30
+#define MT6360_LEVEL_TORCH 7
+// prize modify by zhuzhengjiang for flash current end
 #define MT6360_LEVEL_FLASH MT6360_LEVEL_NUM
 #define MT6360_WDT_TIMEOUT 1248 /* ms */
 #define MT6360_HW_TIMEOUT 400 /* ms */
@@ -70,7 +71,9 @@ static struct flashlight_device *flashlight_dev_ch2;
 
 /* is decrease voltage */
 static int is_decrease_voltage;
-
+// prize add by zhuzhengjiang for double flash  control by single flash start
+static int led_num = -1;
+// prize add by zhuzhengjiang for double flash  control by single flash end
 /* platform data */
 struct mt6360_platform_data {
 	int channel_num;
@@ -78,7 +81,8 @@ struct mt6360_platform_data {
 };
 
 #if defined(CONFIG_MACH_MT6877) || defined(CONFIG_MACH_MT6833) \
-|| defined(CONFIG_MACH_MT6893)
+|| defined(CONFIG_MACH_MT6893) || defined(CONFIG_MACH_MT6785) \
+|| defined(CONFIG_MACH_MT6885) || defined(CONFIG_MACH_MT6873)
 /* define charger consumer */
 static struct charger_consumer *flashlight_charger_consumer;
 #define CHARGER_SUPPLY_NAME "charger_port1"
@@ -116,9 +120,11 @@ static const int mt6360_current[MT6360_LEVEL_NUM] = {
 	  25,   50,  75, 100, 125, 150, 175,  200,  225,  250,
 	 275,  300, 325, 350, 375, 400, 450,  500,  550,  600,
 	 650,  700, 750, 800, 850, 900, 950, 1000, 1050, 1100,
-	1150, 1200
+	//1150, 1200 // prize modify by zhuzhengjiang for flash current start
 };
 
+// prize add by zhuzhengjiang for double flash  control by single flash start
+#if 0
 static const unsigned char mt6360_torch_level[MT6360_LEVEL_TORCH] = {
 	0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0E, 0x10, 0x12,
 	0x14, 0x16, 0x18, 0x1A, 0x1C, 0x1E
@@ -131,6 +137,18 @@ static const unsigned char mt6360_strobe_level[MT6360_LEVEL_FLASH] = {
 	0x64, 0x6C, 0x74, 0x78, 0x7C, 0x80, 0x84, 0x88, 0x8C, 0x90,
 	0x94, 0x98
 };
+#endif
+static const unsigned char mt6360_torch_level[MT6360_LEVEL_TORCH] = {
+	0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+};
+
+/* 0x00~0x74 6.25mA/step 0x75~0xB1 12.5mA/step */
+static const unsigned char mt6360_strobe_level[MT6360_LEVEL_FLASH] = {
+	0x07, 0x0a, 0x0d, 0x10, 0x12, 0x16, 0x1a, 0x1e, 0x22, 0x26, 
+	0x2a, 0x2e, 0x32, 0x36, 0x3a, 0x3e, 0x42, 0x46, 0x4d, 0x4e, 
+	0x52, 0x56, 0x5d, 0x5e, 0x62, 0x66, 0x6a, 0x6e, 0x72, 0x74
+};
+// prize add by zhuzhengjiang for double flash  control by single flash end
 
 static int mt6360_decouple_mode;
 static int mt6360_en_ch1;
@@ -185,6 +203,14 @@ static int mt6360_enable(void)
 		mt6360_en_ch1, mt6360_en_ch2, mode);
 
 	/* enable channel 1 and channel 2 */
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	if (mt6360_en_ch1){
+		ret |= flashlight_set_mode(flashlight_dev_ch1, mode);
+	}
+	if(mt6360_en_ch2){
+		ret |= flashlight_set_mode(flashlight_dev_ch2, mode);
+	}
+#if 0 // disable mtk original code
 	if (mt6360_decouple_mode == FLASHLIGHT_SCENARIO_COUPLE &&
 			mt6360_en_ch1 != MT6360_DISABLE &&
 			mt6360_en_ch2 != MT6360_DISABLE) {
@@ -209,6 +235,8 @@ static int mt6360_enable(void)
 			ret |= flashlight_set_mode(
 				flashlight_dev_ch2, FLASHLIGHT_MODE_OFF);
 	}
+#endif
+// prize add by zhuzhengjiang for double flash  control by single flash end
 	if (ret < 0)
 		pr_info("Failed to enable.\n");
 
@@ -264,10 +292,18 @@ static int mt6360_disable_all(void)
 		pr_info("Failed to disable since no flashlight device.\n");
 		return -1;
 	}
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	if (!flashlight_dev_ch2) {
+		pr_info("Failed to disable since no flashlight device.\n");
+		return -1;
+	}
 
-	ret |= flashlight_set_mode(flashlight_dev_ch1,
-		FLASHLIGHT_MODE_DUAL_OFF);
+	ret |= flashlight_set_mode(flashlight_dev_ch1, FLASHLIGHT_MODE_OFF);
+	ret |= flashlight_set_mode(flashlight_dev_ch2, FLASHLIGHT_MODE_OFF);
 
+	//ret |= flashlight_set_mode(flashlight_dev_ch1,
+		//FLASHLIGHT_MODE_DUAL_OFF);
+// prize add by zhuzhengjiang for double flash  control by single flash end
 	if (ret < 0)
 		pr_info("Failed to disable.\n");
 
@@ -339,6 +375,12 @@ static int mt6360_set_level(int channel, int level)
 		mt6360_set_level_ch1(level);
 	else if (channel == MT6360_CHANNEL_CH2)
 		mt6360_set_level_ch2(level);
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	else if (channel == MT6360_CHANNEL_ALL) {
+		mt6360_set_level_ch1(level);
+		mt6360_set_level_ch2(level);
+	}
+// prize add by zhuzhengjiang for double flash  control by single flash end
 	else {
 		pr_info("Error channel\n");
 		return -1;
@@ -358,7 +400,8 @@ static int mt6360_set_scenario(int scenario)
 		if (!is_decrease_voltage) {
 			pr_info("Decrease voltage level.\n");
 #if defined(CONFIG_MACH_MT6877) || defined(CONFIG_MACH_MT6833) \
-|| defined(CONFIG_MACH_MT6893)
+|| defined(CONFIG_MACH_MT6893) || defined(CONFIG_MACH_MT6785) \
+|| defined(CONFIG_MACH_MT6885) || defined(CONFIG_MACH_MT6873)
 			charger_manager_enable_high_voltage_charging(
 				flashlight_charger_consumer, false);
 #else
@@ -370,7 +413,8 @@ static int mt6360_set_scenario(int scenario)
 		if (is_decrease_voltage) {
 			pr_info("Increase voltage level.\n");
 #if defined(CONFIG_MACH_MT6877) || defined(CONFIG_MACH_MT6833) \
-|| defined(CONFIG_MACH_MT6893)
+|| defined(CONFIG_MACH_MT6893) || defined(CONFIG_MACH_MT6785) \
+|| defined(CONFIG_MACH_MT6885) || defined(CONFIG_MACH_MT6873)
 			charger_manager_enable_high_voltage_charging(
 				flashlight_charger_consumer, true);
 #else
@@ -454,6 +498,12 @@ static int mt6360_timer_start(int channel, ktime_t ktime)
 		hrtimer_start(&mt6360_timer_ch1, ktime, HRTIMER_MODE_REL);
 	else if (channel == MT6360_CHANNEL_CH2)
 		hrtimer_start(&mt6360_timer_ch2, ktime, HRTIMER_MODE_REL);
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	else if (channel == MT6360_CHANNEL_ALL) {
+		hrtimer_start(&mt6360_timer_ch1, ktime, HRTIMER_MODE_REL);
+		hrtimer_start(&mt6360_timer_ch2, ktime, HRTIMER_MODE_REL);
+	}
+// prize add by zhuzhengjiang for double flash  control by single flash end 
 	else {
 		pr_info("Error channel\n");
 		return -1;
@@ -468,6 +518,12 @@ static int mt6360_timer_cancel(int channel)
 		hrtimer_cancel(&mt6360_timer_ch1);
 	else if (channel == MT6360_CHANNEL_CH2)
 		hrtimer_cancel(&mt6360_timer_ch2);
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	else if (channel == MT6360_CHANNEL_ALL) {
+		hrtimer_cancel(&mt6360_timer_ch1);
+		hrtimer_cancel(&mt6360_timer_ch2);
+	}
+// prize add by zhuzhengjiang for double flash  control by single flash end
 	else {
 		pr_info("Error channel\n");
 		return -1;
@@ -496,12 +552,26 @@ static int mt6360_operate(int channel, int enable)
 		if (mt6360_en_ch2)
 			if (mt6360_is_torch(mt6360_level_ch2))
 				mt6360_en_ch2 = MT6360_ENABLE_FLASH;
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	} else if (channel == MT6360_CHANNEL_ALL) {
+		mt6360_en_ch1 = enable;
+		if (mt6360_en_ch1)
+			if (mt6360_is_torch(mt6360_level_ch1))
+				mt6360_en_ch1 = MT6360_ENABLE_FLASH;
+		
+		mt6360_en_ch2 = enable;
+		if (mt6360_en_ch2)
+			if (mt6360_is_torch(mt6360_level_ch2))
+				mt6360_en_ch2 = MT6360_ENABLE_FLASH;
+// prize add by zhuzhengjiang for double flash  control by single flash end
 	} else {
 		pr_info("Error channel\n");
 		return -1;
 	}
 
 	/* decouple mode */
+	// prize add by zhuzhengjiang for double flash  control by single flash start
+#if 0
 	if (mt6360_decouple_mode) {
 		if (channel == MT6360_CHANNEL_CH1) {
 			mt6360_en_ch2 = MT6360_DISABLE;
@@ -511,7 +581,8 @@ static int mt6360_operate(int channel, int enable)
 			mt6360_timeout_ms[MT6360_CHANNEL_CH1] = 0;
 		}
 	}
-
+#endif
+// prize add by zhuzhengjiang for double flash  control by single flash end
 	pr_debug("en_ch(%d,%d), decouple:%d\n",
 		mt6360_en_ch1, mt6360_en_ch2, mt6360_decouple_mode);
 
@@ -527,6 +598,12 @@ static int mt6360_operate(int channel, int enable)
 					mt6360_disable(MT6360_CHANNEL_CH2);
 					mt6360_timer_cancel(MT6360_CHANNEL_CH2);
 				}
+				// prize add by zhuzhengjiang for double flash  control by single flash start
+				else if (channel == MT6360_CHANNEL_ALL) {
+					mt6360_disable(MT6360_CHANNEL_ALL);
+					mt6360_timer_cancel(MT6360_CHANNEL_ALL);
+				}
+				// prize add by zhuzhengjiang for double flash  control by single flash end
 			} else {
 				mt6360_disable(MT6360_CHANNEL_ALL);
 				mt6360_timer_cancel(MT6360_CHANNEL_CH1);
@@ -581,15 +658,30 @@ static int mt6360_ioctl(unsigned int cmd, unsigned long arg)
 
 	switch (cmd) {
 	case FLASH_IOC_SET_TIME_OUT_TIME_MS:
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	#if 0
 		pr_debug("FLASH_IOC_SET_TIME_OUT_TIME_MS(%d): %d\n",
 				channel, (int)fl_arg->arg);
 		mt6360_timeout_ms[channel] = fl_arg->arg;
+	#endif
+		pr_debug("FLASH_IOC_SET_TIME_OUT_TIME_MS(%d): %d\n",
+				led_num, (int)fl_arg->arg);
+		mt6360_timeout_ms[MT6360_CHANNEL_CH1] = fl_arg->arg;
+		mt6360_timeout_ms[MT6360_CHANNEL_CH2] = fl_arg->arg;
+// prize add by zhuzhengjiang for double flash  control by single flash end
 		break;
 
 	case FLASH_IOC_SET_DUTY:
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	#if 0
 		pr_debug("FLASH_IOC_SET_DUTY(%d): %d\n",
 				channel, (int)fl_arg->arg);
 		mt6360_set_level(channel, fl_arg->arg);
+	#endif
+		pr_debug("FLASH_IOC_SET_DUTY(%d): %d\n",
+				led_num, (int)fl_arg->arg);
+		mt6360_set_level(led_num, fl_arg->arg);
+// prize add by zhuzhengjiang for double flash  control by single flash end
 		break;
 
 	case FLASH_IOC_SET_SCENARIO:
@@ -599,9 +691,16 @@ static int mt6360_ioctl(unsigned int cmd, unsigned long arg)
 		break;
 
 	case FLASH_IOC_SET_ONOFF:
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	#if 0
 		pr_debug("FLASH_IOC_SET_ONOFF(%d): %d\n",
 				channel, (int)fl_arg->arg);
 		mt6360_operate(channel, fl_arg->arg);
+	#endif
+		pr_debug("FLASH_IOC_SET_ONOFF(%d): %d\n",
+				led_num, (int)fl_arg->arg);
+		mt6360_operate(led_num, fl_arg->arg);
+// prize add by zhuzhengjiang for double flash  control by single flash end
 		break;
 
 	case FLASH_IOC_IS_CHARGER_READY:
@@ -661,7 +760,8 @@ static int mt6360_release(void)
 	if (fd_use_count == 0 && is_decrease_voltage) {
 		pr_info("Increase voltage level.\n");
 #if defined(CONFIG_MACH_MT6877) || defined(CONFIG_MACH_MT6833) \
-|| defined(CONFIG_MACH_MT6893)
+|| defined(CONFIG_MACH_MT6893) || defined(CONFIG_MACH_MT6785) \
+|| defined(CONFIG_MACH_MT6885) || defined(CONFIG_MACH_MT6873)
 			charger_manager_enable_high_voltage_charging(
 				flashlight_charger_consumer, true);
 #else
@@ -764,7 +864,10 @@ static int mt6360_parse_dt(struct device *dev,
 
 	if (of_property_read_u32(np, "decouple", &decouple))
 		pr_info("Parse no dt, decouple.\n");
-
+// prize add by zhuzhengjiang for double flash  control by single flash start
+	if (of_property_read_u32(np, "led_num", &led_num))
+		pr_info("Parse no dt, led_num.\n");
+// prize add by zhuzhengjiang for double flash  control by single flash end
 	pdata->dev_id = devm_kzalloc(dev,
 			pdata->channel_num *
 			sizeof(struct flashlight_device_id),
@@ -852,7 +955,8 @@ static int mt6360_probe(struct platform_device *pdev)
 				MT6360_HW_TIMEOUT, MT6360_HW_TIMEOUT + 200) < 0)
 		pr_info("Failed to set strobe timeout.\n");
 #if defined(CONFIG_MACH_MT6877) || defined(CONFIG_MACH_MT6833) \
-|| defined(CONFIG_MACH_MT6893)
+|| defined(CONFIG_MACH_MT6893) || defined(CONFIG_MACH_MT6785) \
+|| defined(CONFIG_MACH_MT6885) || defined(CONFIG_MACH_MT6873)
 	/* get charger consumer manager */
 	flashlight_charger_consumer = charger_manager_get_by_name(
 			&flashlight_dev_ch1->dev, CHARGER_SUPPLY_NAME);

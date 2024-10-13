@@ -20,6 +20,9 @@
 #include <linux/slab.h>
 #include <linux/miscdevice.h>   /* for misc_register, and SYNTH_MINOR */
 #include <linux/proc_fs.h>
+//prize add by lihuangyuan,for PRIZE_CPULOAD_MONITOR,start
+#include "mach/mtk_thermal.h"
+//prize add by lihuangyuan,for PRIZE_CPULOAD_MONITOR,end
 
 #define REG_SUCCESS (0)
 #define REG_FAIL (-1)
@@ -87,18 +90,32 @@ static void init_cpu_loading_value(void)
 	state = ULOAD_STATE_MID;
 	cl_unlock(__func__);
 }
+//prize modify by lihuangyuan,for PRIZE_CPULOAD_MONITOR,start
+//static bool sentuevent(const char *src)
+static bool sentuevent(const char *src, int loading)
+//prize modify by lihuangyuan,for PRIZE_CPULOAD_MONITOR,end
 
-static bool sentuevent(const char *src)
 {
 	int ret;
-	char *envp[2];
+	char *envp[4];
 	int string_size = 15;
 	char  event_string[string_size];
+    char load_string[32];
+    char cputem_string[32];
+    int index = 0;
+    int cputem;
 
-	envp[0] = event_string;
-	envp[1] = NULL;
-
-
+    //prize add by lihuangyuan,for PRIZE_CPULOAD_MONITOR,start
+    cputem = tscpu_get_temp_by_bank(THERMAL_BANK0);
+    snprintf(load_string, sizeof(load_string),"load=%d", loading);//add by lihuangyuan
+    snprintf(cputem_string, sizeof(cputem_string),"ctemp=%d", cputem);//add by lihuangyuan
+    
+	envp[index++] = event_string;
+    envp[index++] = load_string;
+    envp[index++] = cputem_string;
+	envp[index] = NULL;
+    //prize add by lihuangyuan,for PRIZE_CPULOAD_MONITOR,end
+    
 	/*send uevent*/
 	if (uevent_enable) {
 		strlcpy(event_string, src, string_size);
@@ -139,16 +156,16 @@ static void calculat_loading_callback(int mask_loading, int loading)
 			loading, mask_loading, curr_cpu_loading, state);
 	if (loading > over_threshold) {
 		state = ULOAD_STATE_HIGH;
-		sentuevent("over=1");
+		sentuevent("over=1",loading);
 	} else if (loading > under_threshold) {
 		state = ULOAD_STATE_MID;
 		if (specify_cpus != 0
 				&& mask_loading >= specify_overThrhld) {
-			sentuevent("specify_over=1");
+			sentuevent("specify_over=1",loading);
 		}
 	} else {
 		state = ULOAD_STATE_LOW;
-		sentuevent("lower=2");
+		sentuevent("lower=2",loading);
 	}
 
 	show_debug("current state:%d\n", state);

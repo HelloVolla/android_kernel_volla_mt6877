@@ -1,0 +1,27 @@
+#
+# RESMON configuration
+#
+
+menu "RESMON Configuration Support"
+
+config RESMON
+	tristate "RESMON Configuration "
+	default n
+	help
+	  Say Y here if you want support for configuring RESMON from the
+	  kernel.  The RESMON application adds a RESMON monitor and RESMON driver.
+
+config RESMON_DEBUG
+        tristate "RESMON_DEBUG Configuration "
+        depends on RESMON
+        default n
+        help
+          Say Y here if you want support for process debug info.
+
+config RESMON_KILL_DEBUG
+        tristate "RESMON_KILL_DEBUG Configuration "
+        depends on RESMON
+        default n
+        help
+          Say Y here if you want support for process kill/dead lock, etc.
+endmenu

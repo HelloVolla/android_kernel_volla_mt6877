@@ -21,9 +21,23 @@ struct tag_bootmode {
 	u32 boottype;
 };
 
+/* begin, prize-lifenfen-20181207, add fuel gauge cw2015 */
+#if defined(CONFIG_MTK_CW2015_SUPPORT)
+extern int g_cw2015_capacity;
+extern int g_cw2015_vol;
+extern int cw2015_exit_flag;
+#endif
+/* end, prize-lifenfen-20181207, add fuel gauge cw2015 */
+
 signed int battery_get_uisoc(void)
 {
 	struct mtk_battery *gm = get_mtk_battery();
+//prize add by lipengpeng 20211026 start 
+#if defined(CONFIG_MTK_CW2015_SUPPORT)
+	if(cw2015_exit_flag==1)
+	{
+		return g_cw2015_capacity;
+	}else{
 	if (gm != NULL) {
 		int boot_mode = gm->boot_mode;
 
@@ -38,11 +52,29 @@ signed int battery_get_uisoc(void)
 
 	return 50;
 }
+#else
+	if (gm != NULL) {
+		int boot_mode = gm->boot_mode;
+
+		if ((boot_mode == META_BOOT) ||
+			(boot_mode == ADVMETA_BOOT) ||
+			(boot_mode == FACTORY_BOOT) ||
+			(boot_mode == ATE_FACTORY_BOOT))
+			return 75;
+		else if (boot_mode == 0)
+			return gm->ui_soc;
+	}
+
+	return 50;
+#endif
+//prize add by lipengpeng 20211026 end 
+}
 
 int __attribute__((weak)) charger_get_vbus(void)
 {
 	return 4500;
 }
+
 
 #if (CONFIG_MTK_GAUGE_VERSION != 30)
 signed int battery_get_bat_voltage(void)
@@ -106,7 +138,18 @@ _CODE_DEFINEDE
 
 signed int battery_get_bat_voltage(void)
 {
+/* begin, prize-lifenfen-20181207, add fuel gauge cw2015 */
+	#if defined(CONFIG_MTK_CW2015_SUPPORT)
+	if(cw2015_exit_flag==1)
+		return g_cw2015_vol;
+	else
+		return pmic_get_battery_voltage();
+	#else
+/* end, prize-lifenfen-20181207, add fuel gauge cw2015 */
 	return pmic_get_battery_voltage();
+/* begin, prize-lifenfen-20181207, add fuel gauge cw2015 */
+	#endif
+/* end, prize-lifenfen-20181207, add fuel gauge cw2015 */
 }
 
 signed int battery_get_bat_current(void)
@@ -128,30 +171,29 @@ signed int battery_get_bat_current_mA(void)
 signed int battery_get_soc(void)
 {
 	struct mtk_battery *gm = get_mtk_battery();
-
+//prize add by lipengpeng 20211026 start 
+#if defined(CONFIG_MTK_CW2015_SUPPORT)
+	if(cw2015_exit_flag==1)
+	{
+		return g_cw2015_capacity;
+	}else{
 	if (gm != NULL)
 		return gm->soc;
 	else
 		return 50;
-}
-
-/*
-signed int battery_get_uisoc(void)
-{
-	int boot_mode = get_boot_mode();
-	struct mtk_battery *gm = get_mtk_battery();
-
-	if ((boot_mode == META_BOOT) ||
-		(boot_mode == ADVMETA_BOOT) ||
-		(boot_mode == FACTORY_BOOT) ||
-		(boot_mode == ATE_FACTORY_BOOT))
-		return 75;
-
+	}
+#else
+  {
 	if (gm != NULL)
-		return gm->ui_soc;
+		return gm->soc;
 	else
 		return 50;
-}*/
+	}
+
+#endif 
+//prize add by lipengpeng 20211026 end 
+}
+
 
 signed int battery_get_bat_temperature(void)
 {

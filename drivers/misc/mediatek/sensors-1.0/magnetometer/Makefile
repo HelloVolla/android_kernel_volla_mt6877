@@ -9,3 +9,5 @@ obj-y   +=  mag_factory.o
 obj-$(CONFIG_MTK_MAGHUB) += maghub/
 #obj-$(CONFIG_MTK_AKM09915_NEW) += akm09915/
 obj-$(CONFIG_MTK_AKM09918) += akm09918/
+# prize add by xuejian, add magnetometer af6133e 20220622
+obj-$(CONFIG_MTK_AF6133E) += af6133e/

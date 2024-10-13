@@ -323,7 +323,7 @@ static int mtk_drm_request_eint(struct drm_crtc *crtc)
 	struct mtk_ddp_comp *output_comp;
 	struct device_node *node;
 	u32 ints[2] = {0, 0};
-	char *compat_str;
+	char *compat_str = NULL;
 	int ret = 0;
 
 	if (unlikely(!esd_ctx)) {
@@ -488,6 +488,19 @@ done:
 
 	return 0;
 }
+/*PRIZE:Added by lvyuanchuan,X9-678,20221230 start*/
+atomic_t gEsdStatus;
+int mtk_drm_esd_check_status(void)
+{
+	return 	atomic_read(&gEsdStatus);
+}
+EXPORT_SYMBOL(mtk_drm_esd_check_status);
+void mtk_drm_esd_set_status(int status)
+{
+	atomic_set(&gEsdStatus, status);
+}
+EXPORT_SYMBOL(mtk_drm_esd_set_status);
+/*PRIZE:Added by lvyuanchuan,X9-678,20221230 end*/
 
 static int mtk_drm_esd_check_worker_kthread(void *data)
 {
@@ -549,12 +562,14 @@ static int mtk_drm_esd_check_worker_kthread(void *data)
 
 			if (!ret) /* success */
 				break;
-
+			/*PRIZE:Added by lvyuanchuan,X9-678,20221230*/	
+			mtk_drm_esd_set_status(1);
 			DDPPR_ERR(
 				"[ESD]esd check fail, will do esd recovery. try=%d\n",
 				i);
 			mtk_drm_esd_recover(crtc);
 			recovery_flg = 1;
+
 		} while (++i < ESD_TRY_CNT);
 
 		if (ret != 0) {
@@ -566,8 +581,9 @@ static int mtk_drm_esd_check_worker_kthread(void *data)
 			mutex_unlock(&private->commit.lock);
 			break;
 		} else if (recovery_flg) {
-			DDPINFO("[ESD] esd recovery success\n");
+			DDPPR_ERR("[ESD] esd recovery success\n");
 			recovery_flg = 0;
+			
 		}
 		mtk_drm_trace_end();
 		DDP_MUTEX_UNLOCK(&mtk_crtc->lock, __func__, __LINE__);
@@ -677,6 +693,8 @@ void mtk_disp_chk_recover_init(struct drm_crtc *crtc)
 {
 	struct mtk_drm_private *priv = crtc->dev->dev_private;
 	struct mtk_drm_crtc *mtk_crtc = to_mtk_crtc(crtc);
+	/*PRIZE:Added by lvyuanchuan,X9-678,20221230*/
+	mtk_drm_esd_set_status(0);
 
 	/* TODO : check function work in other CRTC & other connector */
 	if (mtk_drm_helper_get_opt(priv->helper_opt,

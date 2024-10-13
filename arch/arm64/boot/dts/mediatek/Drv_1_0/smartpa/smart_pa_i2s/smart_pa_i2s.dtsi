@@ -1,0 +1,5 @@
+#include "../../drv_common.h"
+
+#if PRI_AW88394_SINGLE
+#include "./aw88394_single/aw88394_single.dtsi"
+#endif

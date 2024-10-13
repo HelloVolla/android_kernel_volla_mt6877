@@ -1044,11 +1044,27 @@ static inline int mt6360_led_config_pwm(struct led_classdev *led,
 	if (ret < 0)
 		return ret;
 
+
+/* prize liuyong ,modify for timer mode led on time, 20221206 start*/
+#if 0
 	/* find the closet pwm duty */
 	j = 32 * ton / (ton + toff);
 	if (j == 0)
 		j = 1;
 	j--;
+#else
+	j = 256 * ton / (ton + toff);
+	//j = ton * 64/ 1000;
+	if (j > 1)
+		j--;
+	else
+		j = 1;
+	if (j > 255)
+		j = 255;
+	dev_dbg(led->dev, "%s: cfg blink mode, on:%d, off:%d, j:%d\n",
+					__func__, *delay_on, *delay_off, j);
+#endif
+/* prize liuyong ,modify for timer mode led on time, 20221206 end*/
 	switch (led_index) {
 	case MT6360_LED_1:
 		reg_addr = MT6360_PMU_RGB1_DIM;
@@ -1320,6 +1336,18 @@ static int mt6360_pmu_rgbled_remove(struct platform_device *pdev)
 	return 0;
 }
 
+/* prize add by liuyong, add rgbled shutdown config, 20221023 start */
+static void mt6360_pmu_rgbled_shutdown(struct platform_device *pdev)
+{
+	struct mt6360_pmu_rgbled_info *mpri = platform_get_drvdata(pdev);
+	int i = 0;
+	dev_info(mpri->dev, "%s \n", __func__);
+	for (i = 0; i < ARRAY_SIZE(mt6360_led_info); i++) {
+		mt6360_led_bright_set(&mt6360_led_info[i].l_info.led, 0);
+	}
+}
+/* prize add by liuyong, add rgbled shutdown config, 20221023 end */
+
 static int __maybe_unused mt6360_pmu_rgbled_suspend(struct device *dev)
 {
 	return 0;
@@ -1354,6 +1382,7 @@ static struct platform_driver mt6360_pmu_rgbled_driver = {
 	},
 	.probe = mt6360_pmu_rgbled_probe,
 	.remove = mt6360_pmu_rgbled_remove,
+	.shutdown = mt6360_pmu_rgbled_shutdown,  /* prize add by liaoxingen 20220506 */
 	.id_table = mt6360_pmu_rgbled_id,
 };
 module_platform_driver(mt6360_pmu_rgbled_driver);

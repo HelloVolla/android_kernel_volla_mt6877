@@ -1,0 +1,4 @@
+config PRIZE_GMS_ADC
+	bool "TTM for TTM"
+	help
+	  It support TTM control.

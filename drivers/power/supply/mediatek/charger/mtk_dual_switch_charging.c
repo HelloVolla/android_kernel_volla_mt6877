@@ -12,6 +12,20 @@
 #include "mtk_charger_intf.h"
 #include "mtk_dual_switch_charging.h"
 
+//prize add by lipengpeng 20210616 start  
+#if defined(CONFIG_PRIZE_CHARGE_CTRL_POLICY)
+extern int g_charge_is_screen_on;
+#endif
+
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W)
+struct charger_manager *mt5725_info;
+extern int reset_mt5725_info(void);
+extern int get_MT5725_status(void);
+extern int get_wireless_charge_current(struct charger_data *pdata);
+static int MT5725_init(struct charger_manager *info);
+extern void En_Dis_add_current(int i);
+#endif
+//prize add by lipengpeng 20210616 end 
 static int _uA_to_mA(int uA)
 {
 	if (uA == -1)
@@ -272,6 +286,14 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 					info->data.non_std_ac_charger_current;
 		pdata->charging_current_limit =
 					info->data.non_std_ac_charger_current;
+//prize add by lipengpeng 20210616 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W)
+		if((info->chr_type == NONSTANDARD_CHARGER) && (get_MT5725_status() == 0)){
+			get_wireless_charge_current(pdata);
+			chr_err("wireless charge current input_current_limit %d: charging_current_limit %d\n",pdata->input_current_limit,pdata->charging_current_limit);
+		}
+#endif
+//prize add by lipengpeng 20210616 end 
 	} else if (info->chr_type == STANDARD_CHARGER) {
 		pdata->input_current_limit =
 					info->data.ac_charger_input_current;
@@ -338,6 +360,28 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 			}
 		}
 	}
+//prize add by lipengpeng 20210616 start  
+#if defined(CONFIG_PRIZE_CHARGE_CTRL_POLICY)
+		if (g_charge_is_screen_on){
+			if (pdata->charging_current_limit > 1000000){
+				pdata->charging_current_limit = 1000000;
+			}
+			if (pdata->input_current_limit > 1000000){
+				pdata->input_current_limit = 1000000;
+			}
+//prize add by sunshuai for Bright screen current limit  for master charge	2019-0429 start
+			if ((mtk_pe20_get_is_enable(info) && mtk_pe20_get_is_connect(info))
+				|| (mtk_pe_get_is_enable(info) && mtk_pe_get_is_connect(info))){
+			//prize add by lipengpeng 20200408 start
+				pdata->input_current_limit = 1000000;
+				pdata->charging_current_limit = 2500000;
+			//prize add by lipengpeng 20200408 end
+			}
+		}
+		printk("PRIZE master  charge current %d:%d\n",pdata->input_current_limit,pdata->charging_current_limit);	
+//prize add by sunshuai for Bright screen current limit  for master charge  2019-0429 end
+#endif
+//prize add by lipengpeng 20210616 end 
 
 	/*
 	 * If thermal current limit is less than charging IC's minimum
@@ -431,8 +475,10 @@ dual_swchg_select_charging_current_limit(struct charger_manager *info)
 
 done:
 	if (info->data.parallel_vbus) {
-		pdata->input_current_limit = pdata->input_current_limit / 2;
-		pdata2->input_current_limit = pdata2->input_current_limit / 2;
+		if (chg2_enabled){//prize add by huarui, allocate input current, 20211026
+			pdata->input_current_limit = pdata->input_current_limit / 2;
+			pdata2->input_current_limit = pdata->input_current_limit;
+		}//prize add by huarui, allocate input current, 20211026
 	}
 
 	pr_notice("force:%d %d thermal:(%d %d,%d %d)(%d %d %d)setting:(%d %d)(%d %d)",
@@ -533,7 +579,7 @@ static void swchg_select_cv(struct charger_manager *info)
 	/* Set slave charger's CV to 200mV higher than master's */
 	if (chg2_chip_enabled)
 		charger_dev_set_constant_voltage(info->chg2_dev,
-			constant_voltage + 200000);
+			constant_voltage + 50000);//prize modified by huarui, vchg too high 200000);
 }
 
 static void dual_swchg_turn_on_charging(struct charger_manager *info)
@@ -662,6 +708,12 @@ static int mtk_dual_switch_charging_plug_in(struct charger_manager *info)
 {
 	struct dual_switch_charging_alg_data *swchgalg = info->algorithm_data;
 
+//prize add by lipengpeng 20210616 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W)
+    if((info->chr_type == NONSTANDARD_CHARGER) && (get_MT5725_status() == 0))
+		En_Dis_add_current(0x00);
+#endif
+//prize add by lipengpeng 20210616 end 
 	swchgalg->state = CHR_CC;
 	info->polling_interval = CHARGING_INTERVAL;
 	swchgalg->disable_charging = false;
@@ -671,6 +723,11 @@ static int mtk_dual_switch_charging_plug_in(struct charger_manager *info)
 
 static int mtk_dual_switch_charging_plug_out(struct charger_manager *info)
 {
+//prize add by lipengpeng 20210616 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W)
+	   reset_mt5725_info();
+#endif
+//prize add by lipengpeng 20210616 end 
 	mtk_pe20_set_is_cable_out_occur(info, true);
 	mtk_pe_set_is_cable_out_occur(info, true);
 	mtk_pdc_plugout(info);
@@ -858,6 +915,19 @@ static int mtk_dual_switch_charge_current(struct charger_manager *info)
 	return 0;
 }
 
+//prize add by lipengpeng 20210616 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W)
+int dual_switch_charging_select_charging_current(void)
+{
+	if(mt5725_info==NULL){
+		printk("%s:lpp----mt5725_info is null\n",__func__);
+	}else{
+		dual_swchg_select_charging_current_limit(mt5725_info);
+	}
+	return 0;
+}
+#endif
+//prize add by lipengpeng 20210616 end 
 static int mtk_dual_switch_charging_run(struct charger_manager *info)
 {
 	struct dual_switch_charging_alg_data *swchgalg = info->algorithm_data;
@@ -873,6 +943,12 @@ static int mtk_dual_switch_charging_run(struct charger_manager *info)
 			mtk_pe_check_charger(info);
 	}
 
+//prize added by lipengpeng, eta6937 support, 20220408 start 
+#if defined(CONFIG_HL7005ALL_CHARGER_SUPPORT)
+//	charger_dev_kick_wdt(info->chg1_dev);	//PRIZE
+	charger_dev_kick_wdt(info->chg2_dev);	//PRIZE
+#endif
+//prize added by lipengpeng, eta6937 support, 20220408 end 
 	switch (swchgalg->state) {
 	case CHR_CC:
 	case CHR_TUNING:
@@ -1019,7 +1095,11 @@ int mtk_dual_switch_charging_init(struct charger_manager *info)
 		chr_err("*** Error: can't find secondary charger\n");
 
 	mutex_init(&swch_alg->ichg_aicr_access_mutex);
-
+//prize add by lipengpeng 20210616 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W)
+    MT5725_init(info);
+#endif
+//prize add by lipengpeng 20210616 end
 	info->algorithm_data = swch_alg;
 	info->do_algorithm = mtk_dual_switch_charging_run;
 	info->plug_in = mtk_dual_switch_charging_plug_in;
@@ -1030,3 +1110,11 @@ int mtk_dual_switch_charging_init(struct charger_manager *info)
 
 	return 0;
 }
+//prize add by lipengpeng 20210616 start 
+#if defined(CONFIG_PRIZE_MT5725_SUPPORT_15W)
+static int MT5725_init(struct charger_manager *info){
+    mt5725_info = info;
+	return 0;
+}
+#endif
+//prize add by lipengpeng 20210616 end

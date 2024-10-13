@@ -226,4 +226,8 @@ source "drivers/slimbus/Kconfig"
 source "drivers/interconnect/Kconfig"
 
 source "drivers/energy_model/Kconfig"
+
+# begin, prize-lifenfen-20180117, add for resmon
+source "drivers/resmon/Kconfig"
+# end, prize-lifenfen-20180117, add for resmon
 endmenu

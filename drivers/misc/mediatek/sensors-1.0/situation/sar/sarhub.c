@@ -13,6 +13,10 @@
 #include "include/scp.h"
 #include "sar_factory.h"
 
+//add bob
+int aw_data_debug[3];
+// prize,aw modify end
+
 static struct situation_init_info sarhub_init_info;
 static DEFINE_SPINLOCK(calibration_lock);
 struct sarhub_ipi_data {
@@ -91,19 +95,30 @@ static int sar_factory_get_cali(int32_t data[3])
 	data[2] = obj->cali_data[2];
 	status = obj->cali_status;
 	spin_unlock(&calibration_lock);
-	if (status != 0) {
-		pr_debug("sar cali fail!\n");
-		return -2;
-	}
+/* prize,aw modify for sar start */
+//	if (status != 0) {
+//		pr_err("sar cali fail!\n");
+//		return -2;
+//	}
+/* prize,aw modify for sar end */
 	return 0;
 }
 
+/* prize,aw modify for sar start */
+static int sar_get_cfg_data(unsigned char *buf, unsigned char count)
+{
+	pr_err("sar sar_get_cfg_data\n");
+
+	return sensor_cfg_to_hub(ID_SAR, buf, count);
+}
+/* prize,aw modify for sar end */
 
 static struct sar_factory_fops sarhub_factory_fops = {
 	.enable_sensor = sar_factory_enable_sensor,
 	.get_data = sar_factory_get_data,
 	.enable_calibration = sar_factory_enable_calibration,
 	.get_cali = sar_factory_get_cali,
+	.get_cfg_data = sar_get_cfg_data,   /* prize,aw modify for sar */
 };
 
 static struct sar_factory_public sarhub_factory_device = {
@@ -165,6 +180,11 @@ static int sar_recv_data(struct data_unit_t *event, void *reserved)
 		value[0] = event->sar_event.data[0];
 		value[1] = event->sar_event.data[1];
 		value[2] = event->sar_event.data[2];
+		//add bob start
+		aw_data_debug[0] =  event->sar_event.data[0];
+		aw_data_debug[1] =  event->sar_event.data[1];
+		aw_data_debug[2] =  event->sar_event.data[2];
+		//add bob end
 		err = sar_data_report_t(value, (int64_t)event->time_stamp);
 	} else if (event->flush_action == CALI_ACTION) {
 		spin_lock(&calibration_lock);
@@ -176,6 +196,10 @@ static int sar_recv_data(struct data_unit_t *event, void *reserved)
 			event->sar_event.z_bias;
 		obj->cali_status =
 			(int8_t)event->sar_event.status;
+/* prize,aw modify for sar start */
+		pr_err("sar cali_data[0]: 0x%08x, cali_data[1]: 0x%08x, cali_data[2]: 0x%08x\n",
+			obj->cali_data[0], obj->cali_data[1], obj->cali_data[2]);
+/* prize,aw modify for sar end */
 		spin_unlock(&calibration_lock);
 		complete(&obj->calibration_done);
 	}

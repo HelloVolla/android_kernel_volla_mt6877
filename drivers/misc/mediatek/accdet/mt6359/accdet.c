@@ -14,6 +14,7 @@
 #include <linux/sched/clock.h>
 #include <linux/timer.h>
 #include <linux/irq.h>
+#include <linux/iio/consumer.h>
 #include "reg_accdet.h"
 #if defined CONFIG_MTK_PMIC_NEW_ARCH
 #include <upmu_common.h>
@@ -26,6 +27,11 @@
 #include <linux/regmap.h>
 #include <linux/soc/mediatek/pmic_wrap.h>
 #endif
+/* prize added by hanjiuping for hl5280 usb analog switch support start */
+#ifdef CONFIG_TYPEC_AUDIO_FSA4480_SWITCH
+#include "fsa4480-i2c.h"
+#endif /*CONFIG_TYPEC_AUDIO_FSA4480_SWITCH*/
+/* prize added by hanjiuping for hl5280 usb analog switch support end */
 #else
 #include "string.h"
 #include "reg_base.H"
@@ -111,6 +117,10 @@ static struct cdev *accdet_cdev;
 static struct class *accdet_class;
 static struct device *accdet_device;
 static int s_button_status;
+
+#if defined(CONFIG_MACH_MT6785)
+static struct iio_channel *accdet_auxadc_iio;
+#endif
 
 /* accdet input device to report cable type and key event */
 static struct input_dev *accdet_input_dev;
@@ -878,6 +888,23 @@ static bool accdet_timeout_ns(u64 start_time_ns, u64 timeout_time_ns)
 }
 #endif /* end of #if PMIC_ACCDET_KERNEL */
 
+#if defined(CONFIG_MACH_MT6785)
+static u32 accdet_get_auxadc(int deCount)
+{
+	int value = 0, ret = 0;
+
+	if (!PTR_ERR_OR_ZERO(accdet_auxadc_iio)) {
+		ret = iio_read_channel_processed(accdet_auxadc_iio,  &value);
+		pr_info("%s() value :%d\n", __func__, value);
+		if (ret < 0) {
+			pr_notice("Error: %s read fail (%d)\n", __func__, ret);
+			return ret;
+		}
+	}
+
+	return value;
+}
+#else //defined(CONFIG_MACH_MT6785)
 static u32 accdet_get_auxadc(int deCount)
 {
 #if defined CONFIG_MTK_PMIC_NEW_ARCH | defined PMIC_ACCDET_CTP
@@ -897,6 +924,7 @@ static u32 accdet_get_auxadc(int deCount)
 	return 0;
 #endif
 }
+#endif //defined(CONFIG_MACH_MT6785)
 
 static void accdet_get_efuse(void)
 {
@@ -1270,6 +1298,9 @@ static u32 adjust_eint_analog_setting(u32 eintID)
 		/* enable RG_EINT0CONFIGACCDET */
 		pmic_write_set(PMIC_RG_EINT0CONFIGACCDET_ADDR,
 			PMIC_RG_EINT0CONFIGACCDET_SHIFT);
+		/*select 500k, use internal resistor */
+			pmic_write_set(PMIC_RG_EINT0HIRENB_ADDR,
+				PMIC_RG_EINT0HIRENB_SHIFT);
 #elif defined CONFIG_ACCDET_SUPPORT_EINT1
 		/* enable RG_EINT1CONFIGACCDET */
 		pmic_write_set(PMIC_RG_EINT1CONFIGACCDET_ADDR,
@@ -1824,6 +1855,11 @@ cur_AB = pmic_read(PMIC_ACCDET_MEM_IN_ADDR) >> ACCDET_STATE_MEM_IN_OFFSET;
 }
 #endif /* end of #if PMIC_ACCDET_KERNEL */
 
+//prize added by huarui, headset support, 20190111-start
+#if defined(CONFIG_PRIZE_SWITCH_SGM3798_SUPPORT)
+extern int typec_accdet_mic_detect(void);
+#endif
+//prize added by huarui, headset support, 20190111-end
 #if PMIC_ACCDET_KERNEL
 static void eint_work_callback(struct work_struct *work)
 #else
@@ -1849,6 +1885,16 @@ static void eint_work_callback(void)
 
 		pr_info("%s VUSB LP dis done\n", __func__);
 		enable_accdet(0);
+//prize added by huarui, headset support, 20190111-start
+	#if defined(CONFIG_PRIZE_SWITCH_SGM3798_SUPPORT)
+		typec_accdet_mic_detect();
+	#endif
+//prize added by huarui, headset support, 20190111-end
+/* prize added by hanjiuping for hl5280 usb analog switch support start */
+#ifdef FSA4480_SWITCH_BY_ACCDET_ADC
+		fsa4480_mic_gnd_swap_by_adc();
+#endif /*FSA4480_SWITCH_BY_ACCDET_ADC*/
+/* prize added by hanjiuping for hl5280 usb analog switch support end */
 	} else {
 		pr_info("accdet cur:plug-out, cur_eint_state = %d\n",
 			cur_eint_state);
@@ -2345,6 +2391,7 @@ static u32 config_moisture_detect_2_1_1(void)
 #endif
 
 #ifdef CONFIG_OCP96011_I2C
+
 void typec_headset_queue_work(void)
 {
 	pr_info("%s() begin!\n", __func__);
@@ -3003,7 +3050,21 @@ static void config_eint_init_by_mode(void)
 #endif
 		}
 	} else if (accdet_dts.eint_detect_mode == 0x4) {
-		/* do nothing */
+		/* enable RG_EINT0CONFIGACCDET */
+		pmic_write_set(PMIC_RG_EINT0CONFIGACCDET_ADDR,
+			PMIC_RG_EINT0CONFIGACCDET_SHIFT);
+		/*select 500k, use internal resistor */
+		pmic_write_set(PMIC_RG_EINT0HIRENB_ADDR,
+			PMIC_RG_EINT0HIRENB_SHIFT);
+		/* select VTH to 2v */
+		pmic_write_mset(PMIC_RG_EINTCOMPVTH_ADDR,
+			PMIC_RG_EINTCOMPVTH_SHIFT, PMIC_RG_EINTCOMPVTH_MASK,
+			0x2);
+		pr_info("%s: %x=%x %x=%x",
+		    __func__,
+			PMIC_RG_EINT0CONFIGACCDET_ADDR,
+			pmic_read(PMIC_RG_EINT0CONFIGACCDET_ADDR),
+			PMIC_RG_EINTCOMPVTH_ADDR, pmic_read(PMIC_RG_EINTCOMPVTH_ADDR));
 	} else if (accdet_dts.eint_detect_mode == 0x5) {
 		/* do nothing */
 	}
@@ -3280,6 +3341,16 @@ int mt_accdet_probe(struct platform_device *dev)
 
 	pr_info("%s() begin!\n", __func__);
 
+#if defined(CONFIG_MACH_MT6785)
+	/* get pmic accdet auxadc iio channel handler */
+	accdet_auxadc_iio = devm_iio_channel_get(&dev->dev, "pmic_accdet");
+	ret = PTR_ERR_OR_ZERO(accdet_auxadc_iio);
+	if (ret) {
+		if (ret != -EPROBE_DEFER)
+			pr_notice("%s(), Error: Get iio ch failed (%d)\n", __func__, ret);
+		return -EPROBE_DEFER;
+	}
+#endif
 	/* register char device number, Create normal device for auido use */
 	ret = alloc_chrdev_region(&accdet_devno, 0, 1, ACCDET_DEVNAME);
 	if (ret) {
@@ -3505,3 +3576,26 @@ long mt_accdet_unlocked_ioctl(struct file *file, unsigned int cmd,
 	}
 	return 0;
 }
+
+
+//prize added by huarui, headset support, 20190111-start
+/* prize added for tcpc analog switch hl5280 support */
+#if defined(CONFIG_PRIZE_TYPEC_ACCDET) || defined(CONFIG_TYPEC_AUDIO_FSA4480_SWITCH)
+void accdet_eint_func_extern(int state)
+{
+	int ret = 0;
+
+	if (state == EINT_PIN_PLUG_OUT){	//OUT=0 IN=1
+		cur_eint_state = EINT_PIN_PLUG_OUT;
+		mod_timer(&micbias_timer, jiffies + MICBIAS_DISABLE_TIMER);
+	}else{
+		cur_eint_state = EINT_PIN_PLUG_IN;
+	}
+
+	pr_info("accdet %s(), cur_eint_state=%d\n", __func__, cur_eint_state);
+	ret = queue_work(eint_workqueue, &eint_work);
+	return;
+}
+EXPORT_SYMBOL(accdet_eint_func_extern);
+#endif
+//prize added by huarui, headset support, 20190111-end

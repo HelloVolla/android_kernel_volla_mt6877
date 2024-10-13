@@ -1,0 +1,48 @@
+#include "../../../drv_common.h"
+
+#if PRI_PLATFORM_MT6789
+#include "./mt6789/custom.h"
+#endif
+
+#if PRI_PLATFORM_MT6891
+#include "./mt6891/custom.h"
+#endif
+
+/* AWINIC AW883XX Smart PA mono*/
+&I2C_NUM {
+#if PRI_PLATFORM_MT6789
+	aw883xx_smartpa_0: aw883xx_smartpa_0@I2C_DTS_ADRR {  //DA1:0  DA2:0
+		compatible = "awinic,aw883xx_smartpa";
+#endif
+#if PRI_PLATFORM_MT6891
+	speaker_amp: speaker_amp@I2C_DTS_ADRR {  //DA1:0  DA2:0
+		compatible = "mediatek,speaker_amp";
+#endif
+
+		reg = <I2C_ADDR>;
+		#sound-dai-cells = <0>;
+		reset-gpio = <&pio RST_GPIO 0>;
+		sound-channel = <0>;
+		re-min = <1000>;
+		re-max= <40000>;
+		rename-flag= <1>;
+		status = "okay";
+	};
+};
+&sound {
+#if PRI_PLATFORM_MT6789
+	mediatek,spk-i2s = <I2S_OUT_NUM I2S_IN_NUM>;
+#endif
+#if PRI_PLATFORM_MT6891
+	mtk_spk_i2s_out = <I2S_OUT_NUM>;
+	mtk_spk_i2s_in = <I2S_IN_NUM>;
+#endif
+	mediatek,speaker-codec {
+#if PRI_PLATFORM_MT6789
+		sound-dai = <&aw883xx_smartpa_0>;
+#endif
+#if PRI_PLATFORM_MT6891
+		sound-dai = <&speaker_amp>;
+#endif
+	};
+};

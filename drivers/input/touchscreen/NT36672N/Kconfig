@@ -1,0 +1,27 @@
+#
+# Novatek NT36xxx touchscreen driver configuration
+#
+config TOUCHSCREEN_MTK_NT36672N
+	bool "Novatek NT36xxx"
+	default y
+	help
+	  Say Y here if you have a Novatek NT36xxx touchscreen connected
+	  to your system.
+
+	  If unsure, say N.
+
+config TOUCHSCREEN_NT36672_GLOVE_MODE
+	bool "ILITEK glove mode support"
+	help
+	  This enables support for ILITEK CHIPSET over I2C based touchscreens.
+	  when turn this option on, TOUCHSCREEN_ILITEK_I2C touch driver
+	  will open.
+	  If unsure,say N.
+
+config TOUCHSCREEN_NT36672_GESTURE_MODE
+	bool "ILITEK gesture mode support"
+	help
+	  This enables support for ILITEK CHIPSET over I2C based touchscreens.
+	  when turn this option on, TOUCHSCREEN_ILITEK_I2C touch driver
+	  will open.
+	  If unsure,say N.

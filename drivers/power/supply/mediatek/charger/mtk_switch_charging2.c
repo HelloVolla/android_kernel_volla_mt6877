@@ -65,6 +65,8 @@ struct tag_bootmode {
 	u32 bootmode;
 	u32 boottype;
 };
+extern int mtktspmic_get_hw_temp(void);
+extern int mt_set_pps_pwrlmt_support(bool en);
 
 static int _uA_to_mA(int uA)
 {
@@ -274,10 +276,17 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 		    && info->chr_type == STANDARD_HOST)
 			chr_err("USBIF & STAND_HOST skip current check\n");
 		else {
-			if (info->sw_jeita.sm == TEMP_T0_TO_T1) {
-				pdata->input_current_limit = 500000;
-				pdata->charging_current_limit = 350000;
+			/*prize added by lvyuanchuan,X9LAVA-475,start*/
+			if (info->sw_jeita.sm == TEMP_T1_TO_T2) {
+				pdata->charging_current_limit = 2000000;
+			}else if (info->sw_jeita.sm == TEMP_T2_TO_T3) {
+				pdata->charging_current_limit = 2000000;
+			}else if (info->sw_jeita.sm == TEMP_T3_TO_T4) {
+				pdata->charging_current_limit = 1600000;
+			}else if(info->sw_jeita.sm == TEMP_BELOW_T0 || info->sw_jeita.sm == TEMP_ABOVE_T4){
+				pdata->charging_current_limit = 0;
 			}
+			/*prize added by lvyuanchuan,X9LAVA-475,end*/
 		}
 	}
 
@@ -451,10 +460,14 @@ static int mtk_switch_charging_plug_out(struct charger_manager *info)
 
 	if (info->enable_pe_4)
 		pe40_stop();
-
+	/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129*/
+	info->pe5.online = false;
 	info->leave_pe5 = false;
 	info->leave_pe4 = false;
 	info->leave_pdc = false;
+	info->is_pdc_run = false;
+	info->finish_pe5 = false;
+	mt_set_pps_pwrlmt_support(false);
 
 	return 0;
 }
@@ -516,6 +529,8 @@ static int mtk_switch_chr_pe50_run(struct charger_manager *info)
 
 	if (ret == 2) {
 		chr_err("leave pe5\n");
+		/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129*/
+		info->pe5.online = false;
 		info->leave_pe5 = true;
 		swchgalg->state = CHR_CC;
 	}
@@ -693,7 +708,6 @@ static int select_pdc_charging_current_limit(struct charger_manager *info)
 			pdata->input_current_limit =
 					pdata->thermal_input_current_limit;
 	}
-
 	ret = charger_dev_get_min_charging_current(info->chg1_dev, &ichg1_min);
 	if (ret != -ENOTSUPP && pdata->charging_current_limit < ichg1_min)
 		pdata->charging_current_limit = 0;
@@ -811,7 +825,7 @@ static int mtk_switch_chr_cc(struct charger_manager *info)
 
 	swchgalg->total_charging_time = charging_time.tv_sec;
 
-	chr_err("pe40_ready:%d pps:%d hv:%d thermal:%d,%d tmp:%d,%d,%d\n",
+	chr_err("pe40_ready:%d pps:%d hv:%d thermal:%d,%d tmp:%d,%d,%d,leave_pe5:%d\n",
 		info->enable_pe_4,
 		pe40_is_ready(),
 		info->enable_hv_charging,
@@ -819,13 +833,17 @@ static int mtk_switch_chr_cc(struct charger_manager *info)
 		info->chg1_data.thermal_input_current_limit,
 		tmp,
 		info->data.high_temp_to_enter_pe40,
-		info->data.low_temp_to_enter_pe40);
+		info->data.low_temp_to_enter_pe40,
+		info->leave_pe5);
+
 
 	if (info->enable_pe_5 && pe50_is_ready() && !info->leave_pe5) {
-		if (info->enable_hv_charging == true) {
+		/*prize added by lvyuanchuan,X9-489,20221209*/
+		if ((info->enable_hv_charging == true)&&(info->sw_jeita.sm == TEMP_T2_TO_T3)) {
 			chr_err("enter PE5.0\n");
 			swchgalg->state = CHR_PE50;
 			info->pe5.online = true;
+
 			if (mtk_pe20_get_is_enable(info)) {
 				mtk_pe20_set_is_enable(info, false);
 				if (mtk_pe20_get_is_connect(info))
@@ -838,7 +856,11 @@ static int mtk_switch_chr_cc(struct charger_manager *info)
 					mtk_pe_reset_ta_vchr(info);
 			}
 			return 1;
+		}else{
+			chr_err("enter PE5.0 => CC [%d][%d] \n",info->enable_hv_charging,info->sw_jeita.sm);
 		}
+	}else{
+			chr_err("enter PE5.0 => exit [%d][%d] \n",info->enable_hv_charging,info->sw_jeita.sm);
 	}
 
 	if (info->enable_pe_4 &&
@@ -863,8 +885,8 @@ static int mtk_switch_chr_cc(struct charger_manager *info)
 			return 1;
 		}
 	}
-
-	if (pdc_is_ready() &&
+	/*Prize add by lvyuanchuan,X9LAVA-1286,charing not sucessfully,20230620*/
+	if ((info->chr_type != STANDARD_HOST) && pdc_is_ready() &&
 		!info->leave_pdc) {
 		if (info->enable_hv_charging == true) {
 			chr_err("enter PDC!\n");
@@ -971,7 +993,46 @@ static int mtk_switch_charging_current(struct charger_manager *info)
 	swchg_select_charging_current_limit(info);
 	return 0;
 }
+/*prize added by lvyuanchuan,X9-867,20230201 start*/
+static int mtk_switch_check_charging_safety(struct charger_manager *info)
+{
+	struct switch_charging_alg_data *swchgalg = info->algorithm_data;
+	int temp = battery_get_bat_temperature();
+	int hwTemp = mtktspmic_get_hw_temp()/1000;
+	/*
+		 In the case of scenario throttling, 
+		 the recovery fast charge abnormal recovery mechanism is not triggered
+	*/
+	if(info->chg_scenario){
+		chr_err("[%s][chg_scenario][temp]:(%d,%d),sm:[%d] ,state:[%d] ,error_cp_recovery_flag[%d],enable_hv_charging[%d]\n",
+		__func__,temp,hwTemp,info->sw_jeita.sm, swchgalg->state,info->sw_jeita.error_cp_recovery_flag,info->enable_hv_charging);
+		return 0;	
+	}
+	/*Temp:10~45 && cmd_discharging == false*/
+	if (info->enable_sw_jeita && mtk_is_TA_support_pd_pps(info) && (!info->cmd_discharging)) {
+		if(info->sw_jeita.sm == TEMP_T2_TO_T3){
+			info->sw_jeita.error_cp_recovery_flag = true;
+			/*prize added by lvyuanchuan,X9-796,20230113*/
+			if((temp < info->data.temp_t3_thres_minus_x_degree) &&(hwTemp < 43)){
+				info->enable_hv_charging = true;
+			}
+		}
 
+		if((info->sw_jeita.error_cp_recovery_flag == true) &&	(info->sw_jeita.sm != TEMP_T2_TO_T3)) {
+			info->sw_jeita.error_cp_recovery_flag = false;
+			info->enable_hv_charging = false;
+		}
+
+		if (mtk_pe50_get_is_connect(info) && (!info->sw_jeita.error_cp_recovery_flag)){
+			chr_err("[%s]High Temp,not using cp!!",__func__);
+			mtk_pe50_stop_algo(info, true);
+		}
+	}
+	chr_err("[%s][temp]:(%d,%d),sm:[%d] ,state:[%d] ,error_cp_recovery_flag[%d],enable_hv_charging[%d],cmd_discharging[%d]\n",
+	__func__,temp,hwTemp,info->sw_jeita.sm, swchgalg->state,info->sw_jeita.error_cp_recovery_flag,info->enable_hv_charging,info->cmd_discharging);
+	return 0;
+}
+/*prize added by lvyuanchuan,X9-867,20230201 end*/
 static int mtk_switch_charging_run(struct charger_manager *info)
 {
 	struct switch_charging_alg_data *swchgalg = info->algorithm_data;
@@ -1017,6 +1078,8 @@ static int mtk_switch_charging_run(struct charger_manager *info)
 			break;
 		}
 	} while (ret != 0);
+	/*prize added by lvyuanchuan,X9-489,20221209*/
+	mtk_switch_check_charging_safety(info);
 	mtk_switch_check_charging_time(info);
 
 	charger_dev_dump_registers(info->chg1_dev);

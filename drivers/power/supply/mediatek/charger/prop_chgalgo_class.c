@@ -10,7 +10,7 @@
 #include <linux/slab.h>
 #include <linux/list.h>
 
-#include <mt-plat/prop_chgalgo_class.h>
+#include <mt-plat/v1/prop_chgalgo_class.h>
 
 #define PROP_CHGALGO_CLASS_VERSION	"2.0.0_G"
 

@@ -110,3 +110,16 @@ config MTK_TYPEC_WATER_DETECT_BY_PCB
 	  need to be enabled.
 	  Say Yes to let PCB decides enabling water detection or not.
 	  If unsure, say N.
+	  
+#prize add by zhaopengge 20211215 start-----	
+config TCPC_WUSB3801
+	bool "WUSB3801 TypeC port Controller Driver"
+	depends on TCPC_CLASS
+	default n
+	help
+	  Say Y to enable
+#prize add by zhaopengge 20211215 end-----	
+
+
+	  
+	  

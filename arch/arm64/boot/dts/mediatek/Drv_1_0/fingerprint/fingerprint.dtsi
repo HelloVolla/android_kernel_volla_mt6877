@@ -1,0 +1,9 @@
+#include "../drv_common.h"
+
+#if PRI_CD_980S_ATA 
+#include "./cd_980s_ata/cd_980s_ata.dtsi"
+#endif
+
+#if PRI_FORTSENSE_DRIVER_ALL_IN_ONE
+#include "./fortsense_driver_all_in_one/fortsense_driver_all_in_one.dtsi"
+#endif

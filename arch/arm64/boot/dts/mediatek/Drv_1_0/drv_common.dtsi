@@ -1,0 +1,17 @@
+#include "./drv_common.h"
+
+#if MODULE_FINGERPRINT
+#include "./fingerprint/fingerprint.dtsi"
+#endif
+
+#if MODULE_SMART_PA
+#include "./smartpa/smartpa.dtsi"
+#endif
+
+#if MODULE_TEE
+#include "./tee/tee.dtsi"
+#endif
+
+#if MODULE_TYPEC_ACCDET
+#include "./typec_accdet/typec_accdet.dtsi"
+#endif

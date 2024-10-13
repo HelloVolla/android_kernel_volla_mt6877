@@ -62,9 +62,19 @@
 #include <mt-plat/mtk_boot.h>
 #include <pmic.h>
 #include <mtk_gauge_time_service.h>
+/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129*/
+#include <linux/fb.h>
 
 #include "mtk_charger_intf.h"
 #include "mtk_charger_init.h"
+#include "mtk_pe50.h"
+
+/*prize added by durunshen,X9LAVA-1147,start*/
+#if IS_ENABLED(CONFIG_PRIZE_HARDWARE_INFO)
+#include "../../../misc/mediatek/hardware_info/hardware_info.h"
+extern struct hardware_info current_cp_info;
+#endif
+/*prize added by durunshen,X9LAVA-1147,end*/
 
 static struct charger_manager *pinfo;
 static struct list_head consumer_head = LIST_HEAD_INIT(consumer_head);
@@ -239,6 +249,34 @@ static int _mtk_charger_do_charging(struct charger_manager *info, bool en)
 		info->do_charging(info, en);
 	return 0;
 }
+/*prize added by lvyuanchuan,X9-489,start*/
+#if 0
+static int _mtk_charger_enable_charging_scenario(
+			struct charger_manager *info, bool en)
+{
+	if (!info)
+		return -EINVAL;
+
+	pr_info("[%s] en:%d , chg_scenario:%d\n", __func__, en,info->chg_scenario);
+
+	if (!en && info->chg_scenario){
+		info->chg_scenario = CHARING_DEFAULT;
+	}else if (en && (info->chg_scenario == CHARING_DEFAULT)){
+		info->chg_scenario = CHARING_DEFAULT;
+	}else {
+		pr_info("[%s] already set: %d %d\n", __func__,info->chg_scenario, en);
+		return 0;
+	}
+
+	if (mtk_pe50_get_is_connect(info) && info->chg_scenario)
+		mtk_pe50_stop_algo(info, true);
+
+	_wake_up_charger(info);
+
+	return 0;
+}
+#endif
+/*prize added by lvyuanchuan,X9-489,end*/
 /* charger_manager ops end */
 
 
@@ -276,7 +314,7 @@ int charger_manager_enable_high_voltage_charging(
 	if (!info)
 		return -EINVAL;
 
-	pr_debug("[%s] %s, %d\n", __func__, dev_name(consumer->dev), en);
+	pr_debug("[%s] %s, %d , hv_charging_disabled %d\n", __func__, dev_name(consumer->dev), en , consumer->hv_charging_disabled);
 
 	if (!en && consumer->hv_charging_disabled == false)
 		consumer->hv_charging_disabled = true;
@@ -300,12 +338,14 @@ int charger_manager_enable_high_voltage_charging(
 	}
 	mutex_unlock(&consumer_mutex);
 
-	pr_info("%s: user: %s, en = %d\n", __func__, dev_name(consumer->dev),
+	pr_info("%s: user: %s, enable_hv_charging = %d\n", __func__, dev_name(consumer->dev),
 		info->enable_hv_charging);
-
-	if (mtk_pe50_get_is_connect(info) && !info->enable_hv_charging)
+	/*PRIZE:Modified ,X9-761,20230111 start*/
+	if (mtk_pe50_get_is_connect(info) && !info->enable_hv_charging){
+		/*status :cmd disable charging,but bat temp is normal*/
 		mtk_pe50_stop_algo(info, true);
-
+	}
+	/*PRIZE:Modified ,X9-761,20230111 end*/
 	_wake_up_charger(info);
 
 	return 0;
@@ -718,9 +758,11 @@ static dev_t charger_devno;
 
 static int is_slave_charger_exist(void)
 {
-	if (get_charger_by_name("secondary_chg") == NULL)
-		return 0;
-	return 1;
+/*prize added by durunshen,X9LAVA-1147,start*/
+	if (!strcmp(current_cp_info.id, "0x5151"))
+		return 1;
+	return 0;
+/*prize added by durunshen,X9LAVA-1147,end*/
 }
 
 static long charger_ftm_ioctl(struct file *file, unsigned int cmd,
@@ -2786,8 +2828,8 @@ static ssize_t show_Pump_Express(struct device *dev,
 	if (mtk_is_TA_support_pd_pps(pinfo) == true || pinfo->is_pdc_run == true)
 		is_ta_detected = 1;
 
-	pr_debug("%s: detected = %d, pe20_connect = %d, pe_connect = %d\n",
-		__func__, is_ta_detected,
+	pr_debug("%s: detected = %d, pe20_connect = %d, pe_connect = %d,is_pdc_run = %d\n",
+		__func__, is_ta_detected,pinfo->is_pdc_run,
 		mtk_pe20_get_is_connect(pinfo),
 		mtk_pe_get_is_connect(pinfo));
 
@@ -2971,6 +3013,67 @@ static int mtk_chg_current_cmd_show(struct seq_file *m, void *data)
 	return 0;
 }
 
+/*PRIZE:Modified ,X9-725,20230109 start*/
+static ssize_t show_cmd_charge_disable(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct charger_manager *pinfo = dev->driver_data;
+
+	pr_info("[charge] %s : %d\n",__func__, pinfo->cmd_discharging);
+	return sprintf(buf, "%d\n",pinfo->cmd_discharging);
+}
+
+static ssize_t store_cmd_charge_disable(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct charger_manager *pinfo = dev->driver_data;
+	unsigned int reg = 0;
+	int ret;
+
+	pr_info("[charge] %s\n", __func__);
+	if (buf != NULL && size != 0) {
+		pr_info("[store_cmd_charge_disable] buf is %s and size is %zu\n", buf, size);
+		ret = kstrtouint(buf, 16, &reg);
+		if(reg == 1){
+		   pinfo->cmd_discharging = true;
+		}else if(reg == 0){
+		   pinfo->cmd_discharging = false;
+		}else{
+		  pr_info("[store_cmd_charge_disable] input err please 0 or 1\n");
+		}
+		/*PRIZE:modified by lvyuanchuan,x9-761,20230111 start*/
+		if((pinfo->chr_type != CHARGER_UNKNOWN) && (reg == 1)){
+		  charger_dev_enable(pinfo->chg1_dev, false);
+		  if(pinfo->chg1_consumer){
+		    charger_manager_enable_high_voltage_charging(pinfo->chg1_consumer, false);
+		  }
+		  charger_manager_notifier(pinfo,CHARGER_NOTIFY_STOP_CHARGING);
+		  pr_info("[store_cmd_charge_disable] disable charge\n");
+		}else if((pinfo->chr_type != CHARGER_UNKNOWN) && (reg == 0)){
+		  charger_dev_enable(pinfo->chg1_dev, true);
+		  if(pinfo->chg1_consumer){
+		    charger_manager_enable_high_voltage_charging(pinfo->chg1_consumer, true);
+		  }
+		  charger_manager_notifier(pinfo,CHARGER_NOTIFY_START_CHARGING);
+		  pr_info("[store_cmd_charge_disable]  enable charge \n");
+		}else {
+		  pr_info("[store_cmd_charge_disable]  No USB connection \n");
+		}
+		/*PRIZE:modified by lvyuanchuan,x9-761,20230111 end*/
+	}
+	return size;
+}
+static DEVICE_ATTR(cmd_charge_disable, 0664, show_cmd_charge_disable,
+		store_cmd_charge_disable);
+
+#if defined (CONFIG_PRIZE_GIGASET_CHARGE_RESTRICTION)
+bool get_cmd_charge_disable(void){
+   pr_info("[charge] %s cmd_discharging =%d \n", __func__,pinfo->cmd_discharging);
+   return pinfo->cmd_discharging;
+}
+EXPORT_SYMBOL(get_cmd_charge_disable);
+#endif
+/*PRIZE:Modified ,X9-725,20230109 end*/
 static ssize_t mtk_chg_current_cmd_write(struct file *file,
 		const char *buffer, size_t count, loff_t *data)
 {
@@ -3110,7 +3213,40 @@ static ssize_t mtk_chg_en_safety_timer_write(struct file *file,
 PROC_FOPS_RW(current_cmd);
 PROC_FOPS_RW(en_power_path);
 PROC_FOPS_RW(en_safety_timer);
+//prize add by lvyuanchuan for controlling charger --start
+static ssize_t show_charging_scenario(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct charger_manager *pinfo = dev->driver_data;
 
+	pr_info("[charge] %s : %d\n",__func__, pinfo->chg_scenario);
+	return sprintf(buf, "%d\n",pinfo->chg_scenario);
+}
+
+static ssize_t store_charging_scenario(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+	struct charger_manager *pinfo = dev->driver_data;
+	unsigned int reg = 0;
+	int ret;
+
+	pr_info("[charge] %s\n", __func__);
+	if (buf != NULL && size != 0) {
+		pr_info("[%s] buf is %s and size is %zu\n",__func__, buf, size);
+		ret = kstrtouint(buf, 16, &reg);
+		/*PRIZE:modified by lvyuanchuan,x9-761,20230111 start*/
+		pinfo->chg_scenario	= reg;
+		if(reg){
+			charger_manager_enable_high_voltage_charging(pinfo->chg1_consumer, false);
+		}else{
+			charger_manager_enable_high_voltage_charging(pinfo->chg1_consumer, true);
+		}
+		/*PRIZE:modified by lvyuanchuan,x9-761,20230111 end*/
+	}
+	return size;
+}
+static DEVICE_ATTR(charging_scenario, 0664, show_charging_scenario,
+		store_charging_scenario);
 /* Create sysfs and procfs attributes */
 static int mtk_charger_setup_files(struct platform_device *pdev)
 {
@@ -3164,13 +3300,20 @@ static int mtk_charger_setup_files(struct platform_device *pdev)
 	ret = device_create_file(&(pdev->dev), &dev_attr_chg2_current);
 	if (ret)
 		goto _out;
-
+	/*cmd disable charger*/
+	//prize add by lvyuanchuan for controlling charger --start
+	ret = device_create_file(&(pdev->dev), &dev_attr_cmd_charge_disable);
+	if (ret)
+		goto _out;
+	//prize add by lvyuanchuan for controlling charger --end	
+	ret = device_create_file(&(pdev->dev), &dev_attr_charging_scenario);
+	if (ret)
+		goto _out;
 	battery_dir = proc_mkdir("mtk_battery_cmd", NULL);
 	if (!battery_dir) {
 		chr_err("[%s]: mkdir /proc/mtk_battery_cmd failed\n", __func__);
 		return -ENOMEM;
 	}
-
 	proc_create_data("current_cmd", 0640, battery_dir,
 			&mtk_chg_current_cmd_fops, info);
 	proc_create_data("en_power_path", 0640, battery_dir,
@@ -3884,7 +4027,41 @@ static ssize_t store_sc_test(
 }
 static DEVICE_ATTR(sc_test, 0664,
 	show_sc_test, store_sc_test);
+/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129 start*/
+static int charger_fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data)
+{
+	struct fb_event *evdata = NULL;
+	int blank;
+	evdata = data;
+	/* If we aren't interested in this event, skip it immediately ... */
+	if (event != FB_EVENT_BLANK)
+		return 0;
 
+	blank = *(int *)evdata->data;
+	switch (blank) {
+		case FB_BLANK_UNBLANK:
+			if(pinfo)
+				pinfo->is_screenon = true;
+			break;
+		case FB_BLANK_POWERDOWN:
+			if(pinfo){
+				pinfo->is_screenon = false;
+				pinfo->chg_scenario = 0;
+			}
+			break;
+		default:
+			break;
+	}
+	chr_err("%s: screen_on [%d]\n", __func__,blank);
+	if(pinfo)
+		_wake_up_charger(pinfo);
+  return 0;
+}
+
+static struct notifier_block charger_fb_notifier = {
+	.notifier_call = charger_fb_notifier_callback,
+};
+/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129 end*/
 static int mtk_charger_probe(struct platform_device *pdev)
 {
 	struct charger_manager *info = NULL;
@@ -3956,8 +4133,11 @@ static int mtk_charger_probe(struct platform_device *pdev)
 	info->chg2_data.thermal_input_current_limit = -1;
 	info->dvchg1_data.thermal_input_current_limit = -1;
 	info->dvchg2_data.thermal_input_current_limit = -1;
-
+	/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129*/
+	info->is_screenon = true;
+	info->chg_scenario = 0;
 	info->sw_jeita.error_recovery_flag = true;
+	info->cmd_discharging = false;
 
 	mtk_charger_init_timer(info);
 	info->is_pdc_run = false;
@@ -4042,6 +4222,9 @@ static int mtk_charger_probe(struct platform_device *pdev)
 		&dev_attr_sc_ibat_limit);
 	ret_device_file = device_create_file(&(pdev->dev),
 		&dev_attr_sc_test);
+	/*PRIZE:Modified ,X9-725,20230109*/
+	ret_device_file = device_create_file(&(pdev->dev),
+	  &dev_attr_cmd_charge_disable);
 
 	info->chg1_consumer =
 		charger_manager_get_by_name(&pdev->dev, "charger_port1");
@@ -4051,7 +4234,11 @@ static int mtk_charger_probe(struct platform_device *pdev)
 	    boot_mode != LOW_POWER_OFF_CHARGING_BOOT)
 		charger_manager_force_disable_power_path(
 			info->chg1_consumer, MAIN_CHARGER, true);
-
+	/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129 start*/
+	ret = fb_register_client(&charger_fb_notifier);
+	if (ret)
+		chr_err("[%s] failed to registe %d\n", __func__, ret);
+	/*prize add by lvyuanchuan for limiting the input charging current at screen on, 20221129 end*/			
 	info->init_done = true;
 	_wake_up_charger(info);
 

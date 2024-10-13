@@ -1,0 +1,68 @@
+//#include "./platform/mt6789.h"
+
+#define pa_1_i2c_bus_x i2c6
+#define pa_2_i2c_bus_x i2c6
+#define pa_3_i2c_bus_x i2c3
+#define pa_4_i2c_bus_x i2c3
+
+#define pa_1_i2c_idx 58
+#define pa_2_i2c_idx 5b
+#define pa_3_i2c_idx 58
+#define pa_4_i2c_idx 5b
+
+#define pa_1_i2c_addr 0x58
+#define pa_2_i2c_addr 0x5b
+#define pa_3_i2c_addr 0x58
+#define pa_4_i2c_addr 0x5b
+
+#define pa_1_reset_gpio  43
+#define pa_2_reset_gpio  44
+#define pa_3_reset_gpio  45
+#define pa_4_reset_gpio  110
+
+
+&pa_1_i2c_bus_x { /*x 表示对应的总线号*/
+	/* AWINIC AW87XXX Smart K PA */
+	aw87xxx_pa@pa_1_i2c_idx {
+		compatible = "awinic,aw87xxx_pa";
+		reg = <pa_1_i2c_addr>;
+		reset-gpio = <&pio pa_1_reset_gpio 0>; /*带 reset 引脚的配置*/
+		dev_index = < 0 >;
+		status = "okay";
+	};
+	/* AWINIC AW87XXX Smart K PA End */
+};
+
+&pa_2_i2c_bus_x { /*x 表示对应的总线号*/
+	/* AWINIC AW87XXX Smart K PA */
+	aw87xxx_pa@pa_2_i2c_idx {
+		compatible = "awinic,aw87xxx_pa";
+		reg = <pa_2_i2c_addr>;
+		reset-gpio = <&pio pa_2_reset_gpio 0>; /*带 reset 引脚的配置*/
+		dev_index = < 1 >;
+		status = "okay";
+	};
+	/* AWINIC AW87XXX Smart K PA End */
+};
+&pa_3_i2c_bus_x { /*x 表示对应的总线号*/
+	/* AWINIC AW87XXX Smart K PA */
+	aw87xxx_pa@pa_3_i2c_idx {
+	compatible = "awinic,aw87xxx_pa";
+	reg = <pa_3_i2c_addr>;
+	reset-gpio = <&pio pa_3_reset_gpio 0>; /*带 reset 引脚的配置*/
+	dev_index = < 2 >;
+	status = "okay";
+	};
+	/* AWINIC AW87XXX Smart K PA End */
+};
+&pa_4_i2c_bus_x { /*x 表示对应的总线号*/
+	/* AWINIC AW87XXX Smart K PA */
+	aw87xxx_pa@pa_4_i2c_idx {
+		compatible = "awinic,aw87xxx_pa";
+		reg = <pa_4_i2c_addr>;
+		reset-gpio = <&pio pa_4_reset_gpio 0>; /*带 reset 引脚的配置*/
+		dev_index = < 3 >;
+		status = "okay";
+	};
+	/* AWINIC AW87XXX Smart K PA End */
+};

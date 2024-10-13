@@ -598,6 +598,22 @@ static struct snd_soc_dai_link mt_soc_dai_common[] = {
 		.codec_name = MT_SOC_CODEC_NAME,
 		.playback_only = true,
 	},
+	{
+		.name = "I2S3DL3OUTPUT",
+		.stream_name = MT_SOC_I2S3_DL3_STREAM_NAME,
+		.cpu_dai_name   = MT_SOC_I2S3DL3_NAME,
+		.platform_name  = MT_SOC_I2S3_DL3_PCM,
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.codec_name = "snd-soc-dummy",
+	},
+	{
+		.name = "I2S0VUL2CAPTURE",
+		.stream_name = MT_SOC_I2S0VUL2_CAPTURE_STREAM_NAME,
+		.cpu_dai_name   = MT_SOC_I2S0VUL2_NAME,
+		.platform_name  = MT_SOC_I2S0_VUL2_PCM,
+		.codec_dai_name = "snd-soc-dummy-dai",
+		.codec_name = "snd-soc-dummy",
+	},
 #ifdef CONFIG_MTK_AUDIO_SCP_SPKPROTECT_SUPPORT
 	{
 		.name = "DL1SCPSPKOUTPUT",
@@ -650,7 +666,17 @@ static struct snd_soc_dai_link mt_soc_exthp_dai[] = {
 #endif
 	},
 };
-
+//prize-add smartpa aw883xx-pengzhipeng-20211206-start
+#ifdef  CONFIG_SND_SMARTPA_AW883XX
+struct snd_soc_dai_link_component awinic_codecs[] = {
+	{
+	.of_node = NULL,
+	.dai_name = "aw883xx-aif-6-34",
+	.name = "aw883xx_smartpa.6-0034",
+	},
+};
+#endif
+//prize-add smartpa aw883xx-pengzhipeng-20211206-end
 static struct snd_soc_dai_link mt_soc_extspk_dai[] = {
 	{
 		.name = "ext_Speaker_Multimedia",
@@ -660,6 +686,11 @@ static struct snd_soc_dai_link mt_soc_extspk_dai[] = {
 #ifdef CONFIG_SND_SOC_MAX98926
 		.codec_dai_name = "max98926-aif1",
 		.codec_name = "MAX98926_MT",
+//prize-add smartpa aw883xx-pengzhipeng-20211206-start
+#elif defined(CONFIG_SND_SMARTPA_AW883XX)
+		.num_codecs = ARRAY_SIZE(awinic_codecs),
+		.codecs = awinic_codecs,
+//prize-add smartpa aw883xx-pengzhipeng-20211206-end
 #elif defined(CONFIG_SND_SOC_CS35L35)
 		.codec_dai_name = "cs35l35-pcm",
 		.codec_name = "cs35l35.2-0040",
@@ -706,6 +737,8 @@ static int mt_soc_snd_probe(struct platform_device *pdev)
 #endif
 	int ret;
 	int daiLinkNum = 0;
+//prize-add smartpa aw883xx-pengzhipeng-20211206-start
+#if !defined(CONFIG_SND_SMARTPA_AW883XX)
 
 	ret = mtk_spk_update_dai_link(mt_soc_extspk_dai, pdev);
 	if (ret) {
@@ -713,7 +746,8 @@ static int mt_soc_snd_probe(struct platform_device *pdev)
 			__func__);
 		return -EINVAL;
 	}
-
+#endif
+//prize-add smartpa aw883xx-pengzhipeng-20211206-end
 	/* get_ext_dai_codec_name(); */
 	pr_debug("%s(), dai_link = %p\n",
 		 __func__, mt_snd_soc_card_mt.dai_link);

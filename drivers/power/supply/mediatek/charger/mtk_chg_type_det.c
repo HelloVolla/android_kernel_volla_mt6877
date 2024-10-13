@@ -44,14 +44,16 @@
 #include <tcpm.h>
 
 #include "mtk_charger_intf.h"
+extern int tp_mode_notifier_call_chain(unsigned long val, void *v);
 
+int check_cable_in;
 struct tag_bootmode {
 	u32 size;
 	u32 tag;
 	u32 bootmode;
 	u32 boottype;
 };
-
+extern int mt_is_pps_pwrlmt_support(void);
 #ifdef CONFIG_EXTCON_USB_CHG
 struct usb_extcon_info {
 	struct device *dev;
@@ -203,12 +205,20 @@ static int mt_charger_online(struct mt_charger *mtk_chg)
 	return ret;
 }
 
+int mt_check_cable_in(void)
+{
+	return check_cable_in;
+}
+
 /* Power Supply Functions */
 static int mt_charger_get_property(struct power_supply *psy,
 	enum power_supply_property psp, union power_supply_propval *val)
 {
 	struct mt_charger *mtk_chg = power_supply_get_drvdata(psy);
-
+	struct charger_consumer *chg_consumer= NULL;
+	if(mtk_chg && (mtk_chg->cti)){
+		chg_consumer	= mtk_chg->cti->chg_consumer;
+	}
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
 		val->intval = 0;
@@ -221,29 +231,37 @@ static int mt_charger_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_USB_TYPE:
 		switch (mtk_chg->chg_type) {
-		case STANDARD_HOST:
-			val->intval = POWER_SUPPLY_USB_TYPE_SDP;
-			pr_info("%s: Charger Type: STANDARD_HOST\n", __func__);
+			case STANDARD_HOST:
+				val->intval = POWER_SUPPLY_USB_TYPE_SDP;
+				pr_info("%s: Charger Type: STANDARD_HOST\n", __func__);
 			break;
-		case NONSTANDARD_CHARGER:
-			val->intval = POWER_SUPPLY_USB_TYPE_DCP;
-			pr_info("%s: Charger Type: NONSTANDARD_CHARGER\n", __func__);
+			case NONSTANDARD_CHARGER:
+				val->intval = POWER_SUPPLY_USB_TYPE_DCP;
+				pr_info("%s: Charger Type: NONSTANDARD_CHARGER\n", __func__);
 			break;
-		case CHARGING_HOST:
-			val->intval = POWER_SUPPLY_USB_TYPE_CDP;
-			pr_info("%s: Charger Type: CHARGING_HOST\n", __func__);
+			case CHARGING_HOST:
+				val->intval = POWER_SUPPLY_USB_TYPE_CDP;
+				pr_info("%s: Charger Type: CHARGING_HOST\n", __func__);
 			break;
-		case STANDARD_CHARGER:
-			val->intval = POWER_SUPPLY_USB_TYPE_DCP;
-			pr_info("%s: Charger Type: STANDARD_CHARGER\n", __func__);
+			case STANDARD_CHARGER:
+				val->intval = POWER_SUPPLY_USB_TYPE_DCP;
+				if(chg_consumer && chg_consumer->cm){
+					if(mtk_is_TA_support_pd_pps(chg_consumer->cm)&&mt_is_pps_pwrlmt_support()){
+						val->intval = POWER_SUPPLY_USB_TYPE_PD_PPS;
+						pr_info("%s: Charger Type: PPS_CHARGER\n", __func__);
+					}else{
+						pr_info("%s: Charger Type: STANDARD_CHARGER\n", __func__);
+					}
+				}
 			break;
-		case CHARGER_UNKNOWN:
-			val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
-			pr_info("%s: Charger Type: CHARGER_UNKNOWN\n", __func__);
+			case CHARGER_UNKNOWN:
+				val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
+				pr_info("%s: Charger Type: CHARGER_UNKNOWN\n", __func__);
 			break;
-		default:
+			default:
+				break;
+		}
 		break;
-	}
 	default:
 		return -EINVAL;
 	}
@@ -391,6 +409,7 @@ static int mt_usb_get_property(struct power_supply *psy,
 
 static enum power_supply_property mt_charger_properties[] = {
 	POWER_SUPPLY_PROP_ONLINE,
+	POWER_SUPPLY_PROP_USB_TYPE,
 };
 
 static enum power_supply_property mt_ac_properties[] = {
@@ -424,6 +443,9 @@ static void plug_in_out_handler(struct chg_type_info *cti, bool en, bool ignore)
 	cti->chgdet_en = en;
 	cti->ignore_usb = ignore;
 	cti->plugin = en;
+	check_cable_in = en;
+	tp_mode_notifier_call_chain(en, "charging");
+	chr_err("%s, check_cable_in: %d\n", __func__, check_cable_in);
 	atomic_inc(&cti->chgdet_cnt);
 	wake_up_interruptible(&cti->waitq);
 skip:
@@ -701,6 +723,18 @@ static int mt6370_psy_notifier(struct notifier_block *nb,
 	return NOTIFY_DONE;
 }
 #endif
+static enum power_supply_usb_type mt_charger_usb_types[] = {
+		POWER_SUPPLY_USB_TYPE_UNKNOWN,
+		POWER_SUPPLY_USB_TYPE_SDP,
+		POWER_SUPPLY_USB_TYPE_DCP,
+		POWER_SUPPLY_USB_TYPE_CDP,
+		POWER_SUPPLY_USB_TYPE_ACA,
+		POWER_SUPPLY_USB_TYPE_C,
+		POWER_SUPPLY_USB_TYPE_PD,
+		POWER_SUPPLY_USB_TYPE_PD_DRP,
+		POWER_SUPPLY_USB_TYPE_PD_PPS,
+		POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID,
+};
 
 static int mt_charger_probe(struct platform_device *pdev)
 {
@@ -715,6 +749,8 @@ static int mt_charger_probe(struct platform_device *pdev)
 	struct tag_bootmode *tag = NULL;
 	int boot_mode = 11;//UNKNOWN_BOOT
 
+	check_cable_in = 0;
+	chr_err("%s: check_cable_in: %d\n", __func__, check_cable_in);
 	pr_info("%s\n", __func__);
 
 	mt_chg = devm_kzalloc(&pdev->dev, sizeof(*mt_chg), GFP_KERNEL);
@@ -731,6 +767,8 @@ static int mt_charger_probe(struct platform_device *pdev)
 	mt_chg->chg_desc.num_properties = ARRAY_SIZE(mt_charger_properties);
 	mt_chg->chg_desc.set_property = mt_charger_set_property;
 	mt_chg->chg_desc.get_property = mt_charger_get_property;
+	mt_chg->chg_desc.usb_types = mt_charger_usb_types;
+	mt_chg->chg_desc.num_usb_types =  ARRAY_SIZE(mt_charger_usb_types);
 	mt_chg->chg_cfg.drv_data = mt_chg;
 
 	mt_chg->ac_desc.name = "ac";

@@ -1,0 +1,19 @@
+#
+# ILITEK Touchscreen driver configuration
+#
+
+config TOUCHSCREEN_ILITEK_GLOVE_MODE
+	bool "ILITEK glove mode support"
+	help
+	  This enables support for ILITEK CHIPSET over I2C based touchscreens.
+	  when turn this option on, TOUCHSCREEN_ILITEK_I2C touch driver
+	  will open.
+	  If unsure,say N.
+
+config TOUCHSCREEN_ILITEK_GESTURE_MODE
+	bool "ILITEK gesture mode support"
+	help
+	  This enables support for ILITEK CHIPSET over I2C based touchscreens.
+	  when turn this option on, TOUCHSCREEN_ILITEK_I2C touch driver
+	  will open.
+	  If unsure,say N.

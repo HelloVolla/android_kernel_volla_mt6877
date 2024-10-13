@@ -12,7 +12,7 @@
 #include "lens_list.h"
 #include <linux/ioctl.h>
 
-#define MAX_NUM_OF_LENS 32
+#define MAX_NUM_OF_LENS 64 // prize add by zhuzhengjiang
 
 #define AF_MAGIC 'A'
 
@@ -23,6 +23,9 @@
 #endif
 
 /* AFDRV_XXXX be the same as AF_DRVNAME in (*af).c */
+/*prize  add  for FP5516WEAF by zhuzhengjiang    20210621-start*/
+#define AFDRV_FP5516WEAF "FP5516WEAF"
+/*prize  add  for FP5516WEAF by zhuzhengjiang    20210621-end*/
 #define AFDRV_AD5820AF "AD5820AF"
 #define AFDRV_AD5823 "AD5823"
 #define AFDRV_AD5823AF "AD5823AF"
@@ -38,10 +41,12 @@
 #define AFDRV_DW9714A "DW9714A"
 #define AFDRV_DW9714AF "DW9714AF"
 #define AFDRV_DW9718AF "DW9718AF"
+#define AFDRV_DW9718GAF "DW9718GAF"
 #define AFDRV_DW9718SAF "DW9718SAF"
 #define AFDRV_DW9800WAF "DW9800WAF"
 #define AFDRV_DW9719TAF "DW9719TAF"
 #define AFDRV_DW9763AF "DW9763AF"
+#define AFDRV_DW9761AF "DW9761AF"
 #define AFDRV_DW9814AF "DW9814AF"
 #define AFDRV_DW9839AF "DW9839AF"
 #define AFDRV_FP5510E2AF "FP5510E2AF"
@@ -65,9 +70,22 @@
 #define AFDRV_OV8825AF "OV8825AF"
 #define AFDRV_WV511AAF "WV511AAF"
 #define AFDRV_DW9718TAF "DW9718TAF"
-#define AFDRV_GT9772AF "GT9772AF"
-#define AFDRV_GT9768AF "GT9768AF"
 
+/*prize add by zhuzhengjiang for lens:zc535 20220110 start*/
+#define AFDRV_AW8601CSR "AW8601CSR"
+#define AFDRV_GT9767AF "GT9767AF"
+#define AFDRV_GT9772AF "GT9772AF"
+#define AFDRV_ZC535AF "ZC535AF"
+#define AFDRV_FP5510FE4AF "FP5510FE4AF"
+#ifdef CONFIG_MTK_LENS_DW9781CAF_SUPPORT
+#define AFDRV_DW9781CAF "DW9781CAF"
+#endif
+#define AFDRV_AW8601xAF "AW8601xAF"
+#define AFDRV_AW86014AF "AW86014AF"
+#define AFDRV_GT9764BAF "GT9764BAF"
+#define AFDRV_CN3927ELCAF "CN3927ELCAF"
+#define AFDRV_AW86017CSRAF "AW86017CSRAF"
+/*prize add by zhuzhengjiang for lens:zc535 20220110 end*/
 #define CONVERT_CCU_TIMESTAMP 0x1000
 
 /* Structures */
@@ -213,5 +231,10 @@ struct stAF_MotorI2CSendCmd {
 #define AFIOC_G_GETDRVNAME _IOWR(AF_MAGIC, 17, struct stAF_MotorName)
 
 #define AFIOC_X_CTRLPARA _IOWR(AF_MAGIC, 18, struct stAF_CtrlCmd)
-
+ // prize add by zhuzhengjiang for ois gyro offset calibration 20220727 start
+#ifdef CONFIG_MTK_LENS_DW9781CAF_SUPPORT
+#define AFIOC_G_GETGRYOFFSETCALI _IOR(AF_MAGIC, 30, u32)
+#define AFIOC_S_SETOISMODE _IOW(AF_MAGIC, 31, u32)
+#endif
+ // prize add by zhuzhengjiang for ois gyro offset calibration 20220727 end
 #endif

@@ -1,0 +1,9 @@
+#include "../../drv_common.h"
+
+#if PRI_AW87XXX_QUADRUPLE
+#include "./aw87xxx_quadruple/aw87xxx_quadruple.dtsi"
+#endif
+
+#if PRI_AW87XXX_SINGLE
+#include "./aw87xxx_single/aw87xxx_single.dtsi"
+#endif

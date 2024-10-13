@@ -1,0 +1,12 @@
+#
+# tlsc6x touchscreen driver configuration
+#
+
+config TOUCHSCREEN_TLSC6X
+	bool "tlsc6x"
+	help
+	  Say Y here if you have a tlsc6x touchscreen connected
+	  to your system.
+
+	  If unsure, say N.
+
